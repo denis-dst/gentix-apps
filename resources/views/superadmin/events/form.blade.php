@@ -67,7 +67,7 @@
         <div>
             <label for="event_start_date" class="block font-medium text-sm text-gray-700 mb-1">Event Start <span class="text-red-500">*</span></label>
             <input type="datetime-local" name="event_start_date" id="event_start_date" 
-                   value="{{ old('event_start_date', isset($event) ? $event->event_start_date->format('Y-m-d\TH:i') : '') }}" 
+                   value="{{ old('event_start_date', (isset($event) && $event->event_start_date) ? $event->event_start_date->format('Y-m-d\TH:i') : '') }}" 
                    class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
                    required>
             @error('event_start_date')
@@ -77,7 +77,7 @@
         <div>
             <label for="event_end_date" class="block font-medium text-sm text-gray-700 mb-1">Event End <span class="text-red-500">*</span></label>
             <input type="datetime-local" name="event_end_date" id="event_end_date" 
-                   value="{{ old('event_end_date', isset($event) ? $event->event_end_date->format('Y-m-d\TH:i') : '') }}" 
+                   value="{{ old('event_end_date', (isset($event) && $event->event_end_date) ? $event->event_end_date->format('Y-m-d\TH:i') : '') }}" 
                    class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
                    required>
             @error('event_end_date')
@@ -87,7 +87,7 @@
         <div>
             <label for="gate_open_at" class="block font-medium text-sm text-gray-700 mb-1">Gate Open <span class="text-red-500">*</span></label>
             <input type="datetime-local" name="gate_open_at" id="gate_open_at" 
-                   value="{{ old('gate_open_at', isset($event) ? $event->gate_open_at->format('Y-m-d\TH:i') : '') }}" 
+                   value="{{ old('gate_open_at', (isset($event) && $event->gate_open_at) ? $event->gate_open_at->format('Y-m-d\TH:i') : '') }}" 
                    class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
                    required>
             @error('gate_open_at')
@@ -97,7 +97,7 @@
         <div>
             <label for="gate_close_at" class="block font-medium text-sm text-gray-700 mb-1">Gate Close <span class="text-red-500">*</span></label>
             <input type="datetime-local" name="gate_close_at" id="gate_close_at" 
-                   value="{{ old('gate_close_at', isset($event) ? $event->gate_close_at->format('Y-m-d\TH:i') : '') }}" 
+                   value="{{ old('gate_close_at', (isset($event) && $event->gate_close_at) ? $event->gate_close_at->format('Y-m-d\TH:i') : '') }}" 
                    class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
                    required>
             @error('gate_close_at')
