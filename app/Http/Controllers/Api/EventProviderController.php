@@ -48,7 +48,9 @@ class EventProviderController extends Controller
             'price' => 'required|numeric',
             'quota' => 'required|integer',
             'hex_color' => 'required|string|size:7', // e.g. #FF5733
-            'category_image' => 'nullable|image'
+            'category_image' => 'nullable|image',
+            'background_image' => 'nullable|image',
+            'layout_config' => 'nullable|array'
         ]);
 
         $validated['event_id'] = $event->id;
@@ -58,8 +60,40 @@ class EventProviderController extends Controller
             $validated['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
         }
 
+        if ($request->hasFile('background_image')) {
+            $validated['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+        }
+
         $category = TicketCategory::create($validated);
         return response()->json($category, 201);
+    }
+
+    /**
+     * Update Desain Kategori Tiket
+     */
+    public function updateTicketDesign(Request $request, TicketCategory $category)
+    {
+        $this->authorizeTenant($category->event);
+
+        $validated = $request->validate([
+            'hex_color' => 'nullable|string|size:7',
+            'category_image' => 'nullable|image',
+            'background_image' => 'nullable|image',
+            'layout_config' => 'nullable|array'
+        ]);
+
+        if ($request->hasFile('category_image')) {
+            if ($category->category_image) Storage::disk('public')->delete($category->category_image);
+            $validated['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
+        }
+
+        if ($request->hasFile('background_image')) {
+            if ($category->background_image) Storage::disk('public')->delete($category->background_image);
+            $validated['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+        }
+
+        $category->update($validated);
+        return response()->json($category);
     }
 
     /**

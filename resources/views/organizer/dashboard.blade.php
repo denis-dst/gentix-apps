@@ -3,55 +3,120 @@
 
     <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <!-- Welcome Hero -->
-        <div class="relative overflow-hidden bg-purple-600 rounded-lg p-8 sm:p-12 text-white shadow-md">
+        <div class="relative overflow-hidden bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-8 sm:p-12 text-white shadow-xl">
             <div class="relative z-10 max-w-2xl">
-                <h2 class="text-3xl sm:text-4xl font-black font-outfit mb-4 leading-tight">
-                    Welcome to the GenTix Family, <br>
+                <h2 class="text-3xl sm:text-4xl font-black mb-4 leading-tight">
+                    Welcome back, <br>
                     <span class="text-purple-200">{{ Auth::user()->tenant->name ?? 'Partner' }}</span>!
                 </h2>
                 <p class="text-lg text-white/90 font-medium mb-8 leading-relaxed">
-                    We're excited to help you bring your events to life. Your dashboard is ready for you to start creating memorable experiences.
+                    Manage your events, track sales, and grow your audience with GenTix.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a href="#" class="px-6 py-2.5 bg-white text-purple-700 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">
-                        Create Your First Event
-                    </a>
-                    <a href="#" class="px-6 py-2.5 bg-purple-700/50 text-white border border-white/30 rounded-lg font-bold hover:bg-purple-700 transition backdrop-blur-sm">
-                        View Documentation
-                    </a>
+                    <button class="px-6 py-3 bg-white text-purple-700 rounded-xl font-bold hover:bg-gray-50 transition shadow-lg flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        Create New Event
+                    </button>
                 </div>
             </div>
             
-            <!-- Decorative Element -->
+            <!-- Decorative Elements -->
             <div class="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
             <div class="absolute bottom-0 right-0 -mb-20 -mr-20 w-64 h-64 bg-black/10 rounded-full blur-2xl"></div>
         </div>
 
-        <!-- Quick Start Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-white p-6 rounded-lg border-t-4 border-blue-500 shadow-md hover:shadow-lg transition group">
-                <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                </div>
-                <h3 class="text-xl font-bold font-outfit mb-2">Create Event</h3>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-light leading-relaxed">Start selling tickets by setting up your first event details and categories.</p>
+        <!-- Events List -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 border-bottom border-gray-50 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Your Events</h3>
+                <span class="px-3 py-1 bg-purple-50 text-purple-600 text-xs font-bold rounded-full uppercase tracking-wider">
+                    {{ $events->count() }} Total
+                </span>
             </div>
 
-            <div class="bg-white p-6 rounded-lg border-t-4 border-amber-500 shadow-md hover:shadow-lg transition group">
-                <div class="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            @if($events->isEmpty())
+                <div class="p-12 text-center">
+                    <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-700">No events yet</h4>
+                    <p class="text-gray-500 mb-8">Start by creating your first event to see it here.</p>
                 </div>
-                <h3 class="text-xl font-bold font-outfit mb-2">Manage Staff</h3>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-light leading-relaxed">Add Loket and Gate officers to help you manage your event operations.</p>
-            </div>
-
-            <div class="bg-white p-6 rounded-lg border-t-4 border-emerald-500 shadow-md hover:shadow-lg transition group">
-                <div class="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50/50">
+                                <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Event Name</th>
+                                <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Date & Venue</th>
+                                <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Stats</th>
+                                <th class="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            @foreach($events as $event)
+                                <tr class="hover:bg-gray-50/50 transition">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-4">
+                                            @if($event->background_image)
+                                                <img src="{{ Storage::url($event->background_image) }}" class="w-12 h-12 rounded-lg object-cover shadow-sm">
+                                            @else
+                                                <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
+                                                    {{ substr($event->name, 0, 1) }}
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <div class="font-bold text-gray-800">{{ $event->name }}</div>
+                                                <div class="text-xs text-gray-400">{{ $event->slug }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="text-sm font-medium text-gray-700">{{ $event->event_start_date->format('d M Y') }}</div>
+                                        <div class="text-xs text-gray-400">{{ $event->venue }}</div>
+                                    </td>
+                                    <td class="p-4">
+                                        @php
+                                            $statusColors = [
+                                                'published' => 'bg-emerald-100 text-emerald-700',
+                                                'draft' => 'bg-gray-100 text-gray-600',
+                                                'cancelled' => 'bg-rose-100 text-rose-700',
+                                            ];
+                                            $color = $statusColors[$event->status] ?? 'bg-blue-100 text-blue-700';
+                                        @endphp
+                                        <span class="px-2 py-1 {{ $color }} text-[10px] font-black uppercase rounded-md tracking-wider">
+                                            {{ $event->status }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex gap-4">
+                                            <div class="text-center">
+                                                <div class="text-sm font-bold text-gray-800">{{ $event->ticket_categories_count }}</div>
+                                                <div class="text-[10px] text-gray-400 uppercase font-bold">Tiers</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="text-sm font-bold text-gray-800">{{ $event->tickets_count }}</div>
+                                                <div class="text-[10px] text-gray-400 uppercase font-bold">Sold</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <div class="flex justify-end gap-2">
+                                            <a href="{{ route('organizer.events.edit', $event) }}" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-400 hover:text-purple-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            </a>
+                                            <button class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-400 hover:text-indigo-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                <h3 class="text-xl font-bold font-outfit mb-2">Analytics</h3>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-light leading-relaxed">Track your ticket sales and gate check-ins in real-time as they happen.</p>
-            </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

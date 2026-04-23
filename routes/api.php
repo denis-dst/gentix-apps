@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\GateController;
 use App\Http\Controllers\Api\AuthController;
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -33,15 +33,19 @@ Route::middleware(['auth:sanctum', 'role:Superadmin'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:Penyedia Event'])->group(function () {
     Route::post('/events', [EventProviderController::class, 'storeEvent']);
     Route::post('/events/{event}/ticket-categories', [EventProviderController::class, 'storeTicketCategory']);
+    Route::post('/ticket-categories/{category}/update-design', [EventProviderController::class, 'updateTicketDesign']);
     Route::get('/events/{event}/analytics', [EventProviderController::class, 'getAnalytics']);
+    
+    // Penjualan & Redemption for Event Provider
+    Route::post('/pos/events/{event}/sell', [POSController::class, 'sellTicket']);
+    Route::post('/pos/redeem', [POSController::class, 'redeemTicket']);
 });
 
 /**
  * POS (Petugas Loket) Routes
  */
 Route::middleware(['auth:sanctum', 'role:Petugas Loket'])->group(function () {
-    Route::post('/pos/events/{event}/sell', [POSController::class, 'sellTicket']);
-    Route::post('/pos/redeem', [POSController::class, 'redeemTicket']);
+    // Moved to Penyedia Event group
 });
 
 /**

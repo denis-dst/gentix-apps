@@ -12,12 +12,19 @@ Route::get('/', function () {
         ->take(6)
         ->get();
     
-    $settings = Setting::pluck('value', 'key')->toArray();
+    $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
     return view('welcome', compact('events', 'settings'));
 });
 
-Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+Route::get('/event/{slug}', [App\Http\Controllers\PublicEventController::class, 'show'])->name('events.show');
+Route::post('/event/{slug}/checkout', [App\Http\Controllers\PublicEventController::class, 'checkout'])->name('checkout.process');
+Route::get('/checkout/success/{reference}', [App\Http\Controllers\PublicEventController::class, 'success'])->name('checkout.success');
+
+Route::get('/tickets/view/{code}', [App\Http\Controllers\TicketViewController::class, 'show'])->name('tickets.view');
+
+
+Route::middleware(['auth', 'role:Superadmin|superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
     // Tenants Trash & Resource
@@ -38,16 +45,21 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 });
 
 Route::get('/dashboard', function () {
-    if (auth()->user()->hasRole('superadmin')) {
+    if (auth()->user()->hasRole(['Superadmin'])) {
         return redirect()->route('superadmin.dashboard');
     }
-    return redirect()->route('organizer.dashboard');
+    if (auth()->user()->hasRole(['Penyedia Event'])) {
+        return redirect()->route('organizer.dashboard');
+    }
+    return redirect('/'); // Fallback for other roles or unassigned
 })->middleware(['auth'])->name('dashboard');
 
-Route::middleware(['auth', 'role:organizer', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
-    Route::get('/dashboard', function() {
-        return view('organizer.dashboard');
-    })->name('dashboard');
+Route::middleware(['auth', 'role:Penyedia Event|Superadmin', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Organizer\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Event Management
+    Route::resource('events', App\Http\Controllers\Organizer\EventController::class)->only(['edit', 'update']);
+    Route::resource('events.categories', App\Http\Controllers\Organizer\TicketCategoryController::class);
 });
 
 Route::middleware('auth')->group(function () {

@@ -189,7 +189,7 @@
                                     Coming Soon
                                 @endif
                             </span>
-                            <a href="#" class="px-6 py-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-gentix-600 hover:text-white transition-all text-sm font-bold">Details</a>
+                            <a href="{{ route('events.show', $event->slug) }}" class="px-6 py-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-gentix-600 hover:text-white transition-all text-sm font-bold">Details</a>
                         </div>
                     </div>
                 </div>

@@ -10,6 +10,7 @@ use App\Models\TicketCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\TicketNotificationService;
 
 class POSController extends Controller
 {
@@ -18,6 +19,8 @@ class POSController extends Controller
      */
     public function sellTicket(Request $request, Event $event)
     {
+        $this->authorizeTenant($event);
+
         $request->validate([
             'ticket_category_id' => 'required|exists:ticket_categories,id',
             'customer_name' => 'required',
@@ -27,8 +30,19 @@ class POSController extends Controller
         ]);
 
         $category = TicketCategory::find($request->ticket_category_id);
+        
+        // Quota Check
         if ($category->sold_count >= $category->quota) {
             return response()->json(['message' => 'Quota full'], 422);
+        }
+
+        // Release Time Check
+        $now = now();
+        if ($category->sale_start_at && $now->lt($category->sale_start_at)) {
+            return response()->json(['message' => 'Ticket is not yet available for sale until ' . $category->sale_start_at->format('d M Y H:i')], 422);
+        }
+        if ($category->sale_end_at && $now->gt($category->sale_end_at)) {
+            return response()->json(['message' => 'Ticket sales have ended'], 422);
         }
 
         return DB::transaction(function () use ($request, $event, $category) {
@@ -60,7 +74,10 @@ class POSController extends Controller
 
             $category->increment('sold_count');
 
-            return response()->json(['message' => 'Ticket sold', 'ticket' => $ticket]);
+            // Send E-Voucher
+            app(TicketNotificationService::class)->sendEVoucher($ticket);
+
+            return response()->json(['message' => 'Ticket sold and E-Voucher sent', 'ticket' => $ticket]);
         });
     }
 
@@ -75,6 +92,8 @@ class POSController extends Controller
         ]);
 
         $ticket = Ticket::where('ticket_code', $request->ticket_code)->first();
+
+        $this->authorizeTenant($ticket->event);
 
         if ($ticket->status === 'redeemed') {
             return response()->json(['message' => 'Ticket already redeemed at ' . $ticket->redeemed_at], 422);
@@ -92,5 +111,13 @@ class POSController extends Controller
             'visitor' => $ticket->transaction->customer_name,
             'category' => $ticket->category->name
         ]);
+    }
+
+    private function authorizeTenant(Event $event)
+    {
+        // Skip authorization for Superadmin if needed, but for now strict to tenant_id
+        if ($event->tenant_id !== auth()->user()->tenant_id) {
+            abort(403, 'Unauthorized access to this event');
+        }
     }
 }

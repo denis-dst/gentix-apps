@@ -13,12 +13,16 @@ class TicketCategory extends Model
     protected $fillable = [
         'event_id', 'tenant_id', 'name', 'description', 'price', 
         'quota', 'sold_count', 'hex_color', 'category_image', 
-        'is_active', 'sort_order'
+        'background_image', 'layout_config', 'is_active', 
+        'sale_start_at', 'sale_end_at', 'sort_order'
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'is_active' => 'boolean',
+        'layout_config' => 'array',
+        'sale_start_at' => 'datetime',
+        'sale_end_at' => 'datetime',
     ];
 
     public function event()
@@ -34,5 +38,17 @@ class TicketCategory extends Model
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    public function isAvailable()
+    {
+        if (!$this->is_active) return false;
+        if ($this->sold_count >= $this->quota) return false;
+        
+        $now = now();
+        if ($this->sale_start_at && $now->lt($this->sale_start_at)) return false;
+        if ($this->sale_end_at && $now->gt($this->sale_end_at)) return false;
+
+        return true;
     }
 }
