@@ -42,6 +42,30 @@
                                 <span class="text-sm text-gray-500">Update the color theme for this tier.</span>
                             </div>
                         </div>
+
+                        <div class="pt-4 border-t border-gray-50 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Pembatasan NIK (Opsional)</label>
+                                <input type="text" name="nik_restriction" value="{{ old('nik_restriction', $category->nik_restriction) }}" placeholder="Contoh: 18 (untuk Lampung)" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3 bg-purple-50/30">
+                                <p class="mt-2 text-[10px] text-gray-500 italic leading-relaxed">
+                                    Masukkan 2-4 digit awal NIK untuk membatasi area pembeli. Pisahkan dengan koma jika lebih dari satu (misal: 18, 31).
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pesan Error Kustom</label>
+                                <input type="text" name="nik_restriction_message" value="{{ old('nik_restriction_message', $category->nik_restriction_message) }}" placeholder="Contoh: Maaf, tiket ini khusus KTP Lampung" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                <p class="mt-2 text-[10px] text-gray-500 italic">
+                                    Pesan yang muncul jika NIK pembeli tidak sesuai. Kosongkan untuk menggunakan pesan default.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Teks Badge (Keterangan Tiket)</label>
+                                <input type="text" name="badge_text" value="{{ old('badge_text', $category->badge_text) }}" placeholder="Contoh: Khusus Loyal Supporters" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                <p class="mt-2 text-[10px] text-gray-500 italic">
+                                    Label teks kecil yang muncul di bawah harga tiket (misal: "Promo Terbatas", "Khusus Member").
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Scheduling & Design -->

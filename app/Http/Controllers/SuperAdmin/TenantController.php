@@ -23,9 +23,6 @@ class TenantController extends Controller
         return view('superadmin.tenants.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -34,13 +31,39 @@ class TenantController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive,suspended',
+            'password' => 'required|string|min:8', // Added password field for the initial user
         ]);
 
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
 
-        Tenant::create($validated);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
+            // 1. Create the Tenant
+            $tenant = Tenant::create([
+                'name' => $validated['name'],
+                'slug' => $validated['slug'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'address' => $validated['address'],
+                'status' => $validated['status'],
+            ]);
 
-        return redirect()->route('superadmin.tenants.index')->with('success', 'Organizer created successfully.');
+            // 2. Create the User (Organizer)
+            $user = \App\Models\User::create([
+                'tenant_id' => $tenant->id,
+                'name' => $validated['name'] . ' Admin',
+                'email' => $validated['email'],
+                'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
+                'is_active' => true,
+            ]);
+
+            // 3. Assign Role
+            $user->assignRole('organizer');
+
+            // 4. Set Tenant Owner
+            $tenant->update(['user_id' => $user->id]);
+        });
+
+        return redirect()->route('superadmin.tenants.index')->with('success', 'Organizer and User account created successfully.');
     }
 
     /**

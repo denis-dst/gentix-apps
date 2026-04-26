@@ -13,7 +13,7 @@ class Ticket extends Model
     protected $fillable = [
         'tenant_id', 'event_id', 'transaction_id', 'ticket_category_id', 
         'ticket_code', 'wristband_qr', 'status', 'redeemed_at', 
-        'redeemed_by', 'visitor_data'
+        'redeemed_by', 'visitor_data', 'redeem_photo'
     ];
 
     protected $casts = [

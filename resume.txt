@@ -1,0 +1,46 @@
+GENTIX APPS - FULL SYSTEM RESUME
+========================================
+Tanggal: 26 April 2026
+Project: Integrated Event Ticketing & Redemption System
+
+1. SUPERADMIN MODULE (CENTRAL CONTROL)
+--------------------------------------
+- Tenant Management: CRUD penuh data Tenant/Penyedia Event.
+- Global Soft-Delete System: Fitur Trash, Restore, dan Force Delete untuk Tenant dan Event.
+- Dashboard Monitoring: Pantauan total transaksi, event aktif, dan pendapatan secara global.
+- Site Settings: Pengaturan konfigurasi sistem (Nama aplikasi, logo, footer, dll).
+- RBAC (Role Based Access Control): Manajemen hak akses untuk Superadmin, Organizer, Loket, dan Gate.
+
+2. TENANT / ORGANIZER MODULE
+----------------------------
+- Event Management: Dashboard mandiri untuk membuat dan mengelola event (CRUD).
+- Ticket Categories: Pengaturan kategori tiket per event (VIP, Regular, dll).
+- Security Code Management: Fitur Auto-Generate atau Manual PIN 6-digit untuk keamanan kru scan.
+- Promo & Voucher System: Pembuatan kode diskon/voucher untuk meningkatkan penjualan.
+- Crew Management: Pendaftaran akun khusus kru (Loket/Gate) yang terisolasi per tenant.
+- Finance & Reports: Laporan penjualan tiket, data transaksi pembeli, dan rekapan keuangan.
+
+3. REDEMPTION & GATE SYSTEM (FIELD OPERATIONS)
+----------------------------------------------
+- Online & Offline Mode: Fleksibilitas scanning dengan atau tanpa internet (LocalStorage).
+- Field Synchronization: Sinkronisasi otomatis data scan offline ke server pusat.
+- Anti-Fraud Logic: Deteksi tiket ganda dengan histori foto dan waktu redeem sebelumnya.
+- Auto-Submit Input: Fitur input manual cerdas dengan deteksi karakter (10 digit) untuk mempercepat antrean.
+- Instant Feedback: Indikator visual premium dan audio nyaring untuk status validasi.
+
+4. PUBLIC / CUSTOMER FEATURES
+-----------------------------
+- Event Landing Page: Tampilan detail event yang responsif dan premium.
+- Quick Checkout: Integrasi pembayaran (Midtrans) untuk pembelian tiket.
+- E-Ticket Delivery: Pengiriman tiket digital dengan kode QR unik ke pelanggan.
+- Ticket View Page: Halaman khusus bagi pelanggan untuk melihat detail tiket mereka.
+
+5. TECHNICAL ARCHITECTURE
+-------------------------
+- Framework: Laravel (Backend) & Alpine.js (Frontend State).
+- Database: MySQL/PostgreSQL dengan manajemen Role & Permission.
+- UI Design: High-Contrast Premium UI dengan Inline CSS Hardening.
+- Integration: Midtrans Payment Gateway & Html5Qrcode Scanner.
+
+========================================
+"Sistem end-to-end yang menghubungkan Pengelola Pusat, Organizer, hingga Kru di Lapangan."

@@ -11,7 +11,7 @@ class TicketCategory extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'event_id', 'tenant_id', 'name', 'description', 'price', 
+        'event_id', 'tenant_id', 'name', 'description', 'price', 'nik_restriction', 'nik_restriction_message', 'badge_text',
         'quota', 'sold_count', 'hex_color', 'category_image', 
         'background_image', 'layout_config', 'is_active', 
         'sale_start_at', 'sale_end_at', 'sort_order'

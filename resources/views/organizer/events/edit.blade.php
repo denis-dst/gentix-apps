@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Left Column: Event Details Form -->
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-8">
@@ -26,6 +26,26 @@
                         @csrf
                         @method('PATCH')
                         
+                        @if($event->background_image)
+                            <div class="mb-6 group relative">
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Event Thumbnail</label>
+                                <div class="relative rounded-2xl overflow-hidden shadow-md border border-gray-100 aspect-video bg-gray-50">
+                                    <img src="{{ asset('storage/' . $event->background_image) }}" 
+                                         onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80'"
+                                         class="w-full h-full object-cover transition duration-500 group-hover:scale-105" alt="Thumbnail">
+                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                        <span class="text-white text-xs font-bold px-3 py-1 bg-black/50 rounded-full backdrop-blur-sm">Preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Update Thumbnail</label>
+                            <input type="file" name="background_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
+                            <p class="mt-1 text-[10px] text-gray-400 italic">Recommended aspect ratio 4:3 (e.g. 800x600px)</p>
+                        </div>
+
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Event Name</label>
                             <input type="text" name="name" value="{{ old('name', $event->name) }}" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition">
@@ -53,14 +73,89 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
-                            <select name="status" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition">
-                                <option value="draft" {{ $event->status == 'draft' ? 'selected' : '' }}>Draft</option>
-                                <option value="published" {{ $event->status == 'published' ? 'selected' : '' }}>Published</option>
-                                <option value="cancelled" {{ $event->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
+                                <select name="status" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition">
+                                    <option value="draft" {{ $event->status == 'draft' ? 'selected' : '' }}>Draft</option>
+                                    <option value="published" {{ $event->status == 'published' ? 'selected' : '' }}>Published</option>
+                                    <option value="cancelled" {{ $event->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Security Code (6 Digit)</label>
+                                <div class="flex gap-2">
+                                    <input type="text" name="security_code" id="security_code" value="{{ old('security_code', $event->security_code) }}" class="flex-1 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition font-mono font-bold text-center tracking-[0.3em]" maxlength="6" placeholder="000000">
+                                    <button type="button" onclick="generatePIN()" class="px-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition text-[10px] font-black uppercase">Gen</button>
+                                </div>
+                            </div>
                         </div>
+
+                        <script>
+                            function generatePIN() {
+                                const pin = Math.floor(100000 + Math.random() * 900000);
+                                document.getElementById('security_code').value = pin;
+                            }
+                        </script>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Syarat & Ketentuan (S&K)</label>
+                            
+                            <!-- Quill CSS -->
+                            <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+                            
+                            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden focus-within:border-purple-500 transition-all">
+                                <div id="editor" style="height: 250px; border: none;" class="text-sm text-gray-600">
+                                    {!! old('terms_conditions', $event->terms_conditions) !!}
+                                </div>
+                            </div>
+                            <!-- Hidden input for Quill -->
+                            <input type="hidden" name="terms_conditions" id="terms_conditions_input" value="{{ old('terms_conditions', $event->terms_conditions) }}">
+                            
+                            <p class="text-[10px] text-gray-400 mt-1 italic">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
+                        </div>
+
+                        <!-- Quill JS -->
+                        <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+                        <script>
+                            var quill = new Quill('#editor', {
+                                theme: 'snow',
+                                modules: {
+                                    toolbar: [
+                                        ['bold', 'italic', 'underline'],
+                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                        ['link', 'clean']
+                                    ]
+                                },
+                                placeholder: 'Tuliskan S&K khusus event ini...'
+                            });
+
+                            // Sync Quill to hidden input
+                            var termsInput = document.querySelector('#terms_conditions_input');
+                            
+                            quill.on('text-change', function() {
+                                termsInput.value = quill.root.innerHTML;
+                            });
+
+                            var form = termsInput.closest('form');
+                            form.addEventListener('submit', function() {
+                                termsInput.value = quill.root.innerHTML;
+                            });
+
+                            // Initialize
+                            termsInput.value = quill.root.innerHTML;
+
+                            // Styling
+                            var toolbar = document.querySelector('.ql-toolbar');
+                            if (toolbar) {
+                                toolbar.style.border = 'none';
+                                toolbar.style.borderBottom = '1px solid #f3f4f6';
+                            }
+                            var container = document.querySelector('.ql-container');
+                            if (container) {
+                                container.style.border = 'none';
+                            }
+                        </script>
 
                         <button type="submit" class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-200">
                             Save Event Details
@@ -70,7 +165,7 @@
             </div>
 
             <!-- Right Column: Ticket Categories -->
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-1 space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>

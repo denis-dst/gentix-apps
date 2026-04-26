@@ -18,7 +18,7 @@ class CheckTenantStatus
         $user = $request->user();
 
         // Superadmins are exempt
-        if ($user && ($user->hasRole('Superadmin') || $user->hasRole('superadmin'))) {
+        if ($user && $user->hasRole(['superadmin', 'Superadmin'])) {
             return $next($request);
         }
 

@@ -11,9 +11,9 @@ class Event extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id', 'name', 'slug', 'description', 'venue', 'city', 
+        'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 
         'background_image', 'banner_image', 'event_start_date', 
-        'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta'
+        'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code'
     ];
 
     protected $casts = [

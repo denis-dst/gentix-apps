@@ -23,6 +23,9 @@ class TicketCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
+            'nik_restriction' => 'nullable|string|max:255',
+            'nik_restriction_message' => 'nullable|string|max:255',
+            'badge_text' => 'nullable|string|max:255',
             'quota' => 'required|integer|min:1',
             'sale_start_at' => 'nullable|date',
             'sale_end_at' => 'nullable|date|after:sale_start_at',
@@ -64,6 +67,9 @@ class TicketCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
+            'nik_restriction' => 'nullable|string|max:255',
+            'nik_restriction_message' => 'nullable|string|max:255',
+            'badge_text' => 'nullable|string|max:255',
             'quota' => 'required|integer|min:1',
             'sale_start_at' => 'nullable|date',
             'sale_end_at' => 'nullable|date|after:sale_start_at',

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gentix Apps - Redemption Flow Visualization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --slate: #64748b;
+            --bg: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--dark);
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .badge {
+            background: rgba(79, 70, 221, 0.1);
+            color: var(--primary);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: var(--slate);
+            font-size: 18px;
+        }
+
+        /* Flow Grid */
+        .flow-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .step-card {
+            background: white;
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
+            border: 1px solid #f1f5f9;
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .step-num {
+            width: 40px;
+            height: 40px;
+            background: var(--dark);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .step-card h3 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        .step-card p {
+            color: var(--slate);
+            font-size: 14px;
+        }
+
+        /* Features Section */
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-item {
+            background: white;
+            border-radius: 32px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.08);
+        }
+
+        .feature-icon {
+            width: 100px;
+            background: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .feature-content {
+            padding: 30px;
+        }
+
+        .feature-content h4 {
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .feature-content ul {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .feature-content li {
+            font-size: 13px;
+            color: var(--slate);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature-content li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            color: var(--slate);
+            font-size: 12px;
+            padding-bottom: 40px;
+        }
+
+        @media (max-width: 600px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .feature-item { flex-direction: column; }
+            .feature-icon { width: 100%; height: 80px; }
+            h1 { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge">Sistem Redemption v1.0</div>
+            <h1>GENTIX APPS Flow</h1>
+            <p class="subtitle">Visualisasi Alur Kerja Kru di Lapangan</p>
+        </header>
+
+        <div class="section-title">
+            <h2 style="font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--slate); font-size: 14px;">Alur Kerja Utama (Flow)</h2>
+        </div>
+
+        <div class="flow-container">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h3>Login & Masuk</h3>
+                <p>Kru login dengan akun Petugas. Sistem otomatis mengarahkan ke dashboard Redemption berdasarkan hak akses.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h3>Pilih Event & PIN</h3>
+                <p>Memilih event aktif, memasukkan 6-digit PIN keamanan, dan menentukan peran (Redeem atau Gate In).</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h3>Mode Scanning</h3>
+                <p>Sistem standby mencari QR. Tersedia mode Online (Cloud) atau Offline (Local Storage) jika jaringan buruk.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">04</div>
+                <h3>Hasil & Foto</h3>
+                <p>Validasi instan, bunyi suara sukses/gagal, pengambilan foto pengunjung, dan otomatis reset untuk antrean berikutnya.</p>
+            </div>
+        </div>
+
+        <div class="section-title">
+            <h2 style="font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--slate); font-size: 14px;">Ekosistem Gentix Apps</h2>
+        </div>
+
+        <div class="features-grid">
+            <!-- SUPERADMIN -->
+            <div class="feature-item">
+                <div class="feature-icon" style="background: var(--dark);">
+                    <svg style="width: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="feature-content">
+                    <h4>Superadmin Control</h4>
+                    <ul>
+                        <li>Tenant Management (Full CRUD)</li>
+                        <li>Global Soft-Delete & Restore System</li>
+                        <li>Site Configuration (Logo, Meta, SEO)</li>
+                        <li>Global Financial Monitoring</li>
+                        <li>Role-Based Access Control (RBAC)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- TENANT -->
+            <div class="feature-item">
+                <div class="feature-icon" style="background: var(--primary);">
+                    <svg style="width: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </div>
+                <div class="feature-content">
+                    <h4>Tenant / Organizer</h4>
+                    <ul>
+                        <li>Event Dashboard (Draft & Published)</li>
+                        <li>Ticket Category & Pricing Control</li>
+                        <li>Voucher & Promo Code Management</li>
+                        <li>Crew Account Registration</li>
+                        <li>Security Code (PIN) Management</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- REDEMPTION -->
+            <div class="feature-item">
+                <div class="feature-icon" style="background: var(--success);">
+                    <svg style="width: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <div class="feature-content">
+                    <h4>Redemption System</h4>
+                    <ul>
+                        <li>Offline Scanning Persistence</li>
+                        <li>Face-Capture Verification</li>
+                        <li>Auto-Submit Manual Input</li>
+                        <li>Online/Offline Data Sync</li>
+                        <li>High-Volume Audio Alerts</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- DATA INTEGRITY -->
+            <div class="feature-item">
+                <div class="feature-icon" style="background: var(--slate);">
+                    <svg style="width: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="feature-content">
+                    <h4>Reports & Analytics</h4>
+                    <ul>
+                        <li>Transaction Detail Tracking</li>
+                        <li>Finance Summary Reports</li>
+                        <li>Check-in Real-time Stats</li>
+                        <li>Anti-Duplicate Security Audit</li>
+                        <li>Redeem Photo History</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            &copy; 2026 Gentix Apps - Advanced Agentic Development System
+        </footer>
+    </div>
+</body>
+</html>

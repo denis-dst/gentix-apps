@@ -11,15 +11,20 @@ class Tenant extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name', 'slug', 'email', 'phone', 'address', 'logo', 
+        'user_id', 'name', 'slug', 'email', 'phone', 'address', 'logo', 
         'status', 'payment_server_key', 'payment_client_key', 
-        'meta', 'synced_at'
+        'meta', 'synced_at', 'terms_conditions'
     ];
 
     protected $casts = [
         'meta' => 'array',
         'synced_at' => 'datetime',
     ];
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function users()
     {
