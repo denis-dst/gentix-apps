@@ -165,7 +165,7 @@
                 @foreach($events as $event)
                 <div class="glass glass-card rounded-3xl overflow-hidden group transition-all hover:shadow-2xl hover:shadow-gentix-600/10">
                     <div class="relative h-64 overflow-hidden">
-                        <img src="/images/{{ $event->background_image ?? 'concert.png' }}" alt="{{ $event->name }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <img src="{{ $event->background_image ? asset('storage/' . $event->background_image) : asset('images/concert.png') }}" alt="{{ $event->name }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
                         <div class="absolute top-4 left-4 px-3 py-1 bg-gentix-600 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
                             {{ $event->city ?? 'Event' }}
                         </div>
@@ -184,7 +184,7 @@
                         <div class="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
                             <span class="text-xl font-bold text-gentix-600 dark:text-gentix-300">
                                 @if($event->ticketCategories->count() > 0)
-                                    From ${{ number_format($event->ticketCategories->min('price'), 2) }}
+                                    Mulai Rp. {{ number_format($event->ticketCategories->min('price'), 0, ',', '.') }}
                                 @else
                                     Coming Soon
                                 @endif

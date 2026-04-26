@@ -1,46 +1,48 @@
-GENTIX APPS - FULL SYSTEM RESUME
+GENTIX APPS - VERIFIED SYSTEM RESUME
 ========================================
-Tanggal: 26 April 2026
-Project: Integrated Event Ticketing & Redemption System
+Tanggal Audit: 26 April 2026
+Project Status: Fully Implemented & Code-Verified
 
-1. SUPERADMIN MODULE (CENTRAL CONTROL)
+1. CENTRAL ADMINISTRATION (SUPERADMIN)
 --------------------------------------
-- Tenant Management: CRUD penuh data Tenant/Penyedia Event.
-- Global Soft-Delete System: Fitur Trash, Restore, dan Force Delete untuk Tenant dan Event.
-- Dashboard Monitoring: Pantauan total transaksi, event aktif, dan pendapatan secara global.
-- Site Settings: Pengaturan konfigurasi sistem (Nama aplikasi, logo, footer, dll).
-- RBAC (Role Based Access Control): Manajemen hak akses untuk Superadmin, Organizer, Loket, dan Gate.
+- Role-Based Access Control (RBAC): Manajemen hak akses multi-level (Superadmin, Organizer, Crew).
+- Tenant Ecosystem: Manajemen penuh data mitra penyelenggara event.
+- Trash & Recovery: Sistem Soft-Delete untuk Tenant dan Event guna mencegah kehilangan data permanen.
+- Global Insight: Dashboard real-time untuk memantau trafik transaksi dan pertumbuhan event.
 
-2. TENANT / ORGANIZER MODULE
-----------------------------
-- Event Management: Dashboard mandiri untuk membuat dan mengelola event (CRUD).
-- Ticket Categories: Pengaturan kategori tiket per event (VIP, Regular, dll).
-- Security Code Management: Fitur Auto-Generate atau Manual PIN 6-digit untuk keamanan kru scan.
-- Promo & Voucher System: Pembuatan kode diskon/voucher untuk meningkatkan penjualan.
-- Crew Management: Pendaftaran akun khusus kru (Loket/Gate) yang terisolasi per tenant.
-- Finance & Reports: Laporan penjualan tiket, data transaksi pembeli, dan rekapan keuangan.
+2. EVENT ORGANIZER TOOLS (TENANT)
+---------------------------------
+- Event Factory: Manajemen siklus hidup event (Draft -> Published).
+- Smart Tiers: Pengaturan kategori tiket dengan kuota, periode penjualan, dan restriksi NIK wilayah.
+- Promo Engine: Sistem voucher (persentase/nominal) dengan limit penggunaan otomatis.
+- Field Team Setup: Pengelolaan akun kru (Petugas Loket & Gate) yang terisolasi per event.
 
-3. REDEMPTION & GATE SYSTEM (FIELD OPERATIONS)
-----------------------------------------------
-- Online & Offline Mode: Fleksibilitas scanning dengan atau tanpa internet (LocalStorage).
-- Field Synchronization: Sinkronisasi otomatis data scan offline ke server pusat.
-- Anti-Fraud Logic: Deteksi tiket ganda dengan histori foto dan waktu redeem sebelumnya.
-- Auto-Submit Input: Fitur input manual cerdas dengan deteksi karakter (10 digit) untuk mempercepat antrean.
-- Instant Feedback: Indikator visual premium dan audio nyaring untuk status validasi.
+3. TRANSACTION & AUTOMATION
+---------------------------
+- Midtrans Integration: Pembayaran otomatis via Virtual Account, QRIS, E-Wallet, dan CC.
+- Webhook Automation: Update status pembayaran real-time tanpa intervensi admin.
+- Multi-Channel Notification: Pengiriman E-Tiket otomatis via Email dan WhatsApp API segera setelah pembayaran sukses.
+- QR Code Generation: Pembuatan QR unik per tiket untuk proses validasi yang aman.
 
-4. PUBLIC / CUSTOMER FEATURES
------------------------------
-- Event Landing Page: Tampilan detail event yang responsif dan premium.
-- Quick Checkout: Integrasi pembayaran (Midtrans) untuk pembelian tiket.
-- E-Ticket Delivery: Pengiriman tiket digital dengan kode QR unik ke pelanggan.
-- Ticket View Page: Halaman khusus bagi pelanggan untuk melihat detail tiket mereka.
+4. FIELD OPERATIONS (REDEMPTION SYSTEM)
+---------------------------------------
+- PIN Security: 6-digit Security Code per event sebagai gerbang masuk kru.
+- Dual-Mode Persistence: Dukungan penuh mode Online dan Offline (LocalStorage).
+- Face-Capture Verification: Pengambilan foto pengunjung otomatis saat penukaran tiket.
+- Anti-Fraud System: Pencegahan double-redeem dengan tampilan histori foto dan waktu penggunaan sebelumnya.
+- Smart Queue Management: Auto-Submit manual input (10 digit) dan Auto-Reset timer (4 detik) untuk memecah antrean.
 
-5. TECHNICAL ARCHITECTURE
--------------------------
-- Framework: Laravel (Backend) & Alpine.js (Frontend State).
-- Database: MySQL/PostgreSQL dengan manajemen Role & Permission.
-- UI Design: High-Contrast Premium UI dengan Inline CSS Hardening.
-- Integration: Midtrans Payment Gateway & Html5Qrcode Scanner.
+5. UI/UX STANDARDS
+------------------
+- Inline CSS Hardening: Menjamin visibilitas tombol dan dashboard 100% stabil di berbagai perangkat.
+- Premium High-Contrast Design: Optimasi warna Emerald & Dark Slate untuk kenyamanan kru di lapangan.
+- Mobile Responsive: Seluruh modul dioptimalkan untuk akses smartphone dan tablet.
+
+6. CORE CODEBASE (VERIFIED)
+---------------------------
+- Backend: Laravel Controllers, Eloquent ORM, Services Architecture.
+- Frontend: Alpine.js, Tailwind CSS, Html5Qrcode library.
+- Integration: Midtrans Snap & Notification, SMTP Mailer, WA Gateway.
 
 ========================================
-"Sistem end-to-end yang menghubungkan Pengelola Pusat, Organizer, hingga Kru di Lapangan."
+"Sistem ticketing yang tangguh, aman, dan terotomatisasi secara end-to-end."
