@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>GenTix SuperAdmin - {{ $title ?? 'Dashboard' }}</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,94 +13,92 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
-        .sidebar-item-active {
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
-            border-left: 4px solid #f97316;
-            color: #f97316;
-        }
+        [x-cloak] { display: none !important; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-[#0B0F1A] text-slate-900 dark:text-slate-100">
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white dark:bg-slate-900 border-r border-black/5 dark:border-white/5 flex flex-col">
-            <div class="p-6">
-                <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-2">
+<body class="h-full bg-slate-50 text-slate-900 antialiased font-sans overflow-hidden" x-data="{ sidebarOpen: false }">
+    <!-- Desktop Layout -->
+    <div class="hidden lg:flex h-full overflow-hidden">
+        <!-- Persistent Sidebar -->
+        <aside class="w-72 bg-[#0f172a] text-slate-300 flex flex-col shrink-0 border-r border-white/5">
+            <div class="h-16 flex items-center px-6 bg-[#0a0f1d] shrink-0">
+                <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                        </svg>
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
                     </div>
-                    <span class="text-xl font-bold font-outfit uppercase">Gen<span class="text-orange-400">Tix</span></span>
+                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">Gen<span class="text-orange-400">Tix</span></span>
                 </a>
             </div>
             
-            <nav class="flex-1 px-4 space-y-2 mt-4">
-                <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition {{ request()->routeIs('superadmin.dashboard') ? 'sidebar-item-active' : 'hover:bg-slate-50 dark:hover:bg-white/5' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                    <span class="font-semibold text-sm">Dashboard</span>
-                </a>
-                
-                <div class="pt-4 pb-2 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Management</div>
-                
-                <a href="{{ route('superadmin.tenants.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition {{ request()->routeIs('superadmin.tenants.*') ? 'sidebar-item-active' : 'hover:bg-slate-50 dark:hover:bg-white/5' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                    <span class="font-semibold text-sm">Tenants / Organizers</span>
-                </a>
-                
-                <a href="{{ route('superadmin.events.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition {{ request()->routeIs('superadmin.events.*') ? 'sidebar-item-active' : 'hover:bg-slate-50 dark:hover:bg-white/5' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span class="font-semibold text-sm">All Events</span>
-                </a>
-
-                <a href="{{ route('superadmin.transactions.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition {{ request()->routeIs('superadmin.transactions.*') ? 'sidebar-item-active' : 'hover:bg-slate-50 dark:hover:bg-white/5' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    <span class="font-semibold text-sm">Transactions</span>
-                </a>
-                
-                <div class="pt-4 pb-2 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Settings</div>
-                
-                <a href="{{ route('superadmin.settings.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition {{ request()->routeIs('superadmin.settings.*') ? 'sidebar-item-active' : 'hover:bg-slate-50 dark:hover:bg-white/5' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span class="font-semibold text-sm">Site Settings</span>
-                </a>
-            </nav>
-            
-            <div class="p-4 border-t border-black/5 dark:border-white/5">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        <span class="font-semibold text-sm">Logout</span>
-                    </button>
-                </form>
-            </div>
+            @include('layouts.partials.sidebar-content')
         </aside>
-        
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0">
-            <!-- Header -->
-            <header class="h-20 bg-white dark:bg-slate-900 border-b border-black/5 dark:border-white/5 flex items-center justify-between px-8">
-                <h1 class="text-xl font-bold font-outfit">{{ $title ?? 'Dashboard' }}</h1>
-                <div class="flex items-center gap-4">
-                    <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold">{{ Auth::user()->name }}</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-widest">{{ Auth::user()->getRoleNames()->first() }}</div>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center font-bold text-orange-500 border border-black/5">
-                        {{ substr(Auth::user()->name, 0, 1) }}
-                    </div>
-                </div>
+
+        <!-- Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            @if(!auth()->user()->hasRole('Petugas Gate'))
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+                <h1 class="text-lg font-black text-slate-800 font-outfit">{{ $title ?? 'Dashboard' }}</h1>
+                @include('layouts.partials.header-profile')
             </header>
+            @endif
             
-            <!-- Content Area -->
-            <div class="p-8 flex-1 overflow-y-auto">
+            <main class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
+                @include('layouts.partials.page-header')
+                <div class="p-8 max-w-[1400px] mx-auto w-full">
+                    {{ $slot }}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Mobile Layout -->
+    <div class="lg:hidden flex flex-col h-full overflow-hidden">
+        @if(!auth()->user()->hasRole('Petugas Gate'))
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-30">
+            <button @click="sidebarOpen = true" class="p-2 -ml-2 text-slate-500 hover:text-orange-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <span class="text-lg font-black text-slate-800 font-outfit uppercase tracking-tight">Gen<span class="text-orange-500">Tix</span></span>
+            <div class="w-10 h-10 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold">
+                {{ substr(Auth::user()->name, 0, 1) }}
+            </div>
+        </header>
+        @endif
+
+        <main class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
+            @include('layouts.partials.page-header')
+            <div class="p-4 pb-12 w-full">
                 {{ $slot }}
             </div>
         </main>
+
+        <!-- Mobile Sidebar Overlay -->
+        <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 flex overflow-hidden">
+            <div x-show="sidebarOpen" x-transition:opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="sidebarOpen = false"></div>
+            <aside x-show="sidebarOpen" 
+                   x-transition:enter="transition-transform duration-300"
+                   x-transition:enter-start="-translate-x-full"
+                   x-transition:enter-end="translate-x-0"
+                   x-transition:leave="transition-transform duration-300"
+                   x-transition:leave-start="translate-x-0"
+                   x-transition:leave-end="-translate-x-full"
+                   class="relative w-72 bg-[#0f172a] text-slate-300 flex flex-col h-full shadow-2xl">
+                <div class="h-16 flex items-center justify-between px-6 bg-[#0a0f1d] shrink-0 border-b border-white/5">
+                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">Gen<span class="text-orange-400">Tix</span></span>
+                    <button @click="sidebarOpen = false" class="p-2 text-slate-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                @include('layouts.partials.sidebar-content')
+            </aside>
+        </div>
     </div>
+
     <x-accessibility-widget />
 </body>
 </html>

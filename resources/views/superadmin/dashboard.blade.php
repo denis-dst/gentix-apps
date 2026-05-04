@@ -1,130 +1,154 @@
 <x-app-layout>
-    <x-slot name="title">Dashboard</x-slot>
+    <x-slot name="title">Ringkasan Dashboard</x-slot>
 
-    <!-- AdminLTE Small Boxes -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         <!-- Revenue -->
-        <div class="relative bg-cyan-500 text-white p-6 rounded-lg shadow-lg overflow-hidden group">
-            <div class="relative z-10">
-                <div class="text-3xl font-black mb-1">${{ number_format($stats['total_revenue'], 2) }}</div>
-                <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Total Revenue</div>
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 group hover:shadow-md transition-all duration-300 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Pendapatan</p>
+                <h3 class="text-2xl font-black text-slate-800 font-outfit leading-tight">${{ number_format($stats['total_revenue'], 2) }}</h3>
+                <div class="mt-2 flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-cyan-50 text-cyan-600 text-[9px] font-black uppercase rounded-md tracking-wider">Live Update</span>
+                </div>
             </div>
-            <div class="absolute right-2 top-2 text-white/20 transition-transform duration-300 group-hover:scale-110">
-                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div class="w-14 h-14 bg-cyan-50 rounded-2xl flex items-center justify-center text-cyan-500 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300 shadow-sm border border-cyan-100/50">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <a href="#" class="absolute bottom-0 left-0 right-0 bg-black/10 py-1.5 text-center text-[10px] font-bold uppercase hover:bg-black/20 transition">More info</a>
         </div>
 
         <!-- Tenants -->
-        <div class="relative bg-green-500 text-white p-6 rounded-lg shadow-lg overflow-hidden group">
-            <div class="relative z-10">
-                <div class="text-3xl font-black mb-1">{{ $stats['total_tenants'] }}</div>
-                <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Organizers</div>
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 group hover:shadow-md transition-all duration-300 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Penyedia Event</p>
+                <h3 class="text-2xl font-black text-slate-800 font-outfit leading-tight">{{ $stats['total_tenants'] }}</h3>
+                <div class="mt-2">
+                    <a href="{{ route('superadmin.tenants.index') }}" class="text-[9px] font-black text-green-600 uppercase tracking-wider hover:underline">Kelola &rarr;</a>
+                </div>
             </div>
-            <div class="absolute right-2 top-2 text-white/20 transition-transform duration-300 group-hover:scale-110">
-                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-sm border border-green-100/50">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
             </div>
-            <a href="{{ route('superadmin.tenants.index') }}" class="absolute bottom-0 left-0 right-0 bg-black/10 py-1.5 text-center text-[10px] font-bold uppercase hover:bg-black/20 transition">More info</a>
         </div>
 
         <!-- Events -->
-        <div class="relative bg-amber-500 text-white p-6 rounded-lg shadow-lg overflow-hidden group">
-            <div class="relative z-10">
-                <div class="text-3xl font-black mb-1">{{ $stats['total_events'] }}</div>
-                <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Active Events</div>
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 group hover:shadow-md transition-all duration-300 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Event Aktif</p>
+                <h3 class="text-2xl font-black text-slate-800 font-outfit leading-tight">{{ $stats['total_events'] }}</h3>
+                <div class="mt-2">
+                    <a href="{{ route('superadmin.events.index') }}" class="text-[9px] font-black text-amber-600 uppercase tracking-wider hover:underline">Monitor &rarr;</a>
+                </div>
             </div>
-            <div class="absolute right-2 top-2 text-white/20 transition-transform duration-300 group-hover:scale-110">
-                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm border border-amber-100/50">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
-            <a href="{{ route('superadmin.events.index') }}" class="absolute bottom-0 left-0 right-0 bg-black/10 py-1.5 text-center text-[10px] font-bold uppercase hover:bg-black/20 transition">More info</a>
         </div>
 
         <!-- Tickets -->
-        <div class="relative bg-rose-500 text-white p-6 rounded-lg shadow-lg overflow-hidden group">
-            <div class="relative z-10">
-                <div class="text-3xl font-black mb-1">{{ $stats['total_tickets'] }}</div>
-                <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Tickets Sold</div>
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 group hover:shadow-md transition-all duration-300 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tiket Terjual</p>
+                <h3 class="text-2xl font-black text-slate-800 font-outfit leading-tight">{{ $stats['total_tickets'] }}</h3>
+                <div class="mt-2">
+                    <span class="px-2 py-0.5 bg-rose-50 text-rose-600 text-[9px] font-black uppercase rounded-md tracking-wider">Total Sales</span>
+                </div>
             </div>
-            <div class="absolute right-2 top-2 text-white/20 transition-transform duration-300 group-hover:scale-110">
-                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+            <div class="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300 shadow-sm border border-rose-100/50">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
             </div>
-            <a href="#" class="absolute bottom-0 left-0 right-0 bg-black/10 py-1.5 text-center text-[10px] font-bold uppercase hover:bg-black/20 transition">More info</a>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         <!-- Recent Transactions -->
-        <div class="bg-white rounded-sm border-t-4 border-[#17a2b8] shadow-md overflow-hidden">
-            <div class="px-4 py-3 border-b border-[#dee2e6] flex justify-between items-center bg-white">
-                <h3 class="text-lg font-medium">Recent Transactions</h3>
-                <span class="bg-[#17a2b8] text-white px-2 py-0.5 rounded-md text-xs font-bold">{{ count($recent_transactions ?? []) }} New</span>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white">
+                <div>
+                    <h3 class="text-lg font-black text-slate-800 font-outfit leading-none">Transaksi Terakhir</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Aktivitas penjualan terbaru</p>
+                </div>
+                <span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">{{ count($recent_transactions ?? []) }} Baru</span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-[#f8f9fa] border-b border-[#dee2e6]">
-                        <tr>
-                            <th class="px-4 py-2 font-bold">Trx ID</th>
-                            <th class="px-4 py-2 font-bold">Event</th>
-                            <th class="px-4 py-2 font-bold">Amount</th>
-                            <th class="px-4 py-2 font-bold">Status</th>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-50">
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ID Transaksi</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Event</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Jumlah</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-[#dee2e6]">
+                    <tbody class="divide-y divide-slate-50">
                         @forelse($recent_transactions ?? [] as $transaction)
-                        <tr>
-                            <td class="px-4 py-3">{{ $transaction->transaction_number }}</td>
-                            <td class="px-4 py-3 font-medium">{{ $transaction->event->name ?? 'N/A' }}</td>
-                            <td class="px-4 py-3">${{ number_format($transaction->total_amount, 2) }}</td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $transaction->status === 'paid' ? 'bg-[#28a745] text-white' : 'bg-[#ffc107] text-[#343a40]' }}">
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-4 text-xs font-bold text-slate-700 font-mono">{{ $transaction->transaction_number }}</td>
+                            <td class="px-6 py-4">
+                                <div class="text-xs font-bold text-slate-800 truncate max-w-[150px]">{{ $transaction->event->name ?? 'N/A' }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-xs font-black text-slate-900 font-outfit">${{ number_format($transaction->total_amount, 2) }}</td>
+                            <td class="px-6 py-4">
+                                @php
+                                    $statusClasses = [
+                                        'paid' => 'bg-green-100 text-green-700',
+                                        'pending' => 'bg-amber-100 text-amber-700',
+                                        'failed' => 'bg-rose-100 text-rose-700',
+                                    ];
+                                    $class = $statusClasses[$transaction->status] ?? 'bg-slate-100 text-slate-600';
+                                @endphp
+                                <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider {{ $class }}">
                                     {{ $transaction->status }}
                                 </span>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-gray-500 italic">No recent transactions.</td>
+                            <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-xs font-bold italic uppercase tracking-widest">Belum ada transaksi</td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="px-4 py-3 border-t border-[#dee2e6] text-center">
-                <a href="{{ route('superadmin.transactions.index') }}" class="text-gentix-600 hover:underline text-xs font-bold uppercase">View All Transactions</a>
+            <div class="px-6 py-4 bg-slate-50/50 text-center border-t border-slate-50">
+                <a href="{{ route('superadmin.transactions.index') }}" class="text-orange-600 hover:text-orange-700 text-[10px] font-black uppercase tracking-[0.2em]">Lihat Semua Transaksi &rarr;</a>
             </div>
         </div>
 
-        <!-- Active Events -->
-        <div class="bg-white rounded-sm border-t-4 border-[#28a745] shadow-md overflow-hidden">
-            <div class="px-4 py-3 border-b border-[#dee2e6] flex justify-between items-center bg-white">
-                <h3 class="text-lg font-medium">Top Performing Events</h3>
-                <span class="bg-[#28a745] text-white px-2 py-0.5 rounded-md text-xs font-bold">Live</span>
+        <!-- Top Events -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white">
+                <div>
+                    <h3 class="text-lg font-black text-slate-800 font-outfit leading-none">Event Terpopuler</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Berdasarkan jumlah tiket terjual</p>
+                </div>
+                <span class="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">Live</span>
             </div>
-            <div class="p-4 space-y-4">
+            <div class="p-6 space-y-4">
                 @forelse($active_events ?? [] as $event)
-                <div class="flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded bg-[#f8f9fa] border border-[#dee2e6] flex items-center justify-center text-gentix-600">
+                <div class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl hover:bg-slate-50 transition-colors group border border-transparent hover:border-slate-100">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-orange-500 shadow-sm shrink-0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </div>
-                        <div>
-                            <div class="font-bold text-[#343a40]">{{ $event->name }}</div>
-                            <div class="text-xs text-[#6c757d]">{{ $event->tenant->name ?? 'General' }}</div>
+                        <div class="min-w-0">
+                            <div class="font-black text-slate-800 text-sm truncate font-outfit leading-tight mb-1 group-hover:text-orange-600 transition-colors">{{ $event->name }}</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">{{ $event->tenant->name ?? 'General' }}</div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm font-bold text-[#28a745]">{{ $event->tickets_count }} Sold</div>
-                        <div class="text-[10px] text-[#6c757d] uppercase font-bold tracking-tighter">
-                            {{ optional($event->event_start_date)->format('M d, Y') ?? 'N/A' }}
+                    <div class="text-right shrink-0 ml-4">
+                        <div class="text-sm font-black text-green-600 font-outfit leading-none mb-1">{{ $event->tickets_count }} Laku</div>
+                        <div class="text-[9px] text-slate-400 uppercase font-black tracking-widest">
+                            {{ optional($event->event_start_date)->format('d M Y') ?? 'N/A' }}
                         </div>
                     </div>
                 </div>
                 @empty
-                <div class="text-center py-8 text-gray-500 italic">No active events found.</div>
+                <div class="text-center py-12 text-slate-400 text-xs font-bold italic uppercase tracking-widest">Belum ada event aktif</div>
                 @endforelse
             </div>
-            <div class="px-4 py-3 border-t border-[#dee2e6] text-center">
-                <a href="{{ route('superadmin.events.index') }}" class="text-gentix-600 hover:underline text-xs font-bold uppercase">Manage All Events</a>
+            <div class="px-6 py-4 bg-slate-50/50 text-center border-t border-slate-50">
+                <a href="{{ route('superadmin.events.index') }}" class="text-orange-600 hover:text-orange-700 text-[10px] font-black uppercase tracking-[0.2em]">Kelola Semua Event &rarr;</a>
             </div>
         </div>
     </div>
