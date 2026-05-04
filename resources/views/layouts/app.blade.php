@@ -40,7 +40,7 @@
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside 
-            x-show="sidebarOpen"
+            x-show="sidebarOpen && !{{ isset($hideNav) && $hideNav ? 'true' : 'false' }}"
             class="w-64 bg-[#0f172a] text-slate-300 flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out z-50">
             
             <!-- Brand Logo -->
@@ -150,6 +150,7 @@
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col min-w-0 bg-slate-100 h-screen overflow-y-auto">
+            @if(!isset($hideNav) || !$hideNav)
             <!-- Navbar -->
             <nav class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 sticky top-0 z-40 shadow-sm">
                 <button @click="sidebarOpen = !sidebarOpen" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
@@ -193,9 +194,10 @@
                             </button>
                         </form>
                     </div>
-                </div>
-            </nav>
-
+            </div>
+            @endif
+            
+            @if(!isset($hideNav) || !$hideNav)
             <!-- Page Header -->
             <div class="bg-white border-b border-slate-200 px-8 py-6 mb-8">
                 <div class="flex items-center justify-between max-w-[1600px] mx-auto">
@@ -205,9 +207,10 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Content Area -->
-            <main class="px-8 flex-1 max-w-[1600px] w-full mx-auto pb-12">
+            <main class="{{ (isset($hideNav) && $hideNav) ? 'p-0' : 'px-8' }} flex-1 max-w-[1600px] w-full mx-auto pb-12">
                 {{ $slot }}
             </main>
         </div>
