@@ -58,8 +58,11 @@ Route::get('/dashboard', function () {
     if ($user->hasRole('Penyedia Event')) {
         return redirect()->route('organizer.dashboard');
     }
-    if ($user->hasRole(['Petugas Loket', 'Petugas Gate'])) {
+    if ($user->hasRole('Petugas Loket')) {
         return redirect()->route('organizer.redeem.index');
+    }
+    if ($user->hasRole('Petugas Gate')) {
+        return redirect()->route('organizer.gate.index');
     }
     // Fallback for other roles or unassigned
     return redirect('/');
