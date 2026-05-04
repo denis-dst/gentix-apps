@@ -15,7 +15,7 @@ class CrewController extends Controller
         $crews = User::where('tenant_id', auth()->user()->tenant_id)
             ->where(function($q) {
                 $q->whereHas('roles', function($rq) {
-                    $rq->whereIn('name', ['Petugas Loket', 'Petugas Gate', 'loket', 'gate']);
+                    $rq->whereIn('name', ['Petugas Loket', 'Petugas Gate']);
                 });
             })
             ->paginate(10);
@@ -33,7 +33,7 @@ class CrewController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:loket,gate',
+            'role' => 'required|in:Petugas Loket,Petugas Gate',
         ]);
 
         $user = User::create([
@@ -43,13 +43,10 @@ class CrewController extends Controller
             'tenant_id' => auth()->user()->tenant_id,
         ]);
 
-        // Map role name
-        $roleName = $validated['role'] === 'loket' ? 'Petugas Loket' : 'Petugas Gate';
-        
         // Ensure role exists
-        Role::firstOrCreate(['name' => $roleName]);
+        Role::firstOrCreate(['name' => $validated['role']]);
         
-        $user->assignRole($roleName);
+        $user->assignRole($validated['role']);
 
         return redirect()->route('organizer.crews.index')->with('success', 'Crew member added successfully.');
     }

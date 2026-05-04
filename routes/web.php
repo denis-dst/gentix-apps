@@ -30,7 +30,7 @@ Route::get('/lang/{locale}', [App\Http\Controllers\LanguageController::class, 's
 
 Route::get('/p/{slug}', [App\Http\Controllers\PageController::class, 'show'])->name('pages.show');
 
-Route::middleware(['auth', 'role:superadmin|Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
     // Tenants Trash & Resource
@@ -52,20 +52,20 @@ Route::middleware(['auth', 'role:superadmin|Superadmin'])->prefix('superadmin')-
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    if ($user->hasRole(['superadmin', 'Superadmin'])) {
+    if ($user->hasRole('Superadmin')) {
         return redirect()->route('superadmin.dashboard');
     }
-    if ($user->hasRole(['organizer', 'Penyedia Event'])) {
+    if ($user->hasRole('Penyedia Event')) {
         return redirect()->route('organizer.dashboard');
     }
-    if ($user->hasRole(['Petugas Loket', 'loket', 'Petugas Gate', 'gate'])) {
+    if ($user->hasRole(['Petugas Loket', 'Petugas Gate'])) {
         return redirect()->route('organizer.redeem.index');
     }
     // Fallback for other roles or unassigned
     return redirect('/');
 })->middleware(['auth'])->name('dashboard');
 
-Route::middleware(['auth', 'role:organizer|Penyedia Event|superadmin|Superadmin|Petugas Loket|Petugas Gate|loket|gate', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
+Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas Gate', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Organizer\DashboardController::class, 'index'])->name('dashboard');
     
     // Event Management

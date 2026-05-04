@@ -8,7 +8,7 @@
                 <h2 class="text-xl font-bold text-slate-800">Manajemen Crew</h2>
                 <p class="text-sm text-slate-500">Kelola akun untuk Petugas Loket (Redeem) dan Petugas Gate.</p>
             </div>
-            <a href="{{ route('organizer.crews.create') }}" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-200 flex items-center gap-2">
+            <a href="{{ route('organizer.crews.create') }}" class="px-5 py-2.5 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                 Tambah Crew
             </a>

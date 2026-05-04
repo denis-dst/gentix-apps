@@ -53,7 +53,7 @@ class RegisteredUserController extends Controller
             'tenant_id' => $tenant->id,
         ]);
 
-        $user->assignRole('organizer');
+        $user->assignRole('Penyedia Event');
 
         event(new Registered($user));
 

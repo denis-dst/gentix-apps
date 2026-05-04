@@ -57,7 +57,7 @@ class TenantController extends Controller
             ]);
 
             // 3. Assign Role
-            $user->assignRole('organizer');
+            $user->assignRole('Penyedia Event');
 
             // 4. Set Tenant Owner
             $tenant->update(['user_id' => $user->id]);
