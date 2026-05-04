@@ -1,4 +1,4 @@
-@if((!isset($hideNav) || !$hideNav) && !auth()->user()->hasRole('Petugas Gate'))
+@if(!$shouldHideNav && !auth()->user()->hasRole('Petugas Gate'))
 <div class="px-6 py-6 md:px-8 md:py-8 bg-white border-b border-slate-200 mb-6">
     <div class="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
