@@ -49,17 +49,21 @@ class GateController extends Controller
             return redirect()->route('organizer.gate.verify', $event);
         }
 
-        return view('organizer.gate.setup', compact('event'));
+        $categories = $event->ticketCategories;
+        return view('organizer.gate.setup', compact('event', 'categories'));
     }
 
     public function setup(Request $request, Event $event)
     {
         $request->validate([
-            'gate_name' => 'required|string|max:50',
+            'gate_category_id' => 'required|exists:ticket_categories,id',
             'gate_mode' => 'required|in:IN,OUT',
         ]);
 
-        session(['gate_name' => $request->gate_name]);
+        $category = \App\Models\TicketCategory::findOrFail($request->gate_category_id);
+
+        session(['gate_category_id' => $category->id]);
+        session(['gate_name' => $category->name]);
         session(['gate_mode' => $request->gate_mode]);
 
         return redirect()->route('organizer.gate.scan', $event);
@@ -98,6 +102,17 @@ class GateController extends Controller
                 'success' => false,
                 'message' => 'Tiket Tidak Valid!'
             ], 404);
+        }
+
+        // Access Control: Check if ticket category matches the gate
+        $gateCategoryId = session('gate_category_id');
+        if ($gateCategoryId && $ticket->ticket_category_id != $gateCategoryId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori Tiket Salah! (Harus ' . session('gate_name') . ')',
+                'customer' => $ticket->transaction->customer_name,
+                'category' => $ticket->category->name
+            ], 403);
         }
 
         // Logic check for IN/OUT

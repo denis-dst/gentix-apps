@@ -17,13 +17,31 @@
                     @csrf
                     
                     <div class="space-y-6">
-                        <!-- Gate Name -->
+                        <!-- Gate Category Selection -->
                         <div>
-                            <label for="gate_name" class="block text-xs font-black text-slate-700 uppercase tracking-[0.2em] mb-3 ml-1">Nama Gate / Pintu</label>
-                            <input type="text" name="gate_name" id="gate_name" required autofocus
-                                   class="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:ring-0 text-lg font-bold text-slate-900 transition-all placeholder:text-slate-300"
-                                   placeholder="Contoh: Gate A, Pintu Utara, VIP Gate...">
-                            @error('gate_name')
+                            <label class="block text-xs font-black text-slate-700 uppercase tracking-[0.2em] mb-3 ml-1">Pilih Kategori Gate</label>
+                            <div class="grid grid-cols-1 gap-3">
+                                @foreach($categories as $category)
+                                    <label class="relative cursor-pointer group">
+                                        <input type="radio" name="gate_category_id" value="{{ $category->id }}" class="peer sr-only" {{ $loop->first ? 'checked' : '' }}>
+                                        <div class="px-6 py-4 rounded-2xl border-2 border-slate-100 bg-slate-50 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all flex items-center justify-between">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                                                    <i class="fas fa-ticket-alt"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="block font-black text-slate-900 uppercase tracking-widest text-sm">{{ $category->name }}</span>
+                                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Khusus Tiket {{ $category->name }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="w-6 h-6 rounded-full border-2 border-slate-200 peer-checked:border-indigo-500 flex items-center justify-center group-hover:border-indigo-300 transition-all">
+                                                <div class="w-3 h-3 rounded-full bg-indigo-500 scale-0 peer-checked:scale-100 transition-transform"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('gate_category_id')
                                 <p class="mt-2 text-sm text-rose-500 font-bold">{{ $message }}</p>
                             @enderror
                         </div>
