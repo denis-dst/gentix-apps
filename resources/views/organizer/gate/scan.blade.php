@@ -137,21 +137,6 @@
                     </div>
                 </div>
 
-                <!-- Bottom Stats Bar -->
-                <div class="bg-[#0d1117] border-t border-white/5 p-4 sm:p-6 grid grid-cols-3 gap-4 sm:gap-8 shrink-0 z-40">
-                    <div class="text-center group">
-                        <div class="text-xl sm:text-3xl font-black font-outfit text-emerald-500 leading-none mb-2" x-text="inCount">0</div>
-                        <div class="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-emerald-400 transition-colors">Total In</div>
-                    </div>
-                    <div class="text-center group border-x border-white/5">
-                        <div class="text-xl sm:text-3xl font-black font-outfit text-orange-500 leading-none mb-2" x-text="outCount">0</div>
-                        <div class="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-orange-400 transition-colors">Total Out</div>
-                    </div>
-                    <div class="text-center group">
-                        <div class="text-xl sm:text-3xl font-black font-outfit text-indigo-400 leading-none mb-2" x-text="inCount - outCount">0</div>
-                        <div class="text-[8px] sm:text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] group-hover:text-indigo-300 transition-colors">Inside</div>
-                    </div>
-                </div>
             </div>
 
             <!-- History Sidebar -->
@@ -186,6 +171,22 @@
                 </div>
             </aside>
         </main>
+
+        <!-- Bottom Stats Bar (Global) -->
+        <div class="bg-black border-t border-white/5 p-4 sm:p-6 grid grid-cols-3 gap-4 sm:gap-8 shrink-0 z-50">
+            <div class="text-center group">
+                <div class="text-xl sm:text-3xl font-black font-outfit text-emerald-500 leading-none mb-1 sm:mb-2" x-text="inCount">0</div>
+                <div class="text-[8px] sm:text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] group-hover:text-emerald-400 transition-colors">Total In</div>
+            </div>
+            <div class="text-center group border-x border-white/5">
+                <div class="text-xl sm:text-3xl font-black font-outfit text-orange-500 leading-none mb-1 sm:mb-2" x-text="outCount">0</div>
+                <div class="text-[8px] sm:text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] group-hover:text-orange-400 transition-colors">Total Out</div>
+            </div>
+            <div class="text-center group">
+                <div class="text-xl sm:text-3xl font-black font-outfit text-white leading-none mb-1 sm:mb-2" x-text="inCount - outCount">0</div>
+                <div class="text-[8px] sm:text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] group-hover:text-indigo-300 transition-colors">Inside</div>
+            </div>
+        </div>
     </div>
 
     <!-- Audio Effects -->
