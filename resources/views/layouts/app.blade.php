@@ -212,5 +212,6 @@
             </main>
         </div>
     </div>
+    <x-accessibility-widget />
 </body>
 </html>

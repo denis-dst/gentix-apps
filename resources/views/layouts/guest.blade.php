@@ -67,5 +67,6 @@
                 </p>
             </div>
         </div>
-    </body>
+        <x-accessibility-widget />
+</body>
 </html>

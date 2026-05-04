@@ -99,18 +99,28 @@
                 </div>
                 
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="#events" class="text-sm font-medium text-white/80 hover:text-white transition">Events</a>
-                    <a href="#how-it-works" class="text-sm font-medium text-white/80 hover:text-white transition">How it Works</a>
-                    <a href="#about" class="text-sm font-medium text-white/80 hover:text-white transition">About</a>
+                    <a href="#events" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('Events') }}</a>
+                    <a href="#how-it-works" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('How it Works') }}</a>
+                    <a href="#about" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('About') }}</a>
                 </div>
 
                 <div class="flex items-center gap-4">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="text-sm font-bold text-white/80 hover:text-white transition uppercase flex items-center gap-1">
+                            {{ app()->getLocale() }}
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-transition class="absolute top-full mt-4 right-0 glass rounded-xl py-2 w-24">
+                            <a href="{{ route('lang.switch', 'id') }}" class="block px-4 py-2 text-sm text-stone-300 hover:text-white hover:bg-white/5 {{ app()->getLocale() == 'id' ? 'font-bold text-white' : '' }}">ID</a>
+                            <a href="{{ route('lang.switch', 'en') }}" class="block px-4 py-2 text-sm text-stone-300 hover:text-white hover:bg-white/5 {{ app()->getLocale() == 'en' ? 'font-bold text-white' : '' }}">EN</a>
+                        </div>
+                    </div>
                     @auth
                         <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-semibold transition shadow-lg shadow-orange-500/20">Dashboard</a>
                     @else
-                        <a href="{{ route('login') }}" class="text-sm font-medium text-white/80 hover:text-white transition">Log in</a>
+                        <a href="{{ route('login') }}" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('Log in') }}</a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-semibold transition">Partner with Us</a>
+                            <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-semibold transition">{{ __('Partner with Us') }}</a>
                         @endif
                     @endauth
                 </div>
@@ -128,20 +138,20 @@
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="inline-flex items-center px-4 py-2 rounded-full glass mb-8 animate-bounce border border-white/10">
                 <span class="w-2 h-2 bg-orange-400 rounded-full mr-2 animate-pulse"></span>
-                <span class="text-xs font-semibold tracking-wider uppercase text-orange-300/80">Live Your Best Moments</span>
+                <span class="text-xs font-semibold tracking-wider uppercase text-orange-300/80">{{ __('Live your best moments') }}</span>
             </div>
             <h1 class="text-5xl lg:text-8xl font-extrabold font-outfit mb-8 leading-tight text-white">
-                {{ $settings['hero_title'] ?? 'GenTix: Connecting Generations Through Every Gate.' }}
+                {{ __($settings['hero_title'] ?? 'GenTix: Connecting Generations Through Every Gate.') }}
             </h1>
             <p class="text-xl lg:text-2xl text-stone-300 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-                {{ $settings['hero_subtitle'] ?? 'Bridging the gap between Generation and Tickets.' }}
+                {{ __($settings['hero_subtitle'] ?? 'Bridging the gap between Generation and Tickets.') }}
             </p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="#events" class="w-full sm:w-auto px-10 py-4 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-lg transition-all shadow-xl shadow-orange-500/25">
-                    Explore Events
+                    {{ __('Explore Events') }}
                 </a>
                 <a href="#how-it-works" class="w-full sm:w-auto px-10 py-4 rounded-full glass hover:bg-white/10 text-white font-bold text-lg transition-all border border-white/10">
-                    How it Works
+                    {{ __('How it Works') }}
                 </a>
             </div>
         </div>
@@ -152,11 +162,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
                 <div>
-                    <h2 class="text-4xl font-bold font-outfit mb-4 text-white">Featured <span class="text-orange-400">Events</span></h2>
-                    <p class="text-stone-400 font-light text-lg">Handpicked experiences you shouldn't miss this month.</p>
+                    <h2 class="text-4xl font-bold font-outfit mb-4 text-white">{{ __('Featured Events') }}</h2>
+                    <p class="text-stone-400 font-light text-lg">{{ __('Handpicked experiences you shouldn\'t miss this month.') }}</p>
                 </div>
                 <a href="#" class="inline-flex items-center text-orange-400 font-semibold hover:text-orange-300 transition group">
-                    View all events
+                    {{ __('View all events') }}
                     <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
@@ -205,8 +215,8 @@
     <section id="how-it-works" class="py-24 relative overflow-hidden bg-[#111118]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-20">
-                <h2 class="text-4xl font-bold font-outfit mb-6 text-white">Simple <span class="text-orange-400">Steps</span> to Attend</h2>
-                <p class="text-stone-400 font-light text-lg max-w-xl mx-auto">Getting your tickets has never been easier. Follow our seamless process to join the action.</p>
+                <h2 class="text-4xl font-bold font-outfit mb-6 text-white">{{ __('Simple Steps to Attend') }}</h2>
+                <p class="text-stone-400 font-light text-lg max-w-xl mx-auto">{{ __('Getting your tickets has never been easier. Follow our seamless process to join the action.') }}</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 relative">
@@ -218,8 +228,8 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">01</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">Browse Events</h4>
-                    <p class="text-stone-400 text-sm font-light">Explore our curated list of events across various categories.</p>
+                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Browse Events') }}</h4>
+                    <p class="text-stone-400 text-sm font-light">{{ __('Explore our curated list of events across various categories.') }}</p>
                 </div>
 
                 <!-- Step 2 -->
@@ -227,8 +237,8 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">02</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">Choose Seats</h4>
-                    <p class="text-stone-400 text-sm font-light">Select your preferred viewing area and number of tickets.</p>
+                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Choose Seats') }}</h4>
+                    <p class="text-stone-400 text-sm font-light">{{ __('Select your preferred viewing area and number of tickets.') }}</p>
                 </div>
 
                 <!-- Step 3 -->
@@ -236,8 +246,8 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">03</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">Secure Payment</h4>
-                    <p class="text-stone-400 text-sm font-light">Pay safely using our encrypted payment gateway.</p>
+                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Secure Payment') }}</h4>
+                    <p class="text-stone-400 text-sm font-light">{{ __('Pay safely using our encrypted payment gateway.') }}</p>
                 </div>
 
                 <!-- Step 4 -->
@@ -245,8 +255,8 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">04</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">Get E-Ticket</h4>
-                    <p class="text-stone-400 text-sm font-light">Your ticket will be sent to your email and Gentix wallet.</p>
+                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Get E-Ticket') }}</h4>
+                    <p class="text-stone-400 text-sm font-light">{{ __('Your ticket will be sent to your email and Gentix wallet.') }}</p>
                 </div>
             </div>
         </div>
@@ -258,10 +268,10 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
                 <div>
                     <div class="inline-flex items-center px-4 py-1.5 rounded-full glass mb-6 border border-white/5">
-                        <span class="text-xs font-bold uppercase tracking-widest text-orange-400">Our Philosophy</span>
+                        <span class="text-xs font-bold uppercase tracking-widest text-orange-400">{{ __('Our Philosophy') }}</span>
                     </div>
                     <h2 class="text-4xl lg:text-5xl font-bold font-outfit mb-8 leading-tight text-white">
-                        Bridging the <span class="text-orange-400">Generation</span> Gap
+                        {{ __('Bridging the Generation Gap') }}
                     </h2>
                     <p class="text-stone-400 text-xl font-light leading-relaxed mb-8">
                         GenTix is a fusion of <span class="text-white font-semibold">Generation</span> and <span class="text-white font-semibold">Tickets</span>. We believe that every event is an opportunity to bring people of all ages together through the power of seamless technology.
@@ -275,7 +285,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-xl font-bold mb-2 text-white">Technology Inclusivity</h4>
+                                <h4 class="text-xl font-bold mb-2 text-white">{{ __('Technology Inclusivity') }}</h4>
                                 <p class="text-stone-400 text-sm leading-relaxed">
                                     Built on high-end cloud infrastructure, yet designed with a UI so simple that everyone—from Gen Z to Baby Boomers—can scan their E-vouchers or RFID bands without a single worry.
                                 </p>
@@ -289,7 +299,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-xl font-bold mb-2 text-white">Universal Accessibility</h4>
+                                <h4 class="text-xl font-bold mb-2 text-white">{{ __('Universal Accessibility') }}</h4>
                                 <p class="text-stone-400 text-sm leading-relaxed">
                                     Whether it's a massive rock concert, a prestigious corporate seminar, or a local cultural festival, GenTix adapts to any event scale and audience, ensuring every gate is a gateway to a new memory.
                                 </p>
@@ -419,20 +429,20 @@
                 <div>
                     <h5 class="text-white font-bold mb-8">Platform</h5>
                     <ul class="space-y-4">
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">About Us</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Events</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Pricing</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Organizers</a></li>
+                        <li><a href="{{ route('pages.show', 'about') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">About Us</a></li>
+                        <li><a href="#events" class="text-stone-500 hover:text-orange-400 transition text-sm">Events</a></li>
+                        <li><a href="{{ route('pages.show', 'pricing') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">Pricing</a></li>
+                        <li><a href="#organizers" class="text-stone-500 hover:text-orange-400 transition text-sm">Organizers</a></li>
                     </ul>
                 </div>
 
                 <div>
                     <h5 class="text-white font-bold mb-8">Support</h5>
                     <ul class="space-y-4">
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Help Center</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Privacy Policy</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Terms of Service</a></li>
-                        <li><a href="#" class="text-stone-500 hover:text-orange-400 transition text-sm">Contact Us</a></li>
+                        <li><a href="{{ route('pages.show', 'help-center') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">Help Center</a></li>
+                        <li><a href="{{ route('pages.show', 'privacy-policy') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">Privacy Policy</a></li>
+                        <li><a href="{{ route('pages.show', 'terms-of-service') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">Terms of Service</a></li>
+                        <li><a href="{{ route('pages.show', 'contact-us') }}" class="text-stone-500 hover:text-orange-400 transition text-sm">Contact Us</a></li>
                     </ul>
                 </div>
             </div>
@@ -453,5 +463,6 @@
         </div>
     </footer>
 
+    <x-accessibility-widget />
 </body>
 </html>
