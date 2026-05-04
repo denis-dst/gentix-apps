@@ -389,10 +389,10 @@
             </div>
             <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 leading-relaxed space-y-4">
                 @if($event->terms_conditions)
-                    {!! nl2br(e($event->terms_conditions)) !!}
+                    {!! $event->terms_conditions !!}
                 @else
                     <div class="text-center py-10 space-y-4">
-                        <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-500">
+                        <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-500">
                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                         <p class="font-medium">Belum ada Syarat & Ketentuan khusus untuk event ini.</p>
@@ -400,7 +400,7 @@
                 @endif
             </div>
             <div class="p-8 bg-slate-50 border-t border-slate-100 flex justify-end">
-                <button @click="showModalSK = false" class="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                <button @click="showModalSK = false" class="px-8 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200">
                     Saya Mengerti
                 </button>
             </div>
