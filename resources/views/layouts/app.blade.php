@@ -106,6 +106,8 @@
         </div>
     </div>
 
+    @if(!$shouldHideNav)
     <x-accessibility-widget />
+    @endif
 </body>
 </html>
