@@ -33,7 +33,7 @@
         @endforeach
 
         <div class="flex justify-end pb-10">
-            <button type="submit" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded shadow-md transition">
+            <button type="submit" class="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded shadow-md transition">
                 <i class="fas fa-save mr-1"></i> Save Configuration
             </button>
         </div>

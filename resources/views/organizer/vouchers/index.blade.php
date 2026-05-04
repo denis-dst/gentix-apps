@@ -8,7 +8,7 @@
                 <h2 class="text-xl font-bold text-slate-800">Daftar Kode Promo</h2>
                 <p class="text-sm text-slate-500">Kelola potongan harga untuk menarik lebih banyak pembeli.</p>
             </div>
-            <a href="{{ route('organizer.vouchers.create') }}" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-200 flex items-center gap-2">
+            <a href="{{ route('organizer.vouchers.create') }}" class="px-5 py-2.5 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                 Buat Voucher
             </a>
@@ -30,7 +30,7 @@
                         @forelse($vouchers as $voucher)
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="px-6 py-4">
-                                    <span class="px-3 py-1 bg-purple-50 text-purple-700 font-mono font-bold rounded-lg border border-purple-100 uppercase tracking-wider">
+                                    <span class="px-3 py-1 bg-orange-50 text-orange-700 font-mono font-bold rounded-lg border border-orange-100 uppercase tracking-wider">
                                         {{ $voucher->code }}
                                     </span>
                                 </td>
@@ -48,7 +48,7 @@
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-bold text-slate-900">{{ $voucher->used_count }} / {{ $voucher->max_usage ?? '∞' }}</div>
                                     <div class="w-24 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
-                                        <div class="h-full bg-purple-500 rounded-full" style="width: {{ $voucher->max_usage ? ($voucher->used_count / $voucher->max_usage) * 100 : 0 }}%"></div>
+                                        <div class="h-full bg-orange-500 rounded-full" style="width: {{ $voucher->max_usage ? ($voucher->used_count / $voucher->max_usage) * 100 : 0 }}%"></div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-right">

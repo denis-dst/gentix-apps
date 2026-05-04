@@ -94,6 +94,15 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::get('redeem/{event}/download', [App\Http\Controllers\Organizer\RedeemController::class, 'downloadData'])->name('redeem.download');
     Route::post('redeem/process', [App\Http\Controllers\Organizer\RedeemController::class, 'process'])->name('redeem.process');
 
+    // Gate System (Automatic Scan)
+    Route::get('gate', [App\Http\Controllers\Organizer\GateController::class, 'index'])->name('gate.index');
+    Route::get('gate/{event}/verify', [App\Http\Controllers\Organizer\GateController::class, 'verifyForm'])->name('gate.verify');
+    Route::post('gate/{event}/verify', [App\Http\Controllers\Organizer\GateController::class, 'verify'])->name('gate.verify.post');
+    Route::get('gate/{event}/setup', [App\Http\Controllers\Organizer\GateController::class, 'setupForm'])->name('gate.setup');
+    Route::post('gate/{event}/setup', [App\Http\Controllers\Organizer\GateController::class, 'setup'])->name('gate.setup.post');
+    Route::get('gate/{event}/scan', [App\Http\Controllers\Organizer\GateController::class, 'scan'])->name('gate.scan');
+    Route::post('gate/process', [App\Http\Controllers\Organizer\GateController::class, 'process'])->name('gate.process');
+
     // Tenant Settings (T&C)
     Route::get('settings/terms', [App\Http\Controllers\Organizer\TenantSettingsController::class, 'editTerms'])->name('settings.terms');
     Route::post('settings/terms', [App\Http\Controllers\Organizer\TenantSettingsController::class, 'updateTerms'])->name('settings.terms.update');

@@ -12,6 +12,10 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         [x-cloak] { display: none !important; }
+        .terms-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .terms-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .terms-content li { margin-bottom: 0.25rem; }
+        .terms-content b, .terms-content strong { font-weight: 800; }
     </style>
 </head>
 <body class="text-slate-800" x-data="{ 
@@ -387,9 +391,11 @@
                     <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 leading-relaxed space-y-4">
+            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 leading-relaxed terms-content">
                 @if($event->terms_conditions)
-                    {!! $event->terms_conditions !!}
+                    <div class="space-y-2">
+                        {!! $event->terms_conditions !!}
+                    </div>
                 @else
                     <div class="text-center py-10 space-y-4">
                         <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-500">

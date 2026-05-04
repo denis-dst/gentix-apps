@@ -8,14 +8,14 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-sm border-t-4 border-purple-600 shadow-md overflow-hidden">
+    <div class="bg-white rounded-sm border-t-4 border-orange-600 shadow-md overflow-hidden">
         <div class="px-4 py-3 border-b border-[#dee2e6] flex justify-between items-center bg-white">
             <h3 class="text-lg font-medium">All Organizers</h3>
             <div class="flex gap-2">
                 <a href="{{ route('superadmin.tenants.trash') }}" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded shadow-sm transition flex items-center gap-1">
                     <i class="fas fa-trash-alt"></i> Trash
                 </a>
-                <a href="{{ route('superadmin.tenants.create') }}" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded shadow-sm transition">
+                <a href="{{ route('superadmin.tenants.create') }}" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded shadow-sm transition">
                     <i class="fas fa-plus mr-1"></i> Add Organizer
                 </a>
             </div>
@@ -37,7 +37,7 @@
                     <tr class="hover:bg-[#f2f2f2] transition">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-[#f8f9fa] border border-[#dee2e6] flex items-center justify-center font-bold text-purple-600 text-xs uppercase shadow-sm">
+                                <div class="w-8 h-8 rounded-full bg-[#f8f9fa] border border-[#dee2e6] flex items-center justify-center font-bold text-orange-600 text-xs uppercase shadow-sm">
                                     {{ substr($tenant->name, 0, 1) }}
                                 </div>
                                 <div>

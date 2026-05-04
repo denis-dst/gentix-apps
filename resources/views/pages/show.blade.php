@@ -20,6 +20,11 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+        .terms-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .terms-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .terms-content li { margin-bottom: 0.5rem; }
+        .terms-content b, .terms-content strong { font-weight: 700; color: white; }
+        .terms-content p { margin-bottom: 1rem; }
     </style>
 </head>
 <body class="bg-[#111118] text-[#e8e4df] antialiased">
@@ -54,7 +59,7 @@
     <!-- Content Section -->
     <section class="py-16">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="glass p-8 md:p-12 rounded-[2rem]">
+            <div class="glass p-8 md:p-12 rounded-[2rem] terms-content">
                 {!! $page->content !!}
             </div>
         </div>
