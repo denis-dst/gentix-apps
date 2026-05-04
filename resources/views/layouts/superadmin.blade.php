@@ -13,9 +13,9 @@
     
     <style>
         .sidebar-item-active {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));
-            border-left: 4px solid #7c3aed;
-            color: #7c3aed;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+            border-left: 4px solid #f97316;
+            color: #f97316;
         }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -27,12 +27,12 @@
         <aside class="w-64 bg-white dark:bg-slate-900 border-r border-black/5 dark:border-white/5 flex flex-col">
             <div class="p-6">
                 <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-gentix-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                         </svg>
                     </div>
-                    <span class="text-xl font-bold font-outfit uppercase">Gen<span class="text-gentix-600">Tix</span></span>
+                    <span class="text-xl font-bold font-outfit uppercase">Gen<span class="text-orange-400">Tix</span></span>
                 </a>
             </div>
             
@@ -88,7 +88,7 @@
                         <div class="text-sm font-bold">{{ Auth::user()->name }}</div>
                         <div class="text-xs text-slate-400 uppercase tracking-widest">{{ Auth::user()->getRoleNames()->first() }}</div>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center font-bold text-gentix-600 border border-black/5">
+                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center font-bold text-orange-500 border border-black/5">
                         {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
                 </div>

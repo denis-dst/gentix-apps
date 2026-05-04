@@ -15,12 +15,12 @@
     
     <style>
         :root {
-            --gentix-600: #7c3aed;
+            --gentix-600: #ea580c;
         }
         .sidebar-item-active {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));
-            border-left: 4px solid #7c3aed;
-            color: #7c3aed;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+            border-left: 4px solid #f97316;
+            color: #f97316;
         }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -46,12 +46,12 @@
             <!-- Brand Logo -->
             <div class="h-16 flex items-center px-6 bg-[#0a0f1d] border-b border-[#1e293b]">
                 <a href="/" class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                         </svg>
                     </div>
-                    <span class="text-xl font-bold text-white tracking-tight">Gen<span class="text-purple-500">Tix</span> Admin</span>
+                    <span class="text-xl font-bold text-white tracking-tight">Gen<span class="text-orange-400">Tix</span> Admin</span>
                 </a>
             </div>
 
@@ -75,43 +75,43 @@
                 <div class="px-3 py-2 text-[10px] font-bold uppercase text-slate-500 tracking-[0.2em]">General</div>
                 
                 @if(auth()->user()->hasRole(['superadmin', 'Superadmin']))
-                    <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.dashboard') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.dashboard') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                         <span class="text-sm font-medium">Dashboard</span>
                     </a>
                     
                     <div class="pt-4 px-3 py-2 text-[10px] font-bold uppercase text-slate-500 tracking-[0.2em]">Management</div>
-                    <a href="{{ route('superadmin.tenants.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.tenants.*') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('superadmin.tenants.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.tenants.*') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         <span class="text-sm font-medium">Organizers</span>
                     </a>
-                    <a href="{{ route('superadmin.events.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.events.*') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('superadmin.events.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('superadmin.events.*') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         <span class="text-sm font-medium">Global Events</span>
                     </a>
 
                 @elseif(auth()->user()->hasRole(['organizer', 'Penyedia Event']))
-                    <a href="{{ route('organizer.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.dashboard') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('organizer.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.dashboard') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                         <span class="text-sm font-medium">Dashboard</span>
                     </a>
 
                     <div class="pt-4 px-3 py-2 text-[10px] font-bold uppercase text-slate-500 tracking-[0.2em]">Event Management</div>
-                    <a href="{{ route('organizer.events.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.events.*') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('organizer.events.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.events.*') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         <span class="text-sm font-medium">Events</span>
                     </a>
-                    <a href="{{ route('organizer.vouchers.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.vouchers.*') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('organizer.vouchers.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.vouchers.*') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                         <span class="text-sm font-medium">Kode Promo</span>
                     </a>
-                    <a href="{{ route('organizer.settings.terms') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.settings.terms') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('organizer.settings.terms') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.settings.terms') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         <span class="text-sm font-medium">Kelola S & K</span>
                     </a>
 
                     <div class="pt-4 px-3 py-2 text-[10px] font-bold uppercase text-slate-500 tracking-[0.2em]">Reports & Crew</div>
-                    <a href="{{ route('organizer.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.reports.*') ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
+                    <a href="{{ route('organizer.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition {{ request()->routeIs('organizer.reports.*') ? 'bg-orange-500 text-white shadow-lg' : 'hover:bg-[#1e293b] hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                         <span class="text-sm font-medium">Laporan</span>
                     </a>
@@ -161,7 +161,7 @@
                             <div class="text-sm font-bold text-slate-800 leading-tight">{{ Auth::user()->name }}</div>
                             <div class="text-[10px] text-slate-500 font-medium uppercase tracking-widest">{{ Auth::user()->getRoleNames()->first() ?? 'User' }}</div>
                         </div>
-                        <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border border-indigo-200 shadow-sm overflow-hidden">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-lg border border-orange-200 shadow-sm overflow-hidden">
                             @if(Auth::user()->avatar)
                                 <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                             @else
@@ -180,7 +180,7 @@
                          x-transition:leave-end="transform opacity-0 scale-95"
                          class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-50 py-1"
                          style="display: none;">
-                        <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                        <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-orange-600 transition">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             My Profile
                         </a>
