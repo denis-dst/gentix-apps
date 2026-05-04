@@ -10,7 +10,7 @@
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 9v3m-3-3v3m6-3v3" /></svg>
                     </div>
                     <h3 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-wider">Konfigurasi Gate</h3>
-                    <p class="text-slate-500 mt-2 font-medium">Tentukan lokasi gate dan mode operasional saat ini.</p>
+                    <p class="text-slate-500 mt-2 font-medium">Tentukan kategori gate yang akan dikelola hari ini.</p>
                 </div>
 
                 <form action="{{ route('organizer.gate.setup.post', $event) }}" method="POST" class="space-y-8">
@@ -32,40 +32,34 @@
                             @enderror
                         </div>
 
-                        <!-- Gate Mode -->
+                        <!-- Event Information -->
                         <div>
-                            <label class="block text-xs font-black text-slate-700 uppercase tracking-[0.2em] mb-3 ml-1">Mode Operasional</label>
-                            <div class="grid grid-cols-2 gap-4">
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="gate_mode" value="IN" class="peer sr-only" checked>
-                                    <div class="p-6 rounded-2xl border-2 border-slate-100 bg-slate-50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition-all">
-                                        <div class="flex flex-col items-center gap-3">
-                                            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                            </div>
-                                            <div class="text-center">
-                                                <span class="block font-black text-slate-900 uppercase tracking-widest text-sm">Check-In</span>
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase">Masuk Area</span>
-                                            </div>
+                            <label class="block text-xs font-black text-slate-700 uppercase tracking-[0.2em] mb-3 ml-1">Detail Event Operasional</label>
+                            <div class="p-6 rounded-3xl bg-slate-50 border-2 border-slate-100 flex flex-col sm:flex-row items-center gap-6">
+                                <div class="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-sm border-2 border-white">
+                                    @if($event->background_image)
+                                        <img src="{{ Storage::url($event->background_image) }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl font-outfit">
+                                            {{ substr($event->name, 0, 1) }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="text-center sm:text-left min-w-0">
+                                    <h4 class="text-lg font-black text-slate-900 font-outfit truncate leading-tight mb-1">{{ $event->name }}</h4>
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            <span class="truncate">{{ $event->venue }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black text-orange-500 uppercase tracking-widest">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <span>{{ $event->event_start_date->format('d M Y, H:i') }}</span>
                                         </div>
                                     </div>
-                                </label>
-
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="gate_mode" value="OUT" class="peer sr-only">
-                                    <div class="p-6 rounded-2xl border-2 border-slate-100 bg-slate-50 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all">
-                                        <div class="flex flex-col items-center gap-3">
-                                            <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
-                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                            </div>
-                                            <div class="text-center">
-                                                <span class="block font-black text-slate-900 uppercase tracking-widest text-sm">Check-Out</span>
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase">Keluar Area</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </label>
+                                </div>
                             </div>
+                            <input type="hidden" name="gate_mode" value="IN">
                         </div>
                     </div>
 
