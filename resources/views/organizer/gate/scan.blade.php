@@ -5,14 +5,14 @@
     <div class="h-full w-full flex flex-col bg-[#010409] text-white overflow-hidden font-sans" x-data="gateScanner()">
         <!-- Header Bar -->
         <header
-            class="h-auto min-h-[4.5rem] pt-safe-top sm:pt-0 flex items-center justify-between px-4 sm:px-6 bg-[#0d1117] border-b border-white/5 shrink-0 z-50">
-            <div class="flex items-center gap-3 sm:gap-4 py-3 sm:py-0">
+            class="h-auto min-h-[5.5rem] pt-10 sm:pt-0 flex items-center justify-between px-4 sm:px-6 bg-[#0d1117] border-b border-white/5 shrink-0 z-50">
+            <div class="flex items-center gap-3 sm:gap-4 py-4 sm:py-0">
                 <a href="{{ route('organizer.gate.setup', $event) }}"
-                    class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl transition text-slate-300">
+                    class="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition text-slate-300">
                     <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
+                    <span class="text-[10px] font-black uppercase tracking-widest">BACK</span>
                 </a>
                 <div class="leading-tight">
                     <h2
