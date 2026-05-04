@@ -149,7 +149,7 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0 bg-slate-100 h-screen overflow-y-auto">
+        <div class="flex-1 flex flex-col min-w-0 bg-slate-100 {{ (isset($hideNav) && $hideNav) ? 'h-screen overflow-hidden' : 'h-screen overflow-y-auto' }}">
             @if(!isset($hideNav) || !$hideNav)
             <!-- Navbar -->
             <nav class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 sticky top-0 z-40 shadow-sm">
@@ -210,7 +210,7 @@
             @endif
 
             <!-- Content Area -->
-            <main class="{{ (isset($hideNav) && $hideNav) ? 'p-0' : 'px-8' }} flex-1 max-w-[1600px] w-full mx-auto pb-12">
+            <main class="{{ (isset($hideNav) && $hideNav) ? 'p-0 h-full w-full max-w-none' : 'px-8 flex-1 max-w-[1600px] w-full mx-auto pb-12' }}">
                 {{ $slot }}
             </main>
         </div>
