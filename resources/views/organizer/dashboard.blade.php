@@ -3,20 +3,20 @@
 
     <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <!-- Welcome Hero -->
-        <div class="relative overflow-hidden bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-8 sm:p-12 text-white shadow-xl">
+        <div class="relative overflow-hidden bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-8 sm:p-12 text-white shadow-xl">
             <div class="relative z-10 max-w-2xl">
                 <h2 class="text-3xl sm:text-4xl font-black mb-4 leading-tight">
                     Welcome back, <br>
-                    <span class="text-purple-200">{{ Auth::user()->tenant->name ?? 'Partner' }}</span>!
+                    <span class="text-orange-100">{{ Auth::user()->tenant->name ?? 'Partner' }}</span>!
                 </h2>
                 <p class="text-lg text-white/90 font-medium mb-8 leading-relaxed">
                     Manage your events, track sales, and grow your audience with GenTix.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <button class="px-6 py-3 bg-white text-purple-700 rounded-xl font-bold hover:bg-gray-50 transition shadow-lg flex items-center gap-2">
+                    <a href="{{ route('organizer.events.create') }}" class="px-6 py-3 bg-white text-orange-600 rounded-xl font-bold hover:bg-gray-50 transition shadow-lg flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         Create New Event
-                    </button>
+                    </a>
                 </div>
             </div>
             
