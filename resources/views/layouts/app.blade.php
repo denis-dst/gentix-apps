@@ -12,6 +12,14 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GenTix">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <meta name="theme-color" content="#f97316">
+    
     <style>
         [x-cloak] { display: none !important; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
@@ -109,5 +117,13 @@
     @if(!$shouldHideNav)
     <x-accessibility-widget />
     @endif
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
