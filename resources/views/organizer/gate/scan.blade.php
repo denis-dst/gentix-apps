@@ -5,8 +5,8 @@
     <div class="h-full w-full flex flex-col bg-[#010409] text-white overflow-hidden font-sans" x-data="gateScanner()">
         <!-- Header Bar -->
         <header
-            class="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 bg-[#0d1117] border-b border-white/5 shrink-0 z-50">
-            <div class="flex items-center gap-3 sm:gap-4">
+            class="h-auto min-h-[4.5rem] pt-safe-top sm:pt-0 flex items-center justify-between px-4 sm:px-6 bg-[#0d1117] border-b border-white/5 shrink-0 z-50">
+            <div class="flex items-center gap-3 sm:gap-4 py-3 sm:py-0">
                 <a href="{{ route('organizer.gate.setup', $event) }}"
                     class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl transition text-slate-300">
                     <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,6 +63,16 @@
                         </svg>
                     </button>
                 </div>
+
+                <!-- Logout Button -->
+                <form method="POST" action="{{ route('logout') }}" class="inline">
+                    @csrf
+                    <button type="submit" class="w-10 h-10 flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl transition-all border border-rose-500/20" title="Logout">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </form>
             </div>
         </header>
 
