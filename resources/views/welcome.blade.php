@@ -135,7 +135,7 @@
                     @else
                         <a href="{{ route('login') }}" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('Log in') }}</a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-semibold transition">{{ __('Partner with Us') }}</a>
+                            <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-orange-600 text-white hover:bg-orange-700 text-sm font-semibold transition shadow-lg shadow-orange-500/20">{{ __('Partner with Us') }}</a>
                         @endif
                     @endauth
                 </div>

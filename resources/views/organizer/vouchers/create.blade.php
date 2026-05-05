@@ -66,10 +66,10 @@
                 </div>
 
                 <div class="flex gap-4 pt-4">
-                    <a href="{{ route('organizer.vouchers.index') }}" class="flex-1 py-3 px-6 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition text-center">
+                    <a href="{{ route('organizer.vouchers.index') }}" class="flex-1 py-3 px-6 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl font-bold hover:bg-orange-100 transition text-center shadow-sm">
                         Batal
                     </a>
-                    <button type="submit" class="flex-1 py-3 px-6 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                    <button type="submit" class="flex-1 py-3 px-6 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200">
                         Simpan Voucher
                     </button>
                 </div>

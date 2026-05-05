@@ -96,8 +96,8 @@
             </div>
 
             <div class="bg-gray-50/50 p-8 flex justify-end gap-4 border-t border-gray-100">
-                <a href="{{ route('organizer.events.edit', $event) }}" class="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-100 transition">Cancel</a>
-                <button type="submit" class="px-10 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                <a href="{{ route('organizer.events.edit', $event) }}" class="px-8 py-3 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl font-bold hover:bg-orange-100 transition">Cancel</a>
+                <button type="submit" class="px-10 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200">
                     Update Category
                 </button>
             </div>

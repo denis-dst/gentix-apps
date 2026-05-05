@@ -14,7 +14,7 @@
                     Kelola event Anda, pantau penjualan tiket secara real-time, dan kembangkan audiens Anda bersama GenTix.
                 </p>
                 <div class="flex flex-wrap gap-3 md:gap-4">
-                    <a href="{{ route('organizer.events.create') }}" class="px-5 py-3 md:px-8 md:py-4 bg-orange-50 text-orange-600 rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider hover:bg-orange-100 transition shadow-lg flex items-center gap-2 group border border-orange-100">
+                    <a href="{{ route('organizer.events.create') }}" class="px-5 py-3 md:px-8 md:py-4 bg-orange-600 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider hover:bg-orange-700 transition shadow-lg flex items-center gap-2 group">
                         <svg class="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         Buat Event Baru
                     </a>
