@@ -59,6 +59,7 @@ Route::middleware(['auth:sanctum', 'role:Petugas Loket'])->group(function () {
  * Gate (Petugas Gate) Routes
  */
 Route::middleware(['auth:sanctum', 'role:Petugas Gate'])->group(function () {
+    Route::get('/gate/list', [GateController::class, 'listGates']);
     Route::post('/gate/scan', [GateController::class, 'scan']);
     Route::post('/gate/sync', [GateController::class, 'syncLogs']);
 });

@@ -85,7 +85,7 @@ class EventController extends Controller
 
     private function authorizeTenant(Event $event)
     {
-        if ($event->tenant_id !== auth()->user()->tenant_id) {
+        if ($event->tenant_id !== auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             abort(403, 'Unauthorized access to this event');
         }
     }

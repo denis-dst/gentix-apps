@@ -98,6 +98,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::post('redeem/process', [App\Http\Controllers\Organizer\RedeemController::class, 'process'])->name('redeem.process');
 
     // Gate System (Automatic Scan)
+    Route::resource('events.gates', App\Http\Controllers\Organizer\GateManagementController::class);
     Route::get('gate', [App\Http\Controllers\Organizer\GateController::class, 'index'])->name('gate.index');
     Route::get('gate/{event}/verify', [App\Http\Controllers\Organizer\GateController::class, 'verifyForm'])->name('gate.verify');
     Route::post('gate/{event}/verify', [App\Http\Controllers\Organizer\GateController::class, 'verify'])->name('gate.verify.post');

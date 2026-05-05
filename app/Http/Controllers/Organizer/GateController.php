@@ -49,21 +49,34 @@ class GateController extends Controller
             return redirect()->route('organizer.gate.verify', $event);
         }
 
-        $categories = $event->ticketCategories;
-        return view('organizer.gate.setup', compact('event', 'categories'));
+        $gates = $event->gates()->where('is_active', true)->get();
+        $categories = $event->ticketCategories; // Keep for legacy fallback if no gates defined
+        return view('organizer.gate.setup', compact('event', 'gates', 'categories'));
     }
 
     public function setup(Request $request, Event $event)
     {
         $request->validate([
-            'gate_category_id' => 'required|exists:ticket_categories,id',
+            'gate_id' => 'nullable|exists:gates,id',
+            'gate_category_id' => 'nullable|exists:ticket_categories,id',
             'gate_mode' => 'required|in:IN,OUT',
         ]);
 
-        $category = \App\Models\TicketCategory::findOrFail($request->gate_category_id);
+        if ($request->gate_id) {
+            $gate = \App\Models\Gate::with('ticketCategories')->findOrFail($request->gate_id);
+            session(['gate_id' => $gate->id]);
+            session(['gate_name' => $gate->name]);
+            session(['gate_allowed_categories' => $gate->ticketCategories->pluck('id')->toArray()]);
+            session()->forget('gate_category_id');
+        } else {
+            // Legacy fallback
+            $category = \App\Models\TicketCategory::findOrFail($request->gate_category_id);
+            session(['gate_category_id' => $category->id]);
+            session(['gate_name' => $category->name]);
+            session(['gate_allowed_categories' => [$category->id]]);
+            session()->forget('gate_id');
+        }
 
-        session(['gate_category_id' => $category->id]);
-        session(['gate_name' => $category->name]);
         session(['gate_mode' => $request->gate_mode]);
 
         return redirect()->route('organizer.gate.scan', $event);
@@ -104,12 +117,12 @@ class GateController extends Controller
             ], 404);
         }
 
-        // Access Control: Check if ticket category matches the gate
-        $gateCategoryId = session('gate_category_id');
-        if ($gateCategoryId && $ticket->ticket_category_id != $gateCategoryId) {
+        // Access Control: Check if ticket category is allowed for the gate
+        $allowedCategories = session('gate_allowed_categories', []);
+        if (!empty($allowedCategories) && !in_array($ticket->ticket_category_id, $allowedCategories)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kategori Tiket Salah! (Harus ' . session('gate_name') . ')',
+                'message' => 'Kategori Tiket Salah! (Tidak diizinkan di Gate ' . session('gate_name') . ')',
                 'customer' => $ticket->transaction->customer_name,
                 'category' => $ticket->category->name
             ], 403);

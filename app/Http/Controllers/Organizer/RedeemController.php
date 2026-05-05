@@ -124,7 +124,7 @@ class RedeemController extends Controller
 
     public function downloadData(Event $event)
     {
-        if ($event->tenant_id !== auth()->user()->tenant_id) {
+        if ($event->tenant_id !== auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

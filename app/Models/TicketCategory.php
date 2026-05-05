@@ -40,6 +40,11 @@ class TicketCategory extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    public function gates()
+    {
+        return $this->belongsToMany(Gate::class, 'gate_ticket_category');
+    }
+
     public function isAvailable()
     {
         if (!$this->is_active) return false;

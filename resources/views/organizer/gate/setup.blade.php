@@ -33,8 +33,25 @@
                             
                             <div class="space-y-6">
                                 <div>
-                                    <label for="gate_category_id" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Pilih Kategori Gate</label>
-                                    <select name="gate_category_id" id="gate_category_id" required
+                                    @if($gates->isNotEmpty())
+                                        <label for="gate_id" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Pilih Gate (Terdaftar)</label>
+                                        <select name="gate_id" id="gate_id" required
+                                                class="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:ring-0 text-lg font-bold text-slate-900 transition-all outline-none mb-6">
+                                            <option value="" disabled selected>-- Pilih Gate --</option>
+                                            @foreach($gates as $gate)
+                                                <option value="{{ $gate->id }}">{{ $gate->name }} ({{ $gate->ticketCategories->count() }} Kategori)</option>
+                                            @endforeach
+                                        </select>
+                                        
+                                        <div class="relative flex items-center gap-4 py-4">
+                                            <div class="flex-1 h-px bg-slate-200"></div>
+                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">ATAU</span>
+                                            <div class="flex-1 h-px bg-slate-200"></div>
+                                        </div>
+                                    @endif
+
+                                    <label for="gate_category_id" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Setup Manual (Satu Kategori)</label>
+                                    <select name="gate_category_id" id="gate_category_id" {{ $gates->isEmpty() ? 'required' : '' }}
                                             class="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 focus:ring-0 text-lg font-bold text-slate-900 transition-all outline-none">
                                         <option value="" disabled selected>-- Pilih Kategori Tiket --</option>
                                         @foreach($categories as $category)
@@ -72,5 +89,25 @@
                 </div>
             </div>
         </main>
+        <script>
+            const gateIdSelect = document.getElementById('gate_id');
+            const categoryIdSelect = document.getElementById('gate_category_id');
+            
+            if (gateIdSelect && categoryIdSelect) {
+                gateIdSelect.addEventListener('change', () => {
+                    if (gateIdSelect.value) {
+                        categoryIdSelect.required = false;
+                        categoryIdSelect.value = '';
+                    }
+                });
+                
+                categoryIdSelect.addEventListener('change', () => {
+                    if (categoryIdSelect.value) {
+                        gateIdSelect.required = false;
+                        gateIdSelect.value = '';
+                    }
+                });
+            }
+        </script>
     </div>
 </x-app-layout>

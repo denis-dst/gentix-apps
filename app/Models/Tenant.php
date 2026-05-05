@@ -35,4 +35,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Event::class);
     }
+
+    public function gates()
+    {
+        return $this->hasMany(Gate::class);
+    }
 }

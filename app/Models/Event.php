@@ -44,6 +44,11 @@ class Event extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function gates()
+    {
+        return $this->hasMany(Gate::class);
+    }
+
     // Current occupancy calculation
     public function getCurrentOccupancyAttribute()
     {
