@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>GenTix SuperAdmin - {{ $title ?? 'Dashboard' }}</title>
+    <title>{{ $global_settings['app_name'] ?? 'GenTix' }} SuperAdmin - {{ $title ?? 'Dashboard' }}</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,9 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GenTix">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-title" content="{{ $global_settings['app_name'] ?? 'GenTix' }}">
+    <link rel="apple-touch-icon" href="{{ isset($global_settings['app_icon']) ? asset('storage/' . $global_settings['app_icon']) : '/icons/icon-192x192.png' }}">
+    <link rel="icon" type="image/x-icon" href="{{ isset($global_settings['app_favicon']) ? asset('storage/' . $global_settings['app_favicon']) : '/favicon.ico' }}">
     <meta name="theme-color" content="#f97316">
     
     <style>
@@ -40,10 +41,25 @@
         <aside class="w-72 bg-[#0f172a] text-slate-300 flex flex-col shrink-0 border-r border-white/5">
             <div class="h-16 flex items-center px-6 bg-[#0a0f1d] shrink-0">
                 <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
-                    </div>
-                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">Gen<span class="text-orange-400">Tix</span></span>
+                    @if(isset($global_settings['app_logo']) && $global_settings['app_logo'])
+                        <img src="{{ asset('storage/' . $global_settings['app_logo']) }}" alt="Logo" class="h-8 w-auto">
+                    @else
+                        <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+                        </div>
+                    @endif
+                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">
+                        @if(isset($global_settings['app_name']))
+                            @php
+                                $nameParts = explode(' ', $global_settings['app_name']);
+                                $firstPart = $nameParts[0] ?? '';
+                                $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
+                            @endphp
+                            {{ $firstPart }}<span class="text-orange-400">{{ $secondPart }}</span>
+                        @else
+                            Gen<span class="text-orange-400">Tix</span>
+                        @endif
+                    </span>
                 </a>
             </div>
             
@@ -76,7 +92,18 @@
             <button @click="sidebarOpen = true" class="p-2 -ml-2 text-slate-500 hover:text-orange-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <span class="text-lg font-black text-slate-800 font-outfit uppercase tracking-tight">Gen<span class="text-orange-500">Tix</span></span>
+            <span class="text-lg font-black text-slate-800 font-outfit uppercase tracking-tight">
+                @if(isset($global_settings['app_name']))
+                    @php
+                        $nameParts = explode(' ', $global_settings['app_name']);
+                        $firstPart = $nameParts[0] ?? '';
+                        $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
+                    @endphp
+                    {{ $firstPart }}<span class="text-orange-500">{{ $secondPart }}</span>
+                @else
+                    Gen<span class="text-orange-500">Tix</span>
+                @endif
+            </span>
             <div class="w-10 h-10 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold">
                 {{ substr(Auth::user()->name, 0, 1) }}
             </div>
@@ -102,7 +129,18 @@
                    x-transition:leave-end="-translate-x-full"
                    class="relative w-72 bg-[#0f172a] text-slate-300 flex flex-col h-full shadow-2xl">
                 <div class="h-16 flex items-center justify-between px-6 bg-[#0a0f1d] shrink-0 border-b border-white/5">
-                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">Gen<span class="text-orange-400">Tix</span></span>
+                    <span class="text-xl font-black text-white font-outfit uppercase tracking-tight">
+                        @if(isset($global_settings['app_name']))
+                            @php
+                                $nameParts = explode(' ', $global_settings['app_name']);
+                                $firstPart = $nameParts[0] ?? '';
+                                $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
+                            @endphp
+                            {{ $firstPart }}<span class="text-orange-400">{{ $secondPart }}</span>
+                        @else
+                            Gen<span class="text-orange-400">Tix</span>
+                        @endif
+                    </span>
                     <button @click="sidebarOpen = false" class="p-2 text-slate-400 hover:text-white">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>

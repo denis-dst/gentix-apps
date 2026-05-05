@@ -27,6 +27,10 @@ class SettingSeeder extends Seeder
             // Appearance
             ['key' => 'hero_title', 'value' => 'Connecting Generations Through Every Gate.', 'group' => 'appearance'],
             ['key' => 'hero_subtitle', 'value' => 'Bridging the gap between Generation and Tickets. Experience high-tech event management that\'s simple enough for everyone.', 'group' => 'appearance'],
+            ['key' => 'app_logo', 'value' => null, 'group' => 'appearance'],
+            ['key' => 'app_favicon', 'value' => null, 'group' => 'appearance'],
+            ['key' => 'app_icon', 'value' => null, 'group' => 'appearance'],
+            ['key' => 'footer_text', 'value' => '&copy; 2026 GenTix. All rights reserved.', 'group' => 'general'],
         ];
 
         foreach ($settings as $setting) {
