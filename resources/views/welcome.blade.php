@@ -98,19 +98,24 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                             </svg>
                         </div>
-                    @endif
-                    <span class="text-2xl font-bold tracking-tight font-outfit uppercase text-white">
-                        @if(isset($settings['app_name']))
+                        <span class="text-2xl font-bold tracking-tight font-outfit uppercase text-white">
                             @php
-                                $nameParts = explode(' ', $settings['app_name']);
-                                $firstPart = $nameParts[0] ?? '';
-                                $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
+                                $appName = $settings['app_name'] ?? 'GenTix';
+                                if (str_contains($appName, ' ')) {
+                                    $parts = explode(' ', $appName, 2);
+                                    $first = $parts[0];
+                                    $second = $parts[1];
+                                } elseif (str_starts_with(strtolower($appName), 'gen') && strlen($appName) > 3) {
+                                    $first = substr($appName, 0, 3);
+                                    $second = substr($appName, 3);
+                                } else {
+                                    $first = $appName;
+                                    $second = '';
+                                }
                             @endphp
-                            {{ $firstPart }}<span class="text-orange-400">{{ $secondPart }}</span>
-                        @else
-                            Gen<span class="text-orange-400">Tix</span>
-                        @endif
-                    </span>
+                            {{ $first }}<span class="text-orange-400">{{ $second }}</span>
+                        </span>
+                    @endif
                 </div>
                 
                 <div class="hidden md:flex items-center space-x-8">
@@ -418,12 +423,32 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                 <div class="col-span-1 md:col-span-2">
                     <div class="flex items-center gap-2 mb-8">
-                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                            </svg>
-                        </div>
-                        <span class="text-3xl font-bold tracking-tight font-outfit uppercase text-white">{{ $settings['app_name'] ?? 'Gen' }}<span class="text-orange-400">{{ $settings['app_name_suffix'] ?? 'Tix' }}</span></span>
+                        @if(isset($settings['app_logo']) && $settings['app_logo'])
+                            <img src="{{ asset('storage/' . $settings['app_logo']) }}" alt="Logo" class="h-10 w-auto">
+                        @else
+                            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                                </svg>
+                            </div>
+                            <span class="text-3xl font-bold tracking-tight font-outfit uppercase text-white">
+                                @php
+                                    $appName = $settings['app_name'] ?? 'GenTix';
+                                    if (str_contains($appName, ' ')) {
+                                        $parts = explode(' ', $appName, 2);
+                                        $first = $parts[0];
+                                        $second = $parts[1];
+                                    } elseif (str_starts_with(strtolower($appName), 'gen') && strlen($appName) > 3) {
+                                        $first = substr($appName, 0, 3);
+                                        $second = substr($appName, 3);
+                                    } else {
+                                        $first = $appName;
+                                        $second = '';
+                                    }
+                                @endphp
+                                {{ $first }}<span class="text-orange-400">{{ $second }}</span>
+                            </span>
+                        @endif
                     </div>
                     <p class="text-stone-500 font-light max-w-sm mb-8">
                         {{ $settings['meta_description'] ?? 'The ultimate destination for discovery and access to the world\'s most exciting live events.' }}
