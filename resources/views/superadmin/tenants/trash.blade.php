@@ -11,7 +11,7 @@
     <div class="bg-white rounded-sm border-t-4 border-red-600 shadow-md overflow-hidden">
         <div class="px-4 py-3 border-b border-[#dee2e6] flex justify-between items-center bg-white">
             <h3 class="text-lg font-medium">Deleted Organizers</h3>
-            <a href="{{ route('superadmin.tenants.index') }}" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-bold rounded shadow-sm transition">
+            <a href="{{ route('superadmin.tenants.index') }}" class="px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-sm font-bold rounded shadow-sm transition">
                 <i class="fas fa-arrow-left mr-1"></i> Back to Active
             </a>
         </div>
