@@ -17,7 +17,7 @@
                 @include('superadmin.tenants.form')
                 
                 <div class="mt-8 flex justify-end gap-3 border-t border-gray-100 pt-5">
-                    <a href="{{ route('superadmin.tenants.index') }}" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition shadow-sm">Cancel</a>
+                    <a href="{{ route('superadmin.tenants.index') }}" class="px-5 py-2.5 bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition shadow-sm">Cancel</a>
                     <button type="submit" class="px-5 py-2.5 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition shadow-md flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                         Update Organizer

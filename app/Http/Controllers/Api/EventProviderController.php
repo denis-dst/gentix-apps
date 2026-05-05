@@ -11,6 +11,19 @@ use Illuminate\Support\Facades\Storage;
 class EventProviderController extends Controller
 {
     /**
+     * Daftar Acara untuk Tenant (Index)
+     */
+    public function listEvents()
+    {
+        $events = Event::where('tenant_id', auth()->user()->tenant_id)
+            ->where('status', 'published')
+            ->orderBy('event_start_date', 'desc')
+            ->get();
+            
+        return response()->json($events);
+    }
+
+    /**
      * Manajemen Acara (Event CRUD)
      */
     public function storeEvent(Request $request)
@@ -106,7 +119,7 @@ class EventProviderController extends Controller
         $occupancy = $event->current_occupancy;
         
         $tickets_stats = $event->ticketCategories()
-            ->select('name', 'quota', 'sold_count')
+            ->select('id', 'name', 'quota', 'sold_count')
             ->get();
 
         $revenue = $event->transactions()->where('payment_status', 'paid')->sum('total_amount');

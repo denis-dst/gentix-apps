@@ -14,7 +14,7 @@
                     Kelola event Anda, pantau penjualan tiket secara real-time, dan kembangkan audiens Anda bersama GenTix.
                 </p>
                 <div class="flex flex-wrap gap-3 md:gap-4">
-                    <a href="{{ route('organizer.events.create') }}" class="px-5 py-3 md:px-8 md:py-4 bg-white text-orange-600 rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider hover:bg-orange-50 transition shadow-lg flex items-center gap-2 group">
+                    <a href="{{ route('organizer.events.create') }}" class="px-5 py-3 md:px-8 md:py-4 bg-orange-50 text-orange-600 rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider hover:bg-orange-100 transition shadow-lg flex items-center gap-2 group border border-orange-100">
                         <svg class="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         Buat Event Baru
                     </a>
@@ -164,10 +164,10 @@
                                     </td>
                                     <td class="p-4 md:px-6 md:py-4 text-right">
                                         <div class="flex justify-end gap-2">
-                                            <a href="{{ route('organizer.events.edit', $event) }}" class="p-2 md:p-3 bg-slate-50 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all shadow-sm">
+                                            <a href="{{ route('organizer.events.edit', $event) }}" class="p-2 md:p-3 bg-slate-100 text-slate-500 hover:text-orange-600 hover:bg-orange-100 rounded-xl transition-all shadow-sm">
                                                 <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                             </a>
-                                            <a href="{{ route('organizer.reports.index', ['event_id' => $event->id]) }}" class="p-2 md:p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm">
+                                            <a href="{{ route('organizer.reports.index', ['event_id' => $event->id]) }}" class="p-2 md:p-3 bg-slate-100 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all shadow-sm">
                                                 <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                             </a>
                                         </div>

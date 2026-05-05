@@ -28,15 +28,22 @@ Route::middleware(['auth:sanctum', 'role:Superadmin'])->group(function () {
 });
 
 /**
+ * Shared Tenant Routes (Events List)
+ */
+Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket|Petugas Gate'])->group(function () {
+    Route::get('/events', [EventProviderController::class, 'listEvents']);
+});
+
+/**
  * Event Provider Routes
  */
-Route::middleware(['auth:sanctum', 'role:Penyedia Event'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket'])->group(function () {
     Route::post('/events', [EventProviderController::class, 'storeEvent']);
     Route::post('/events/{event}/ticket-categories', [EventProviderController::class, 'storeTicketCategory']);
     Route::post('/ticket-categories/{category}/update-design', [EventProviderController::class, 'updateTicketDesign']);
     Route::get('/events/{event}/analytics', [EventProviderController::class, 'getAnalytics']);
     
-    // Penjualan & Redemption for Event Provider
+    // Penjualan & Redemption
     Route::post('/pos/events/{event}/sell', [POSController::class, 'sellTicket']);
     Route::post('/pos/redeem', [POSController::class, 'redeemTicket']);
 });
