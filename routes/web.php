@@ -94,6 +94,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::get('redeem/{event}/verify', [App\Http\Controllers\Organizer\RedeemController::class, 'verifyForm'])->name('redeem.verify');
     Route::post('redeem/{event}/verify', [App\Http\Controllers\Organizer\RedeemController::class, 'verify'])->name('redeem.verify.post');
     Route::get('redeem/{event}/scan', [App\Http\Controllers\Organizer\RedeemController::class, 'scan'])->name('redeem.scan');
+    Route::post('redeem/check', [App\Http\Controllers\Organizer\RedeemController::class, 'check'])->name('redeem.check');
     Route::get('redeem/{event}/download', [App\Http\Controllers\Organizer\RedeemController::class, 'downloadData'])->name('redeem.download');
     Route::post('redeem/process', [App\Http\Controllers\Organizer\RedeemController::class, 'process'])->name('redeem.process');
 

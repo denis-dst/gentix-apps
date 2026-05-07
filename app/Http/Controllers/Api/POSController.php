@@ -87,20 +87,49 @@ class POSController extends Controller
     public function checkTicket($code)
     {
         $ticket = Ticket::where('ticket_code', $code)
-            ->with(['category', 'transaction'])
+            ->with(['category', 'transaction', 'redeemer'])
             ->first();
 
         if (!$ticket) {
-            return response()->json(['message' => 'Ticket not found'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tiket tidak ditemukan! Pastikan kode QR benar.',
+                'sound' => 'error'
+            ], 404);
         }
 
         $this->authorizeTenant($ticket->event);
 
+        if ($ticket->status === 'redeemed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'GAGAL! Tiket Sudah Digunakan.',
+                'sub_message' => 'Tiket ini telah di-redeem sebelumnya.',
+                'sound' => 'error',
+                'color' => 'red',
+                'details' => [
+                    'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
+                    'redeemed_by' => $ticket->redeemer->name ?? 'System',
+                    'photo' => $ticket->redeem_photo ? asset('storage/' . $ticket->redeem_photo) : null,
+                    'visitor' => $ticket->transaction->customer_name,
+                    'category' => $ticket->category->name,
+                    'wristband_qr' => $ticket->wristband_qr
+                ]
+            ], 422);
+        }
+
         return response()->json([
-            'ticket' => $ticket,
-            'visitor' => $ticket->transaction->customer_name,
-            'category' => $ticket->category->name,
-            'is_redeemable' => $ticket->status === 'sold'
+            'status' => 'success',
+            'message' => 'Tiket Valid!',
+            'sub_message' => 'Silahkan scan gelang dan ambil foto pengunjung.',
+            'sound' => 'success',
+            'color' => 'green',
+            'ticket' => [
+                'code' => $ticket->ticket_code,
+                'visitor' => $ticket->transaction->customer_name,
+                'category' => $ticket->category->name,
+            ],
+            'is_redeemable' => true
         ]);
     }
 
@@ -111,7 +140,8 @@ class POSController extends Controller
     {
         $request->validate([
             'ticket_code' => 'required|exists:tickets,ticket_code',
-            'wristband_qr' => 'required|unique:tickets,wristband_qr'
+            'wristband_qr' => 'required|unique:tickets,wristband_qr',
+            'photo' => 'nullable|string' // Base64 or path, but let's assume multipart if possible, or string for path
         ]);
 
         $ticket = Ticket::where('ticket_code', $request->ticket_code)->first();
@@ -119,18 +149,36 @@ class POSController extends Controller
         $this->authorizeTenant($ticket->event);
 
         if ($ticket->status === 'redeemed') {
-            return response()->json(['message' => 'Ticket already redeemed at ' . $ticket->redeemed_at], 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal! Tiket ini sudah di-redeem sebelumnya.',
+                'sound' => 'error'
+            ], 422);
+        }
+
+        // Handle Photo if uploaded as file
+        $photoPath = $ticket->redeem_photo;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('redeem_photos', 'public');
+        } elseif ($request->photo && !filter_var($request->photo, FILTER_VALIDATE_URL)) {
+            // Assume it might be a path from previous step or base64 (simplified)
+            $photoPath = $request->photo;
         }
 
         $ticket->update([
             'wristband_qr' => $request->wristband_qr,
             'status' => 'redeemed',
             'redeemed_at' => now(),
-            'redeemed_by' => auth()->id()
+            'redeemed_by' => auth()->id(),
+            'redeem_photo' => $photoPath
         ]);
 
         return response()->json([
-            'message' => 'Redemption successful. Wristband linked.',
+            'status' => 'success',
+            'message' => 'Redeem Berhasil!',
+            'sub_message' => 'Gelang telah aktif. Silahkan berikan kepada pengunjung.',
+            'sound' => 'success',
+            'color' => 'green',
             'visitor' => $ticket->transaction->customer_name,
             'category' => $ticket->category->name
         ]);

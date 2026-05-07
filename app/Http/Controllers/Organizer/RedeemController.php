@@ -54,6 +54,58 @@ class RedeemController extends Controller
         return view('organizer.redeem.scan', compact('event'));
     }
 
+    public function check(Request $request)
+    {
+        $request->validate([
+            'ticket_code' => 'required',
+            'event_id' => 'required|exists:events,id'
+        ]);
+
+        $ticket = Ticket::where('event_id', $request->event_id)
+            ->where('ticket_code', $request->ticket_code)
+            ->with(['transaction', 'category', 'redeemer'])
+            ->first();
+
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Tiket tidak ditemukan!',
+                'sound' => 'error',
+                'color' => 'red'
+            ]);
+        }
+
+        if ($ticket->status === 'redeemed') {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'GAGAL! Tiket Sudah Digunakan.',
+                'sub_message' => 'Tiket ini telah di-redeem sebelumnya.',
+                'sound' => 'error',
+                'color' => 'red',
+                'details' => [
+                    'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
+                    'redeemed_by' => $ticket->redeemer->name ?? 'System',
+                    'photo' => $ticket->redeem_photo ? Storage::url($ticket->redeem_photo) : null,
+                    'customer' => $ticket->transaction->customer_name,
+                    'category' => $ticket->category->name
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => 'success',
+            'message' => 'Tiket Valid!',
+            'sub_message' => 'Silahkan ambil foto pengunjung untuk menyelesaikan redeem.',
+            'sound' => 'success',
+            'color' => 'green',
+            'customer_name' => $ticket->transaction->customer_name,
+            'category_name' => $ticket->category->name
+        ]);
+    }
+
     public function process(Request $request)
     {
         $request->validate([
@@ -108,6 +160,11 @@ class RedeemController extends Controller
 
             return response()->json([
                 'success' => true,
+                'status' => 'success',
+                'message' => 'Redeem Berhasil!',
+                'sub_message' => 'Tiket telah berhasil di-redeem.',
+                'sound' => 'success',
+                'color' => 'green',
                 'customer_name' => $ticket->transaction->customer_name,
                 'category_name' => $ticket->category->name,
                 'ticket_code' => $ticket->ticket_code,

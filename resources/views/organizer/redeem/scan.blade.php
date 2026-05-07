@@ -105,16 +105,25 @@
                                 <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center text-rose-600 mb-8 shadow-2xl">
                                     <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </div>
-                                <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-8 font-outfit">REDEEM GAGAL</h3>
-                                <div class="bg-black/40 px-8 py-6 rounded-3xl border border-white/20 text-xl sm:text-2xl font-black text-center max-w-lg leading-relaxed" x-text="result.message"></div>
+                                <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-2 font-outfit" x-text="result.message || 'REDEEM GAGAL'"></h3>
+                                <p class="text-white/80 font-bold uppercase tracking-widest text-sm mb-8" x-text="result.sub_message || ''"></p>
                                 
-                                <template x-if="result.redeem_photo">
-                                    <div class="mt-8 w-full max-w-xs aspect-video bg-black/40 rounded-3xl border border-white/10 overflow-hidden grayscale opacity-50">
-                                        <img :src="result.redeem_photo" class="w-full h-full object-cover">
+                                <div class="bg-black/40 px-8 py-6 rounded-3xl border border-white/20 text-xl sm:text-2xl font-black text-center max-w-lg leading-relaxed" x-show="result.details">
+                                    <div class="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Data Pengunjung</div>
+                                    <div x-text="result.details ? result.details.customer : ''"></div>
+                                    <div class="text-sm text-emerald-500" x-text="result.details ? result.details.category : ''"></div>
+                                </div>
+                                
+                                <template x-if="result.details && result.details.photo">
+                                    <div class="mt-8 w-full max-w-xs aspect-video bg-black/40 rounded-3xl border border-white/10 overflow-hidden grayscale opacity-50 shadow-2xl">
+                                        <img :src="result.details.photo" class="w-full h-full object-cover">
                                     </div>
                                 </template>
 
-                                <p class="mt-12 text-white/40 font-bold uppercase tracking-[0.3em] text-sm" x-text="result.redeemed_at || 'CHECK DATA TIKET'"></p>
+                                <div class="mt-8 flex flex-col items-center gap-1">
+                                    <p class="text-white/40 font-bold uppercase tracking-[0.3em] text-sm" x-text="result.details ? 'Redeem pada: ' + result.details.redeemed_at : 'CHECK DATA TIKET'"></p>
+                                    <p class="text-white/20 font-bold uppercase tracking-[0.3em] text-[10px]" x-text="result.details ? 'Oleh: ' + result.details.redeemed_by : ''"></p>
+                                </div>
                             </div>
                         </template>
 
@@ -248,17 +257,44 @@
                     if (this.processing || this.result) return;
                     this.processing = true;
                     
-                    const photo = this.takePhoto();
-
                     if (this.mode === 'online') {
-                        await this.processOnline(decodedText, photo);
+                        // Step 1: Check Ticket First (Tolak dari awal)
+                        try {
+                            const checkResponse = await fetch("{{ route('organizer.redeem.check') }}", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+                                body: JSON.stringify({ ticket_code: decodedText, event_id: "{{ $event->id }}" })
+                            });
+                            const checkData = await checkResponse.json();
+                            
+                            if (!checkData.success) {
+                                this.result = checkData;
+                                this.playResultSound();
+                                this.startAutoReset();
+                                this.processing = false;
+                                return;
+                            }
+                            
+                            // Step 2: If Success Check, Take Photo and Process
+                            const photo = this.takePhoto();
+                            await this.processOnline(decodedText, photo);
+                            
+                        } catch (err) {
+                            console.error("Check failed", err);
+                            this.result = { success: false, message: 'Kesalahan Jaringan!' };
+                            this.playResultSound();
+                        }
                     } else {
+                        const photo = this.takePhoto();
                         await this.processOffline(decodedText, photo);
                     }
 
                     this.processing = false;
-                    
-                    // Auto reset after 4 seconds
+                    this.startAutoReset();
+                },
+
+                startAutoReset() {
+                    if (this.autoResetInterval) clearInterval(this.autoResetInterval);
                     this.autoResetTimer = 4;
                     this.autoResetInterval = setInterval(() => {
                         this.autoResetTimer--;
