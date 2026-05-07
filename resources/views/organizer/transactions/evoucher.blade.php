@@ -34,13 +34,31 @@
             margin: 20px auto;
             padding: 15mm;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
+        .terms-content ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .terms-content ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .terms-content li { margin-bottom: 0.25rem; }
+        
+        .ticket-page {
+            page-break-after: always;
+            break-after: page;
+        }
+        
+        .ticket-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+        }
+
         @media print {
+            body { background-color: white; padding: 0 !important; margin: 0 !important; }
             .evoucher-card {
                 margin: 0;
                 box-shadow: none;
                 width: 100%;
+                padding: 10mm;
             }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
@@ -62,127 +80,137 @@
     </div>
 
     <div class="evoucher-card">
-        <!-- Header -->
-        <div class="flex justify-between items-center border-b-2 border-slate-100 pb-6 mb-8">
-            <div class="flex items-center gap-4">
-                @if(isset($global_settings['app_logo']) && $global_settings['app_logo'])
-                    <img src="{{ asset('storage/' . $global_settings['app_logo']) }}" class="h-10 w-auto">
-                @else
-                    <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-orange-200">GT</div>
-                @endif
-                <div>
-                    <h2 class="text-2xl font-black text-slate-800 font-outfit uppercase tracking-tighter">Gen<span class="text-orange-500">Tix</span></h2>
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">E-Voucher</p>
-                </div>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">No. Invoice</div>
-                <div class="text-sm font-black text-slate-700 font-mono">{{ $transaction->reference_no }}</div>
-            </div>
-        </div>
-
-        <!-- Event Detail -->
-        <div class="grid grid-cols-12 gap-8 mb-10">
-            <div class="col-span-4">
-                @if($transaction->event->banner_image)
-                    <img src="{{ asset('storage/' . $transaction->event->banner_image) }}" class="w-full aspect-[4/5] object-cover rounded-[2rem] shadow-md">
-                @else
-                    <div class="w-full aspect-[4/5] bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-300">
-                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    </div>
-                @endif
-            </div>
-            <div class="col-span-8 flex flex-col justify-center">
-                <p class="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2">Event Detail</p>
-                <h3 class="text-3xl font-black text-slate-800 font-outfit leading-tight mb-4">{{ $transaction->event->name }}</h3>
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        </div>
-                        <span class="text-sm font-bold text-slate-600">{{ $transaction->event->event_start_date->format('l, d F Y') }}</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <span class="text-sm font-bold text-slate-600">{{ $transaction->event->event_start_date->format('H:i') }} WIB - Selesai</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        </div>
-                        <span class="text-sm font-bold text-slate-600 uppercase">{{ $transaction->event->venue }}, {{ $transaction->event->city }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Booking Info & QR -->
         @foreach($transaction->tickets as $index => $ticket)
-        <div class="grid grid-cols-12 gap-8 bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 mb-6 {{ $loop->index > 0 ? 'mt-10' : '' }}">
-            <div class="col-span-8">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Informasi Pemesanan</p>
-                <div class="grid grid-cols-2 gap-y-6">
+        <div class="ticket-page mb-10">
+            <!-- Header (Repeated on each page for clarity) -->
+            <div class="flex justify-between items-center border-b-2 border-slate-100 pb-6 mb-8">
+                <div class="flex items-center gap-4">
+                    @if(isset($global_settings['app_logo']) && $global_settings['app_logo'])
+                        <img src="{{ asset('storage/' . $global_settings['app_logo']) }}" class="h-10 w-auto">
+                    @else
+                        <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-orange-200">GT</div>
+                    @endif
                     <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Nama Pembeli</div>
-                        <div class="text-sm font-black text-slate-800">{{ $transaction->customer_name }}</div>
+                        <h2 class="text-2xl font-black text-slate-800 font-outfit uppercase tracking-tighter">Gen<span class="text-orange-500">Tix</span></h2>
+                        <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">E-Voucher</p>
                     </div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Kategori Tiket</div>
-                        <div class="text-sm font-black text-orange-600 uppercase">{{ $ticket->category->name }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">No. Invoice</div>
+                    <div class="text-sm font-black text-slate-700 font-mono">{{ $transaction->reference_no }}</div>
+                </div>
+            </div>
+
+            <!-- Event Detail -->
+            <div class="grid grid-cols-12 gap-8 mb-10">
+                @if($transaction->event->banner_image)
+                    <div class="col-span-4">
+                        <img src="{{ asset('storage/' . $transaction->event->banner_image) }}" class="w-full aspect-[4/5] object-cover rounded-[2rem] shadow-md">
                     </div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">NIK</div>
-                        <div class="text-sm font-black text-slate-800">{{ $transaction->customer_nik ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Email</div>
-                        <div class="text-sm font-black text-slate-800">{{ $transaction->customer_email }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Tanggal Transaksi</div>
-                        <div class="text-sm font-black text-slate-800">{{ $transaction->paid_at ? $transaction->paid_at->format('d M Y H:i') : $transaction->created_at->format('d M Y H:i') }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Metode Pembayaran</div>
-                        <div class="text-sm font-black text-slate-800 uppercase">{{ $transaction->payment_method }}</div>
+                @endif
+                <div class="{{ $transaction->event->banner_image ? 'col-span-8' : 'col-span-12' }} flex flex-col justify-center">
+                    <p class="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2">Event Detail</p>
+                    <h3 class="text-3xl font-black text-slate-800 font-outfit leading-tight mb-4">{{ $transaction->event->name }}</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600">{{ $transaction->event->event_start_date->format('l, d F Y') }}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600">{{ $transaction->event->event_start_date->format('H:i') }} WIB - Selesai</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-600 uppercase">{{ $transaction->event->venue }}, {{ $transaction->event->city }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-span-4 flex flex-col items-center justify-center bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-                <div class="text-[10px] font-black text-slate-800 uppercase mb-3">{{ $ticket->category->name }}</div>
-                <div class="mb-3">
-                    {!! QrCode::size(140)->generate($ticket->ticket_code) !!}
+
+            <!-- Booking Info & QR Section -->
+            <h4 class="text-lg font-bold text-slate-800 mb-4">Informasi Pesanan</h4>
+            <div class="grid grid-cols-12 gap-0 border border-slate-200 rounded-lg overflow-hidden mb-8">
+                <!-- Left Side: Buyer Data -->
+                <div class="col-span-8 bg-slate-50/50 p-6 border-r border-slate-200">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">No. Invoice</span>
+                            <span class="text-slate-700 font-bold font-mono">{{ $transaction->reference_no }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">Tanggal Transaksi</span>
+                            <span class="text-slate-700 font-bold">{{ $transaction->paid_at ? $transaction->paid_at->format('d F Y H:i') : $transaction->created_at->format('d F Y H:i') }} WIB</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs pb-3 border-b border-slate-200">
+                            <span class="text-slate-400 font-medium">Metode Pembayaran</span>
+                            <span class="text-slate-700 font-bold uppercase">{{ $transaction->payment_method }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-xs pt-2">
+                            <span class="text-slate-400 font-medium">Nama</span>
+                            <span class="text-slate-700 font-bold">{{ $transaction->customer_name }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">NIK</span>
+                            <span class="text-slate-700 font-bold">{{ $transaction->customer_nik ?? '-' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">Email</span>
+                            <span class="text-slate-700 font-bold">{{ $transaction->customer_email }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">No. Telepon</span>
+                            <span class="text-slate-700 font-bold">{{ $transaction->customer_phone ?? '-' }}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-[11px] font-black text-slate-400 font-mono tracking-widest">{{ $ticket->ticket_code }}</div>
-                <div class="text-[9px] font-bold text-slate-300 mt-1 uppercase">Ticket {{ $index + 1 }} of {{ $transaction->tickets->count() }}</div>
+
+                <!-- Right Side: QR Code -->
+                <div class="col-span-4 p-6 flex flex-col items-center justify-center bg-white">
+                    <div class="text-center mb-3">
+                        <div class="text-xs font-black text-slate-800 uppercase leading-tight">{{ $ticket->category->name }}</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase">Item {{ $index + 1 }} of {{ $transaction->tickets->count() }}</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        {!! QrCode::size(120)->generate($ticket->ticket_code) !!}
+                    </div>
+                    
+                    <div class="text-[10px] font-black text-slate-400 font-mono tracking-widest">{{ $ticket->ticket_code }}</div>
+                </div>
             </div>
+
+            <!-- Syarat & Ketentuan -->
+            <div class="mt-10 border-t border-slate-100 pt-8">
+                <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Syarat & Ketentuan</h4>
+                <div class="text-[11px] text-slate-500 font-medium leading-relaxed prose max-w-none terms-content">
+                    {!! $transaction->event->terms_conditions !!}
+                </div>
+            </div>
+
+            <!-- Sponsor Logo -->
+            @if(isset($transaction->event->meta['sponsors']) && count($transaction->event->meta['sponsors']) > 0)
+            <div class="mt-12 pt-8 border-t border-slate-100 text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Supported By</p>
+                <div class="flex flex-wrap justify-center items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition">
+                    @foreach($transaction->event->meta['sponsors'] as $sponsor)
+                        <img src="{{ asset('storage/' . $sponsor) }}" class="h-8 w-auto">
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
         @endforeach
 
-        <!-- Syarat & Ketentuan -->
-        <div class="mt-10 border-t border-slate-100 pt-8">
-            <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Syarat & Ketentuan</h4>
-            <div class="text-[11px] text-slate-500 font-medium leading-relaxed prose max-w-none">
-                {!! nl2br(e($transaction->event->terms_conditions)) !!}
-            </div>
-        </div>
-
-        <!-- Sponsor Logo -->
-        @if(isset($transaction->event->meta['sponsors']) && count($transaction->event->meta['sponsors']) > 0)
-        <div class="mt-12 pt-8 border-t border-slate-100 text-center">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Supported By</p>
-            <div class="flex flex-wrap justify-center items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition">
-                @foreach($transaction->event->meta['sponsors'] as $sponsor)
-                    <img src="{{ asset('storage/' . $sponsor) }}" class="h-8 w-auto">
-                @endforeach
-            </div>
-        </div>
-        @endif
-
         <!-- Footer Logo -->
-        <div class="mt-auto pt-12 text-center">
+        <div class="pt-8 text-center border-t border-slate-50">
             <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Generated by GenTix Platform</p>
         </div>
     </div>

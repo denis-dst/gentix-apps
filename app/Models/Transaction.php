@@ -53,4 +53,9 @@ class Transaction extends Model
     {
         return $this->belongsTo(User::class, 'processed_by');
     }
+
+    public function promoCode()
+    {
+        return $this->belongsTo(PromoCode::class, 'promo_code_id');
+    }
 }

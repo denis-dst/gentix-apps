@@ -336,4 +336,13 @@ class PublicEventController extends Controller
 
         return view('checkout.success', compact('transaction'));
     }
+
+    public function evoucher($reference)
+    {
+        $transaction = Transaction::where('reference_no', $reference)
+            ->with(['event', 'tickets.category', 'tenant'])
+            ->firstOrFail();
+            
+        return view('organizer.transactions.evoucher', compact('transaction'));
+    }
 }

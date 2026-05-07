@@ -23,6 +23,7 @@ Route::get('/promo/validate', [PublicEventController::class, 'validatePromo'])->
 Route::post('/event/{slug}/checkout', [PublicEventController::class, 'checkout'])->name('checkout.process');
 Route::post('/midtrans/notification', [PublicEventController::class, 'handleNotification'])->name('midtrans.notification');
 Route::get('/checkout/success/{reference}', [App\Http\Controllers\PublicEventController::class, 'success'])->name('checkout.success');
+Route::get('/evoucher/{reference}', [App\Http\Controllers\PublicEventController::class, 'evoucher'])->name('evoucher.public');
 
 Route::get('/tickets/view/{code}', [App\Http\Controllers\TicketViewController::class, 'show'])->name('tickets.view');
 
@@ -46,6 +47,8 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::resource('events', App\Http\Controllers\SuperAdmin\EventController::class);
     
     Route::resource('transactions', App\Http\Controllers\SuperAdmin\TransactionController::class);
+    Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
+    Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
     Route::get('reports', [App\Http\Controllers\SuperAdmin\ReportController::class, 'index'])->name('reports.index');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
