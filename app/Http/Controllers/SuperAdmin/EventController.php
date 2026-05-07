@@ -46,9 +46,23 @@ class EventController extends Controller
             'gate_close_at' => 'required|date|after:gate_open_at',
             'status' => 'required|in:draft,published,finished,cancelled',
             'banner_image' => 'nullable|image|max:2048',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . rand(1000, 9999);
+        $validated['meta'] = $this->buildWristbandMeta($request);
+        unset(
+            $validated['wristband_league_name'],
+            $validated['wristband_league_logo'],
+            $validated['wristband_home_club_logo'],
+            $validated['wristband_away_club_logo'],
+            $validated['wristband_sponsor_logos']
+        );
 
         if ($request->hasFile('banner_image')) {
             $validated['banner_image'] = $request->file('banner_image')->store('events/banners', 'public');
@@ -84,7 +98,21 @@ class EventController extends Controller
             'gate_close_at' => 'required|date|after:gate_open_at',
             'status' => 'required|in:draft,published,finished,cancelled',
             'banner_image' => 'nullable|image|max:2048',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
+        $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
+        unset(
+            $validated['wristband_league_name'],
+            $validated['wristband_league_logo'],
+            $validated['wristband_home_club_logo'],
+            $validated['wristband_away_club_logo'],
+            $validated['wristband_sponsor_logos']
+        );
 
         if ($request->hasFile('banner_image')) {
             if ($event->banner_image) {
@@ -135,7 +163,48 @@ class EventController extends Controller
         if ($event->banner_image) {
             Storage::disk('public')->delete($event->banner_image);
         }
+        foreach (['wristband_league_logo', 'wristband_home_club_logo', 'wristband_away_club_logo'] as $key) {
+            if (!empty($event->meta[$key])) {
+                Storage::disk('public')->delete($event->meta[$key]);
+            }
+        }
+        foreach (($event->meta['wristband_sponsor_logos'] ?? []) as $logo) {
+            Storage::disk('public')->delete($logo);
+        }
         $event->forceDelete();
         return redirect()->route('superadmin.events.trash')->with('success', 'Event permanently deleted.');
+    }
+
+    private function buildWristbandMeta(Request $request, array $current = []): array
+    {
+        $meta = $current;
+        $meta['wristband_league_name'] = $request->input('wristband_league_name') ?: ($meta['wristband_league_name'] ?? null);
+
+        foreach ([
+            'wristband_league_logo',
+            'wristband_home_club_logo',
+            'wristband_away_club_logo',
+        ] as $input) {
+            if ($request->hasFile($input)) {
+                if (!empty($meta[$input])) {
+                    Storage::disk('public')->delete($meta[$input]);
+                }
+                $meta[$input] = $request->file($input)->store('wristbands/logos', 'public');
+            }
+        }
+
+        if ($request->hasFile('wristband_sponsor_logos')) {
+            foreach (($meta['wristband_sponsor_logos'] ?? []) as $logo) {
+                Storage::disk('public')->delete($logo);
+            }
+
+            $meta['wristband_sponsor_logos'] = collect($request->file('wristband_sponsor_logos'))
+                ->filter()
+                ->map(fn ($file) => $file->store('wristbands/sponsors', 'public'))
+                ->values()
+                ->all();
+        }
+
+        return array_filter($meta, fn ($value) => filled($value));
     }
 }

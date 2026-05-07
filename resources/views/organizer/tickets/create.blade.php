@@ -99,32 +99,6 @@
                             </div>
                         </div>
 
-                        <div class="pt-4 border-t border-gray-50 space-y-4">
-                            <h3 class="text-lg font-bold text-gray-800">Wristband Layout</h3>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">League Name</label>
-                                <input type="text" name="wristband_league_name" value="{{ old('wristband_league_name', 'BRI Super League 2025-26') }}" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">League Logo</label>
-                                    <input type="file" name="wristband_league_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Home Club Logo</label>
-                                    <input type="file" name="wristband_home_club_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Away Club Logo</label>
-                                    <input type="file" name="wristband_away_club_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sponsor Logos</label>
-                                <input type="file" name="wristband_sponsor_logos[]" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                                <p class="mt-2 text-[10px] text-gray-500 italic">Bisa upload beberapa logo sponsor. Kosongkan untuk memakai teks sponsor default.</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

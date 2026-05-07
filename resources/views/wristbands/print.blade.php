@@ -51,7 +51,8 @@
         .league-logo {
             width: 15mm;
             min-width: 15mm;
-            padding: 1.5mm;
+            height: 100%;
+            padding: 1mm;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -59,9 +60,10 @@
             color: #fff;
             text-align: center;
             font-weight: 900;
-            font-size: 5pt;
+            font-size: 4pt;
             line-height: 1.05;
             text-transform: uppercase;
+            overflow: hidden;
         }
 
         .league-logo img,
@@ -80,9 +82,9 @@
             grid-template-columns: 20mm 25mm 15mm minmax(39mm, 1fr) 15mm 36mm;
             align-items: stretch;
             background:
-                linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(150,0,0,0.92) 23%, rgba(222,0,0,0.92) 48%, rgba(0,0,0,0.9) 100%),
+                linear-gradient(90deg, var(--band-dark) 0%, var(--band-primary) 26%, var(--band-light) 52%, var(--band-dark) 100%),
                 repeating-linear-gradient(-12deg, rgba(255,255,255,0.08), rgba(255,255,255,0.08) 1mm, transparent 1mm, transparent 6mm);
-            color: #fff;
+            color: var(--band-text);
             position: relative;
         }
 
@@ -94,6 +96,7 @@
             right: 0;
             height: 1.2mm;
             background: rgba(0,0,0,0.8);
+            background: var(--band-edge);
             z-index: 0;
         }
 
@@ -103,10 +106,13 @@
         .ticket-band > * {
             position: relative;
             z-index: 1;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .qr-section {
-            padding: 1.4mm 1.8mm;
+            padding: 1mm 1.6mm;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -117,14 +123,15 @@
         }
 
         .qr-section svg {
-            width: 13mm;
-            height: 13mm;
+            width: 10.5mm;
+            height: 10.5mm;
+            flex: 0 0 auto;
         }
 
         .qr-section .code {
             max-width: 100%;
-            margin-top: 0.6mm;
-            font-size: 4.8pt;
+            margin-top: 0.5mm;
+            font-size: 3.4pt;
             font-weight: 900;
             line-height: 1;
             text-align: center;
@@ -136,18 +143,19 @@
             align-items: center;
             justify-content: center;
             padding: 0 2mm;
-            color: #fff;
+            color: var(--band-text);
             text-align: center;
             text-transform: uppercase;
             font-weight: 900;
-            font-size: 20pt;
-            line-height: 0.9;
+            font-size: 13pt;
+            line-height: 1;
             letter-spacing: 0;
-            text-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+            text-shadow: var(--band-text-shadow);
+            overflow-wrap: anywhere;
         }
 
         .club-logo {
-            padding: 2mm;
+            padding: 2.5mm 1.6mm;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -163,56 +171,58 @@
             justify-content: center;
             font-size: 7pt;
             font-weight: 900;
-            color: rgba(255,255,255,0.9);
+            color: var(--band-text);
         }
 
         .event-section {
-            padding: 2mm 1.5mm;
+            padding: 1.3mm 1.4mm;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            background: rgba(0,0,0,0.72);
+            background: var(--band-panel);
             clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
         }
 
         .league-title {
-            margin-bottom: 1mm;
-            font-size: 6.2pt;
+            margin-bottom: 0.5mm;
+            font-size: 4.2pt;
             font-weight: 900;
-            letter-spacing: 0.5px;
+            line-height: 1;
+            letter-spacing: 0;
             text-transform: uppercase;
-            color: #f8fafc;
+            color: var(--band-text);
+            overflow-wrap: anywhere;
         }
 
         .event-name {
             max-width: 100%;
-            font-size: 13pt;
+            font-size: 8.4pt;
             font-weight: 900;
-            line-height: 0.92;
+            line-height: 0.95;
             text-transform: uppercase;
-            color: #ff1f1f;
+            color: var(--band-accent-text);
             overflow-wrap: anywhere;
         }
 
         .event-details {
-            margin-top: 1.2mm;
+            margin-top: 0.7mm;
             max-width: 100%;
-            font-size: 5.4pt;
+            font-size: 3.8pt;
             font-weight: 800;
-            line-height: 1.1;
+            line-height: 1.05;
             text-transform: uppercase;
-            color: #fff;
+            color: var(--band-text);
             overflow-wrap: anywhere;
         }
 
         .sponsor-section {
-            padding: 2mm 2.5mm;
+            padding: 2.2mm 2mm;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            grid-auto-rows: 4.2mm;
-            gap: 1mm 1.5mm;
+            grid-auto-rows: 3.1mm;
+            gap: 0.7mm 1.2mm;
             align-content: center;
         }
 
@@ -222,8 +232,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fff;
-            font-size: 4.4pt;
+            color: var(--band-text);
+            font-size: 3pt;
             font-weight: 900;
             line-height: 1;
             text-align: center;
@@ -287,7 +297,6 @@
 
     @php
         $tenant = $event->tenant;
-        $categoryConfig = $category->layout_config ?? [];
         $eventMeta = $event->meta ?? [];
         $tenantMeta = $tenant?->meta ?? [];
 
@@ -299,12 +308,60 @@
             return Storage::url($path);
         };
 
-        $leagueName = $categoryConfig['league_name'] ?? $eventMeta['wristband_league_name'] ?? $tenantMeta['wristband_league_name'] ?? 'BRI Super League 2025-26';
-        $leagueLogo = $assetUrl($categoryConfig['league_logo'] ?? $eventMeta['wristband_league_logo'] ?? $tenantMeta['wristband_league_logo'] ?? \App\Models\Setting::get('wristband_league_logo'));
-        $homeLogo = $assetUrl($categoryConfig['home_club_logo'] ?? $eventMeta['wristband_home_club_logo'] ?? $tenant?->logo ?? null);
-        $awayLogo = $assetUrl($categoryConfig['away_club_logo'] ?? $eventMeta['wristband_away_club_logo'] ?? null);
-        $sponsorLogos = $categoryConfig['sponsor_logos'] ?? $eventMeta['wristband_sponsor_logos'] ?? $tenantMeta['wristband_sponsor_logos'] ?? [];
-        $sponsorNames = $categoryConfig['sponsor_names'] ?? $eventMeta['wristband_sponsor_names'] ?? $tenantMeta['wristband_sponsor_names'] ?? ['GenTix', 'BRI', 'Super Soccer', 'Adidas', 'Coca Cola', 'Vidio', 'DRX', 'AFG'];
+        $normalizeHex = function ($hex, $fallback = '#d71920') {
+            $hex = trim((string) $hex);
+            $hex = ltrim($hex, '#');
+
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+
+            return preg_match('/^[0-9a-fA-F]{6}$/', $hex) ? '#' . strtoupper($hex) : $fallback;
+        };
+
+        $hexToRgb = function ($hex) {
+            $hex = ltrim($hex, '#');
+            return [
+                hexdec(substr($hex, 0, 2)),
+                hexdec(substr($hex, 2, 2)),
+                hexdec(substr($hex, 4, 2)),
+            ];
+        };
+
+        $mixHex = function ($hex, array $target, $weight) use ($hexToRgb) {
+            [$r, $g, $b] = $hexToRgb($hex);
+            $weight = max(0, min(1, $weight));
+
+            return sprintf(
+                '#%02X%02X%02X',
+                round($r + (($target[0] - $r) * $weight)),
+                round($g + (($target[1] - $g) * $weight)),
+                round($b + (($target[2] - $b) * $weight))
+            );
+        };
+
+        $contrastPalette = function ($hex) use ($hexToRgb, $mixHex) {
+            [$r, $g, $b] = $hexToRgb($hex);
+            $luminance = ((0.299 * $r) + (0.587 * $g) + (0.114 * $b)) / 255;
+            $isLight = $luminance > 0.58;
+
+            return [
+                'text' => $isLight ? '#111827' : '#FFFFFF',
+                'accentText' => $isLight ? '#0F172A' : '#FFFFFF',
+                'shadow' => $isLight ? 'none' : '1px 1px 0 rgba(0,0,0,0.35)',
+                'dark' => $mixHex($hex, [0, 0, 0], $isLight ? 0.22 : 0.55),
+                'light' => $mixHex($hex, [255, 255, 255], $isLight ? 0.18 : 0.26),
+                'edge' => $isLight ? 'rgba(15, 23, 42, 0.28)' : 'rgba(0, 0, 0, 0.72)',
+                'panel' => $isLight ? 'rgba(255, 255, 255, 0.62)' : 'rgba(0, 0, 0, 0.68)',
+            ];
+        };
+
+        $leagueName = $eventMeta['wristband_league_name'] ?? $tenantMeta['wristband_league_name'] ?? 'BRI Super League 2025-26';
+        $leagueLogo = $assetUrl($eventMeta['wristband_league_logo'] ?? $tenantMeta['wristband_league_logo'] ?? \App\Models\Setting::get('wristband_league_logo'));
+        $homeLogo = $assetUrl($eventMeta['wristband_home_club_logo'] ?? $tenant?->logo ?? null);
+        $awayLogo = $assetUrl($eventMeta['wristband_away_club_logo'] ?? null);
+        $sponsorLogos = $eventMeta['wristband_sponsor_logos'] ?? $tenantMeta['wristband_sponsor_logos'] ?? [];
+        $sponsorNames = $eventMeta['wristband_sponsor_names'] ?? $tenantMeta['wristband_sponsor_names'] ?? ['GenTix', 'BRI', 'Super Soccer', 'Adidas', 'Coca Cola', 'Vidio', 'DRX', 'AFG'];
     @endphp
 
     @foreach($tickets->chunk(15) as $chunk)
@@ -313,6 +370,8 @@
         @php
             $ticketCategoryName = $ticket->category?->name ?? $category->name;
             $homeInitial = collect(explode(' ', $event->name))->filter()->map(fn($word) => strtoupper(substr($word, 0, 1)))->take(3)->join('');
+            $bandColor = $normalizeHex($ticket->category?->hex_color ?? $category->hex_color ?? '#d71920');
+            $bandPalette = $contrastPalette($bandColor);
         @endphp
         <div class="wristband">
             <div class="blank-space"></div>
@@ -325,7 +384,7 @@
                 @endif
             </div>
 
-            <div class="ticket-band">
+            <div class="ticket-band" style="--band-primary: {{ $bandColor }}; --band-dark: {{ $bandPalette['dark'] }}; --band-light: {{ $bandPalette['light'] }}; --band-edge: {{ $bandPalette['edge'] }}; --band-panel: {{ $bandPalette['panel'] }}; --band-text: {{ $bandPalette['text'] }}; --band-accent-text: {{ $bandPalette['accentText'] }}; --band-text-shadow: {{ $bandPalette['shadow'] }};">
                 <div class="qr-section">
                     {!! QrCode::size(62)->margin(0)->generate($ticket->ticket_code) !!}
                     <div class="code">{{ $ticket->ticket_code }}</div>

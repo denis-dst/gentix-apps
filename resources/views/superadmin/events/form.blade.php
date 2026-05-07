@@ -126,4 +126,48 @@
             <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
+
+    @php($wristbandMeta = $event->meta ?? [])
+    <div class="col-span-1 md:col-span-2 border-t border-gray-100 pt-4 mt-2 space-y-4">
+        <h4 class="text-sm font-bold text-gray-800">Wristband Layout</h4>
+        <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">League Name</label>
+            <input type="text" name="wristband_league_name" value="{{ old('wristband_league_name', $wristbandMeta['wristband_league_name'] ?? 'BRI Super League 2025-26') }}" class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">League Logo</label>
+                @if(!empty($wristbandMeta['wristband_league_logo']))
+                    <img src="{{ Storage::url($wristbandMeta['wristband_league_logo']) }}" class="mb-2 h-12 w-full object-contain rounded-lg bg-gray-50 border border-gray-100">
+                @endif
+                <input type="file" name="wristband_league_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Home Club Logo</label>
+                @if(!empty($wristbandMeta['wristband_home_club_logo']))
+                    <img src="{{ Storage::url($wristbandMeta['wristband_home_club_logo']) }}" class="mb-2 h-12 w-full object-contain rounded-lg bg-gray-50 border border-gray-100">
+                @endif
+                <input type="file" name="wristband_home_club_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Away Club Logo</label>
+                @if(!empty($wristbandMeta['wristband_away_club_logo']))
+                    <img src="{{ Storage::url($wristbandMeta['wristband_away_club_logo']) }}" class="mb-2 h-12 w-full object-contain rounded-lg bg-gray-50 border border-gray-100">
+                @endif
+                <input type="file" name="wristband_away_club_logo" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sponsor Logos</label>
+            @if(!empty($wristbandMeta['wristband_sponsor_logos']))
+                <div class="mb-3 grid grid-cols-4 md:grid-cols-6 gap-2">
+                    @foreach($wristbandMeta['wristband_sponsor_logos'] as $sponsorLogo)
+                        <img src="{{ Storage::url($sponsorLogo) }}" class="h-10 w-full object-contain rounded-lg bg-gray-50 border border-gray-100">
+                    @endforeach
+                </div>
+            @endif
+            <input type="file" name="wristband_sponsor_logos[]" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+            <p class="mt-1 text-xs text-gray-500 italic">Pengaturan ini dipakai untuk semua kategori tiket dalam event ini.</p>
+        </div>
+    </div>
 </div>

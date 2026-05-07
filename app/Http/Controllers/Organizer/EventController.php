@@ -33,11 +33,25 @@ class EventController extends Controller
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
             'security_code' => 'nullable|string|size:6',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
 
         $validated['tenant_id'] = auth()->user()->tenant_id;
         $validated['status'] = 'draft';
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
+        $validated['meta'] = $this->buildWristbandMeta($request);
+        unset(
+            $validated['wristband_league_name'],
+            $validated['wristband_league_logo'],
+            $validated['wristband_home_club_logo'],
+            $validated['wristband_away_club_logo'],
+            $validated['wristband_sponsor_logos']
+        );
         
         if (empty($validated['security_code'])) {
             $validated['security_code'] = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -71,7 +85,21 @@ class EventController extends Controller
             'status' => 'required|in:draft,published,cancelled',
             'background_image' => 'nullable|image|max:2048',
             'security_code' => 'required|string|size:6',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
+        $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
+        unset(
+            $validated['wristband_league_name'],
+            $validated['wristband_league_logo'],
+            $validated['wristband_home_club_logo'],
+            $validated['wristband_away_club_logo'],
+            $validated['wristband_sponsor_logos']
+        );
 
         if ($request->hasFile('background_image')) {
             if ($event->background_image) Storage::disk('public')->delete($event->background_image);
@@ -88,5 +116,38 @@ class EventController extends Controller
         if ($event->tenant_id !== auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             abort(403, 'Unauthorized access to this event');
         }
+    }
+
+    private function buildWristbandMeta(Request $request, array $current = []): array
+    {
+        $meta = $current;
+        $meta['wristband_league_name'] = $request->input('wristband_league_name') ?: ($meta['wristband_league_name'] ?? null);
+
+        foreach ([
+            'wristband_league_logo',
+            'wristband_home_club_logo',
+            'wristband_away_club_logo',
+        ] as $input) {
+            if ($request->hasFile($input)) {
+                if (!empty($meta[$input])) {
+                    Storage::disk('public')->delete($meta[$input]);
+                }
+                $meta[$input] = $request->file($input)->store('wristbands/logos', 'public');
+            }
+        }
+
+        if ($request->hasFile('wristband_sponsor_logos')) {
+            foreach (($meta['wristband_sponsor_logos'] ?? []) as $logo) {
+                Storage::disk('public')->delete($logo);
+            }
+
+            $meta['wristband_sponsor_logos'] = collect($request->file('wristband_sponsor_logos'))
+                ->filter()
+                ->map(fn ($file) => $file->store('wristbands/sponsors', 'public'))
+                ->values()
+                ->all();
+        }
+
+        return array_filter($meta, fn ($value) => filled($value));
     }
 }
