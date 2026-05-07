@@ -48,11 +48,9 @@ class TransactionController extends Controller
 
     public function resendEvoucher(Transaction $transaction)
     {
-        $transaction->load(['tickets.event', 'tickets.category']);
+        $transaction->load(['event', 'tickets.category']);
         
-        foreach ($transaction->tickets as $ticket) {
-            Mail::to($transaction->customer_email)->send(new \App\Mail\EVoucherMail($ticket));
-        }
+        Mail::to($transaction->customer_email)->send(new \App\Mail\EVoucherMail($transaction));
         
         return back()->with('success', 'E-Voucher berhasil dikirim ulang ke ' . $transaction->customer_email);
     }

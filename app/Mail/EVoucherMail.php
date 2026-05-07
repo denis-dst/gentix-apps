@@ -14,14 +14,14 @@ class EVoucherMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $ticket;
+    public $transaction;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(\App\Models\Ticket $ticket)
+    public function __construct(\App\Models\Transaction $transaction)
     {
-        $this->ticket = $ticket;
+        $this->transaction = $transaction;
     }
 
     /**
@@ -30,7 +30,7 @@ class EVoucherMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'E-Voucher ' . $this->ticket->event->name,
+            subject: 'E-Voucher ' . $this->transaction->event->name . ' - ' . $this->transaction->reference_no,
         );
     }
 
@@ -40,11 +40,9 @@ class EVoucherMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.tickets.evoucher',
+            view: 'emails.evoucher',
             with: [
-                'ticket' => $this->ticket,
-                'category' => $this->ticket->category,
-                'event' => $this->ticket->event,
+                'transaction' => $this->transaction,
             ],
         );
     }
