@@ -103,12 +103,12 @@
 
             <!-- Event Detail -->
             <div class="grid grid-cols-12 gap-8 mb-10">
-                @if($transaction->event->banner_image)
+                @if($transaction->event->background_image)
                     <div class="col-span-4">
-                        <img src="{{ asset('storage/' . $transaction->event->banner_image) }}" class="w-full aspect-[4/5] object-cover rounded-[2rem] shadow-md">
+                        <img src="{{ str_starts_with($transaction->event->background_image, 'http') ? $transaction->event->background_image : asset('storage/' . $transaction->event->background_image) }}" class="w-full aspect-[4/5] object-cover rounded-[2rem] shadow-md">
                     </div>
                 @endif
-                <div class="{{ $transaction->event->banner_image ? 'col-span-8' : 'col-span-12' }} flex flex-col justify-center">
+                <div class="{{ $transaction->event->background_image ? 'col-span-8' : 'col-span-12' }} flex flex-col justify-center">
                     <p class="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-2">Event Detail</p>
                     <h3 class="text-3xl font-black text-slate-800 font-outfit leading-tight mb-4">{{ $transaction->event->name }}</h3>
                     <div class="space-y-3">
