@@ -11,7 +11,7 @@
                 <option value="{{ $cat->id }}" {{ request('ticket_category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
             @endforeach
         </select>
-        <button type="submit" class="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition">Cari</button>
+        <button type="submit" class="px-5 py-2.5 bg-orange-600 text-black rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition shadow-lg shadow-orange-200">Cari</button>
     </form>
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
@@ -44,7 +44,7 @@
                             <td class="px-6 py-4 flex gap-2">
                                 <form method="POST" action="{{ route('organizer.transactions.resend-evoucher', $tx) }}" class="inline">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-bold">Resend E-Voucher</button>
+                                    <button type="submit" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-black rounded text-xs font-bold shadow-sm transition">Resend E-Voucher</button>
                                 </form>
                                 <a href="{{ route('organizer.transactions.print-evoucher', $tx) }}" target="_blank" class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-bold">Cetak E-Voucher</a>
                             </td>

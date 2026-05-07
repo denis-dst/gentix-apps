@@ -78,7 +78,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition shadow-xl shadow-emerald-200 flex items-center justify-center gap-3">
+                        <button type="submit" class="w-full py-5 bg-orange-600 text-black rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-700 transition shadow-xl shadow-orange-200 flex items-center justify-center gap-3">
                             <span>Mulai Operasional</span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                         </button>

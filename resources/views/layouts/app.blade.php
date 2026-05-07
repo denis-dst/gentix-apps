@@ -29,6 +29,23 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        
+        button[type="submit"] {
+            background-color: #f97316 !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            transition: all 0.2s !important;
+        }
+        button[type="submit"]:hover {
+            background-color: #ea580c !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
+        }
+        button[type="submit"]:active {
+            transform: translateY(0px) !important;
+        }
     </style>
 </head>
 @php

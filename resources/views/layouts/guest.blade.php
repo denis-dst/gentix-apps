@@ -40,6 +40,20 @@
             .auth-overlay {
                 background: radial-gradient(circle at center, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
             }
+            button[type="submit"] {
+                background-color: #f97316 !important;
+                color: #000000 !important;
+                font-weight: 800 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                transition: all 0.2s !important;
+                border-radius: 0.75rem !important;
+            }
+            button[type="submit"]:hover {
+                background-color: #ea580c !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
+            }
         </style>
     </head>
     <body class="antialiased text-white">

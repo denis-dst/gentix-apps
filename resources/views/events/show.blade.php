@@ -16,6 +16,20 @@
         .terms-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
         .terms-content li { margin-bottom: 0.25rem; }
         .terms-content b, .terms-content strong { font-weight: 800; }
+        
+        button[type="submit"] {
+            background-color: #f97316 !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            transition: all 0.2s !important;
+        }
+        button[type="submit"]:hover {
+            background-color: #ea580c !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
+        }
     </style>
 </head>
 <body class="text-slate-800" x-data="{ 

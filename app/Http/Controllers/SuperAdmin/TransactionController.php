@@ -67,4 +67,20 @@ class TransactionController extends Controller
         $transaction->load(['event', 'tickets.category', 'tenant']);
         return view('organizer.transactions.evoucher', compact('transaction'));
     }
+
+    public function markAsPaid(Transaction $transaction)
+    {
+        if ($transaction->payment_status === 'paid') {
+            return back()->with('error', 'Transaksi sudah berstatus PAID.');
+        }
+
+        $transaction->update([
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+            'processed_by' => auth()->id(),
+            'payment_method' => $transaction->payment_method ?? 'MANUAL_VERIFICATION_SUPERADMIN'
+        ]);
+
+        return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' telah dikonfirmasi lunas oleh SuperAdmin.');
+    }
 }

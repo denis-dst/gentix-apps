@@ -84,7 +84,7 @@
 <div class="p-6 border-t border-white/5 bg-[#0a0f1d] shrink-0">
     <form method="POST" action="{{ route('logout') }}">
         @csrf
-        <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all">
+        <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 text-sm font-black text-black bg-orange-600 hover:bg-orange-700 rounded-xl transition-all shadow-lg shadow-orange-500/20 uppercase tracking-widest">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4-4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             <span>KELUAR</span>
         </button>

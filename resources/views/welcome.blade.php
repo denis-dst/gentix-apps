@@ -81,6 +81,20 @@
             background: linear-gradient(to bottom, rgba(17, 17, 24, 0.88) 0%, rgba(17, 17, 24, 0.55) 50%, rgba(17, 17, 24, 0.95) 100%);
         }
         ::selection { background: rgba(249, 115, 22, 0.3); }
+        
+        button[type="submit"] {
+            background-color: #f97316 !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            transition: all 0.2s !important;
+        }
+        button[type="submit"]:hover {
+            background-color: #ea580c !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
+        }
     </style>
 </head>
 <body class="antialiased bg-[#111118] text-[#e8e4df] min-h-screen">

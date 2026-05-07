@@ -92,7 +92,7 @@
                     <a href="{{ route('organizer.events.index') }}" class="flex-1 py-4 px-6 bg-orange-50 border border-orange-200 text-orange-700 rounded-2xl font-bold hover:bg-orange-100 transition text-center shadow-sm">
                         Batal
                     </a>
-                    <button type="submit" class="flex-1 py-4 px-6 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
+                    <button type="submit" class="flex-1 py-4 px-6 bg-orange-600 text-black rounded-2xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
                         Lanjut ke Pengaturan Tiket
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                     </button>

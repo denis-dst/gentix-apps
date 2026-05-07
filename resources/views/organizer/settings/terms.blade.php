@@ -98,7 +98,7 @@
                 </div>
 
                 <div class="flex justify-end gap-4 pt-4">
-                    <button type="submit" class="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition transform active:scale-95">
+                    <button type="submit" class="px-10 py-4 bg-orange-600 text-black rounded-2xl font-black shadow-xl shadow-orange-200 hover:bg-orange-700 transition transform active:scale-95">
                         Simpan Perubahan
                     </button>
                 </div>

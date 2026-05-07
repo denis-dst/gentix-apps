@@ -47,6 +47,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::resource('events', App\Http\Controllers\SuperAdmin\EventController::class);
     
     Route::resource('transactions', App\Http\Controllers\SuperAdmin\TransactionController::class);
+    Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
     Route::get('reports', [App\Http\Controllers\SuperAdmin\ReportController::class, 'index'])->name('reports.index');
@@ -100,6 +101,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
 
     // Sales Transactions & E-Voucher
     Route::get('transactions', [App\Http\Controllers\Organizer\TransactionController::class, 'index'])->name('transactions.index');
+    Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\Organizer\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
 

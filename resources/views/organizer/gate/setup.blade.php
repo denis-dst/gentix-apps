@@ -79,7 +79,7 @@
                             </div>
 
                             <div class="pt-4">
-                                <button type="submit" class="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
+                                <button type="submit" class="w-full py-5 bg-orange-600 text-black rounded-2xl font-black shadow-xl shadow-orange-200 hover:bg-orange-700 transition transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
                                     <span>Buka Scanner Gate</span>
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                                 </button>
