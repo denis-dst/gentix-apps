@@ -238,8 +238,8 @@
     </div>
 
     <!-- Audio Effects -->
-    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
-    <audio id="sound-error" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="sound-success" src="{{ asset('sounds/success.mp3') }}"></audio>
+    <audio id="sound-error" src="{{ asset('sounds/invalid.mp3') }}"></audio>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
