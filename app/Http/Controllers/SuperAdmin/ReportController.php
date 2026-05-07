@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Organizer;
+namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\GateLog;
+use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
@@ -13,20 +14,23 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = auth()->user()->tenant_id;
-
         $baseEventsQuery = Event::query()
-            ->where('tenant_id', $tenantId)
+            ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('id', $request->event_id))
-            ->with(['ticketCategories' => fn ($query) => $query->orderBy('sort_order')->orderBy('name')])
+            ->with([
+                'tenant',
+                'ticketCategories' => fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
+            ])
             ->orderByDesc('event_start_date');
 
         $events = (clone $baseEventsQuery)->paginate(8)->withQueryString();
         $summaryRows = (clone $baseEventsQuery)->get()->map(fn ($event) => $this->buildEventReport($event));
 
-        $eventOptions = Event::where('tenant_id', $tenantId)
+        $tenantOptions = Tenant::orderBy('name')->get(['id', 'name']);
+        $eventOptions = Event::query()
+            ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->orderByDesc('event_start_date')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'tenant_id']);
 
         $reportRows = $events->getCollection()
             ->map(fn ($event) => $this->buildEventReport($event));
@@ -41,20 +45,19 @@ class ReportController extends Controller
             'paid_transactions' => $summaryRows->sum('paid_transactions_count'),
         ];
 
-        $transactions = Transaction::where('tenant_id', $tenantId)
+        $transactions = Transaction::query()
+            ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'tickets'])
+            ->with(['event', 'tenant', 'tickets'])
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
-        return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions'));
+        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions'));
     }
 
     private function buildEventReport(Event $event): array
     {
-        $categoryIds = $event->ticketCategories->pluck('id')->all();
-
         $ticketStats = Ticket::query()
             ->where('event_id', $event->id)
             ->select('ticket_category_id')

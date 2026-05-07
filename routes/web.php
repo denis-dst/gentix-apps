@@ -46,6 +46,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::resource('events', App\Http\Controllers\SuperAdmin\EventController::class);
     
     Route::resource('transactions', App\Http\Controllers\SuperAdmin\TransactionController::class);
+    Route::get('reports', [App\Http\Controllers\SuperAdmin\ReportController::class, 'index'])->name('reports.index');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
 });
@@ -84,7 +85,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::resource('vouchers', App\Http\Controllers\Organizer\PromoCodeController::class);
     
     // Reports & Operations
-    Route::get('reports', [App\Http\Controllers\Organizer\ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports', [App\Http\Controllers\Organizer\ReportController::class, 'index'])->middleware('role:Penyedia Event')->name('reports.index');
     Route::get('checkin', [App\Http\Controllers\Organizer\CheckinController::class, 'index'])->name('checkin.index');
     Route::post('checkin/{id}/redeem', [App\Http\Controllers\Organizer\CheckinController::class, 'redeem'])->name('checkin.redeem');
     
