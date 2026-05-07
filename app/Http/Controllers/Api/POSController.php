@@ -30,7 +30,7 @@ class POSController extends Controller
         ]);
 
         $category = TicketCategory::find($request->ticket_category_id);
-        
+
         // Quota Check
         if ($category->sold_count >= $category->quota) {
             return response()->json(['message' => 'Quota full'], 422);
@@ -122,12 +122,14 @@ class POSController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Tiket Valid!',
-            'sub_message' => 'Ambil foto pengunjung untuk verifikasi.',
+            'sub_message' => 'Ambil foto customer untuk verifikasi.',
             'sound' => 'success',
             'color' => 'green',
             'ticket' => [
                 'code' => $ticket->ticket_code,
-                'visitor' => $ticket->transaction->customer_name,
+                'name' => $ticket->transaction->customer_name,
+                'email' => $ticket->transaction->customer_email,
+                'phone' => $ticket->transaction->customer_phone,
                 'category' => $ticket->category->name,
             ],
             'is_redeemable' => true
