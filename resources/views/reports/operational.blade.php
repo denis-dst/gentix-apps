@@ -30,33 +30,6 @@
         </form>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiket Terjual</p>
-            <div class="mt-2 text-2xl font-black text-slate-800 font-outfit">{{ number_format($totals['sold']) }}</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sudah Redeem</p>
-            <div class="mt-2 text-2xl font-black text-emerald-600 font-outfit">{{ number_format($totals['redeemed']) }}</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Check-in</p>
-            <div class="mt-2 text-2xl font-black text-blue-600 font-outfit">{{ number_format($totals['checkin']) }}</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Checkout</p>
-            <div class="mt-2 text-2xl font-black text-amber-600 font-outfit">{{ number_format($totals['checkout']) }}</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Di Dalam Area</p>
-            <div class="mt-2 text-2xl font-black text-purple-600 font-outfit">{{ number_format($totals['inside']) }}</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pendapatan Paid</p>
-            <div class="mt-2 text-xl font-black text-green-600 font-outfit">Rp {{ number_format($totals['revenue'], 0, ',', '.') }}</div>
-        </div>
-    </div>
-
     <div class="space-y-5">
         @forelse($reportRows as $row)
             @php($event = $row['event'])

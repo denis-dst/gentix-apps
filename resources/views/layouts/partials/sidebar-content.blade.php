@@ -54,6 +54,10 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6 0h6m-9 4h12a2 2 0 002-2V7a2 2 0 00-2-2h-3.5L14 3h-4L7.5 5H4a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <span class="text-sm font-bold">Laporan</span>
         </a>
+        <a href="{{ route('organizer.transactions.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.transactions.*') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.625 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.407-2.625-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="text-sm font-bold">Laporan Penjualan</span>
+        </a>
     @elseif(auth()->user()->hasRole('Petugas Loket'))
         <div class="px-4 py-2 text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Operasional</div>
         <a href="{{ route('organizer.checkin.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.checkin.*') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">

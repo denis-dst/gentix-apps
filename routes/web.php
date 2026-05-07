@@ -95,6 +95,11 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     // Crew Management
     Route::resource('crews', App\Http\Controllers\Organizer\CrewController::class);
 
+    // Sales Transactions & E-Voucher
+    Route::get('transactions', [App\Http\Controllers\Organizer\TransactionController::class, 'index'])->name('transactions.index');
+    Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
+    Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
+
     // Redeem System
     Route::get('redeem', [App\Http\Controllers\Organizer\RedeemController::class, 'index'])->name('redeem.index');
     Route::get('redeem/{event}/verify', [App\Http\Controllers\Organizer\RedeemController::class, 'verifyForm'])->name('redeem.verify');
