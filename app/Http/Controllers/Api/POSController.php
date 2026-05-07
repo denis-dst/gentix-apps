@@ -143,48 +143,68 @@ class POSController extends Controller
     {
         $request->validate([
             'ticket_code' => 'required|exists:tickets,ticket_code',
-            'wristband_qr' => 'nullable|unique:tickets,wristband_qr',
-            'photo' => 'nullable|string'
+            'wristband_qr' => 'nullable',
+            'photo' => 'required' // Base64 expected from app
         ]);
 
-        $ticket = Ticket::where('ticket_code', $request->ticket_code)->first();
+        $ticket = Ticket::where('ticket_code', $request->ticket_code)
+            ->with(['transaction', 'category', 'redeemer'])
+            ->first();
 
         $this->authorizeTenant($ticket->event);
 
         if ($ticket->status === 'redeemed') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal! Tiket ini sudah di-redeem sebelumnya.',
-                'sound' => 'error'
-            ], 422);
+                'message' => 'Tiket sudah di-redeem sebelumnya.',
+                'details' => [
+                    'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
+                    'redeemed_by' => $ticket->redeemer->name ?? 'System',
+                    'photo' => $ticket->redeem_photo ? asset('storage/' . $ticket->redeem_photo) : null,
+                    'visitor' => $ticket->transaction->customer_name,
+                    'category' => $ticket->category->name,
+                ],
+                'is_redeemable' => false
+            ]);
         }
 
-        // Handle Photo if uploaded as file
-        $photoPath = $ticket->redeem_photo;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('redeem_photos', 'public');
-        } elseif ($request->photo && !filter_var($request->photo, FILTER_VALIDATE_URL)) {
-            // Assume it might be a path from previous step or base64 (simplified)
-            $photoPath = $request->photo;
+        try {
+            // Handle Base64 Photo
+            $photoPath = $ticket->redeem_photo;
+            if ($request->photo && !filter_var($request->photo, FILTER_VALIDATE_URL)) {
+                $photoData = $request->photo;
+                $photoData = str_replace('data:image/jpeg;base64,', '', $photoData);
+                $photoData = str_replace(' ', '+', $photoData);
+                $photoName = 'redeem_' . $ticket->ticket_code . '_' . time() . '.jpg';
+                $photoPath = 'redeem_photos/' . $photoName;
+                
+                \Illuminate\Support\Facades\Storage::disk('public')->put($photoPath, base64_decode($photoData));
+            }
+
+            $ticket->update([
+                'wristband_qr' => $request->wristband_qr,
+                'status' => 'redeemed',
+                'redeemed_at' => now(),
+                'redeemed_by' => auth()->id(),
+                'redeem_photo' => $photoPath
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'SELESAI!',
+                'sub_message' => 'Redeem Berhasil. Kembali ke standby scan.',
+                'sound' => 'success',
+                'color' => 'green',
+                'visitor' => $ticket->transaction->customer_name,
+                'category' => $ticket->category->name
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses foto: ' . $e->getMessage()
+            ], 500);
         }
-
-        $ticket->update([
-            'wristband_qr' => $request->wristband_qr,
-            'status' => 'redeemed',
-            'redeemed_at' => now(),
-            'redeemed_by' => auth()->id(),
-            'redeem_photo' => $photoPath
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'SELESAI!',
-            'sub_message' => 'Redeem Berhasil. Kembali ke standby scan.',
-            'sound' => 'success',
-            'color' => 'green',
-            'visitor' => $ticket->transaction->customer_name,
-            'category' => $ticket->category->name
-        ]);
     }
 
     private function authorizeTenant(Event $event)

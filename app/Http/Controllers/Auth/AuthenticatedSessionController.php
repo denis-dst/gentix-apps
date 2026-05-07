@@ -28,6 +28,24 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = auth()->user();
+
+        if ($user->hasRole('Superadmin')) {
+            return redirect()->route('superadmin.dashboard');
+        }
+        
+        if ($user->hasRole('Penyedia Event')) {
+            return redirect()->route('organizer.dashboard');
+        }
+
+        if ($user->hasRole('Petugas Loket')) {
+            return redirect()->route('organizer.redeem.index');
+        }
+
+        if ($user->hasRole('Petugas Gate')) {
+            return redirect()->route('organizer.gate.index');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
