@@ -10,7 +10,7 @@
         </div>
         
         <div class="p-6">
-            <form action="{{ route('superadmin.tenants.store') }}" method="POST">
+            <form action="{{ route('superadmin.tenants.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
                 @include('superadmin.tenants.form')

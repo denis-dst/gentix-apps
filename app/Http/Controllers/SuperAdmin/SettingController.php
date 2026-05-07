@@ -17,14 +17,23 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        $fileKeys = ['app_logo', 'app_favicon', 'app_icon'];
+        $fileKeys = ['app_logo', 'app_favicon', 'app_icon', 'wristband_league_logo'];
+
+        foreach ($fileKeys as $key) {
+            if (!$request->hasFile($key)) {
+                continue;
+            }
+
+            $path = $request->file($key)->store('settings', 'public');
+            Setting::updateOrCreate(['key' => $key], [
+                'value' => $path,
+                'group' => Setting::where('key', $key)->value('group') ?? 'appearance',
+            ]);
+        }
 
         foreach ($request->except('_token') as $key => $value) {
-            if (in_array($key, $fileKeys) && $request->hasFile($key)) {
-                $path = $request->file($key)->store('settings', 'public');
-                Setting::where('key', $key)->update(['value' => $path]);
-            } else if (!in_array($key, $fileKeys)) {
-                Setting::where('key', $key)->update(['value' => $value]);
+            if (!in_array($key, $fileKeys)) {
+                Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => Setting::where('key', $key)->value('group') ?? 'appearance']);
             }
         }
 

@@ -32,11 +32,25 @@ class TicketCategoryController extends Controller
             'hex_color' => 'nullable|string|size:7',
             'category_image' => 'nullable|image|max:1024',
             'background_image' => 'nullable|image|max:2048',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
 
         $data = $validated;
         $data['event_id'] = $event->id;
         $data['tenant_id'] = $event->tenant_id;
+        $data['layout_config'] = $this->buildWristbandLayoutConfig($request);
+        unset(
+            $data['wristband_league_name'],
+            $data['wristband_league_logo'],
+            $data['wristband_home_club_logo'],
+            $data['wristband_away_club_logo'],
+            $data['wristband_sponsor_logos']
+        );
 
         if ($request->hasFile('category_image')) {
             $data['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
@@ -76,9 +90,23 @@ class TicketCategoryController extends Controller
             'hex_color' => 'nullable|string|size:7',
             'category_image' => 'nullable|image|max:1024',
             'background_image' => 'nullable|image|max:2048',
+            'wristband_league_name' => 'nullable|string|max:255',
+            'wristband_league_logo' => 'nullable|image|max:1024',
+            'wristband_home_club_logo' => 'nullable|image|max:1024',
+            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos' => 'nullable|array',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
 
         $data = $validated;
+        $data['layout_config'] = $this->buildWristbandLayoutConfig($request, $category->layout_config ?? []);
+        unset(
+            $data['wristband_league_name'],
+            $data['wristband_league_logo'],
+            $data['wristband_home_club_logo'],
+            $data['wristband_away_club_logo'],
+            $data['wristband_sponsor_logos']
+        );
 
         if ($request->hasFile('category_image')) {
             if ($category->category_image) Storage::disk('public')->delete($category->category_image);
@@ -109,5 +137,39 @@ class TicketCategoryController extends Controller
         if ($event->tenant_id != auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             abort(403, 'Unauthorized access to this event');
         }
+    }
+
+    private function buildWristbandLayoutConfig(Request $request, array $current = []): array
+    {
+        $config = $current;
+
+        $config['league_name'] = $request->input('wristband_league_name') ?: ($config['league_name'] ?? null);
+
+        foreach ([
+            'wristband_league_logo' => 'league_logo',
+            'wristband_home_club_logo' => 'home_club_logo',
+            'wristband_away_club_logo' => 'away_club_logo',
+        ] as $input => $key) {
+            if ($request->hasFile($input)) {
+                if (!empty($config[$key])) {
+                    Storage::disk('public')->delete($config[$key]);
+                }
+                $config[$key] = $request->file($input)->store('wristbands/logos', 'public');
+            }
+        }
+
+        if ($request->hasFile('wristband_sponsor_logos')) {
+            foreach (($config['sponsor_logos'] ?? []) as $logo) {
+                Storage::disk('public')->delete($logo);
+            }
+
+            $config['sponsor_logos'] = collect($request->file('wristband_sponsor_logos'))
+                ->filter()
+                ->map(fn ($file) => $file->store('wristbands/sponsors', 'public'))
+                ->values()
+                ->all();
+        }
+
+        return array_filter($config, fn ($value) => filled($value));
     }
 }

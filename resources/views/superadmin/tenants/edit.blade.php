@@ -10,7 +10,7 @@
         </div>
         
         <div class="p-6">
-            <form action="{{ route('superadmin.tenants.update', $tenant) }}" method="POST">
+            <form action="{{ route('superadmin.tenants.update', $tenant) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 

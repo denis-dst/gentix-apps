@@ -32,6 +32,22 @@
         @enderror
     </div>
 
+    <!-- Logo -->
+    <div class="col-span-1 md:col-span-2">
+        <label for="logo" class="block font-medium text-sm text-gray-700 mb-1">Organizer / Home Club Logo</label>
+        @if(isset($tenant) && $tenant->logo)
+            <div class="mb-3 h-20 w-32 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center p-2">
+                <img src="{{ Storage::url($tenant->logo) }}" class="max-h-full max-w-full object-contain">
+            </div>
+        @endif
+        <input type="file" name="logo" id="logo"
+               class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 transition cursor-pointer">
+        <p class="mt-1 text-xs text-gray-500">Dipakai sebagai default logo club tuan rumah pada layout wristband jika logo khusus kategori tidak diisi.</p>
+        @error('logo')
+            <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+        @enderror
+    </div>
+
     <!-- Status -->
     <div class="col-span-1 md:col-span-2">
         <label for="status" class="block font-medium text-sm text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>

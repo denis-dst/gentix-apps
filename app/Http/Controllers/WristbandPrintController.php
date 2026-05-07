@@ -20,7 +20,13 @@ class WristbandPrintController extends Controller
         $status = $request->get('status', 'sold'); // Default to printing sold tickets
         
         $query = Ticket::where('ticket_category_id', $category->id)
-            ->with(['transaction', 'category', 'event']);
+            ->with([
+                'transaction',
+                'category' => function ($q) {
+                    $q->select('id', 'name', 'hex_color');
+                },
+                'event'
+            ]);
 
         if ($status !== 'all') {
             $query->where('status', $status);

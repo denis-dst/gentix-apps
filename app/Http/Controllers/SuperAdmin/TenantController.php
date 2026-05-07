@@ -31,10 +31,14 @@ class TenantController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive,suspended',
+            'logo' => 'nullable|image|max:1024',
             'password' => 'required|string|min:8', // Added password field for the initial user
         ]);
 
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo')->store('tenants/logos', 'public');
+        }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
             // 1. Create the Tenant
@@ -44,6 +48,7 @@ class TenantController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
                 'address' => $validated['address'],
+                'logo' => $validated['logo'] ?? null,
                 'status' => $validated['status'],
             ]);
 
@@ -93,10 +98,18 @@ class TenantController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive,suspended',
+            'logo' => 'nullable|image|max:1024',
         ]);
 
         if ($tenant->name !== $validated['name']) {
             $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
+        }
+
+        if ($request->hasFile('logo')) {
+            if ($tenant->logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($tenant->logo);
+            }
+            $validated['logo'] = $request->file('logo')->store('tenants/logos', 'public');
         }
 
         $tenant->update($validated);
@@ -131,6 +144,9 @@ class TenantController extends Controller
     public function forceDelete($id)
     {
         $tenant = Tenant::withTrashed()->findOrFail($id);
+        if ($tenant->logo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($tenant->logo);
+        }
         $tenant->forceDelete();
 
         return redirect()->route('superadmin.tenants.trash')->with('success', 'Organizer permanently deleted.');
