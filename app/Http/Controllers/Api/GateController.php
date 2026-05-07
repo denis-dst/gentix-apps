@@ -82,18 +82,31 @@ class GateController extends Controller
             $gateName = $request->gate_name;
         }
 
-        // Anti-Passback Logic
-        if ($request->type === 'IN') {
-            $lastLog = GateLog::where('ticket_id', $ticket->id)
-                ->orderBy('scanned_at', 'desc')
-                ->first();
+        // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
+        $lastLog = GateLog::where('ticket_id', $ticket->id)
+            ->orderBy('scanned_at', 'desc')
+            ->first();
 
+        if ($request->type === 'IN') {
             if ($lastLog && $lastLog->type === 'IN') {
                 return response()->json([
                     'status' => 'REJECT',
-                    'message' => 'DUPLICATE ENTRY (Anti-Passback)',
+                    'message' => 'Tiket sudah berada di dalam area!',
                     'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name ?? '-'
+                    'visitor' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name
+                ], 403);
+            }
+        } else {
+            if (!$lastLog || $lastLog->type !== 'IN') {
+                return response()->json([
+                    'status' => 'REJECT',
+                    'message' => $lastLog && $lastLog->type === 'OUT'
+                        ? 'Tiket sudah berada di luar area!'
+                        : 'Tiket belum pernah Check-in!',
+                    'color' => 'pink',
+                    'visitor' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name
                 ], 403);
             }
         }
