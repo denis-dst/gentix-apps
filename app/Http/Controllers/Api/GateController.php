@@ -46,12 +46,17 @@ class GateController extends Controller
             'device_id' => 'nullable'
         ]);
 
-        $ticket = Ticket::where('wristband_qr', $request->wristband_qr)->first();
+        $scanCode = trim($request->wristband_qr);
+
+        $ticket = Ticket::with(['category', 'transaction'])
+            ->where('wristband_qr', $scanCode)
+            ->orWhere('ticket_code', $scanCode)
+            ->first();
 
         if (!$ticket) {
             return response()->json([
                 'status' => 'REJECT',
-                'message' => 'Invalid Wristband',
+                'message' => 'Invalid Wristband / Ticket Code',
                 'color' => 'pink'
             ], 404);
         }
@@ -66,7 +71,7 @@ class GateController extends Controller
                         'status' => 'REJECT',
                         'message' => 'Wrong Gate! Access Denied for ' . $ticket->category->name,
                         'color' => 'pink',
-                        'visitor' => $ticket->transaction->customer_name,
+                        'visitor' => $ticket->transaction->customer_name ?? '-',
                         'category' => $ticket->category->name
                     ], 403);
                 }
@@ -88,7 +93,7 @@ class GateController extends Controller
                     'status' => 'REJECT',
                     'message' => 'DUPLICATE ENTRY (Anti-Passback)',
                     'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name
+                    'visitor' => $ticket->transaction->customer_name ?? '-'
                 ], 403);
             }
         }
@@ -108,7 +113,7 @@ class GateController extends Controller
         return response()->json([
             'status' => 'SUCCESS',
             'message' => 'Access Granted: ' . $request->type,
-            'visitor' => $ticket->transaction->customer_name,
+            'visitor' => $ticket->transaction->customer_name ?? '-',
             'category' => $ticket->category->name,
             'color' => 'green'
         ]);
