@@ -211,6 +211,9 @@
                                             </div>
                                         </div>
                                         <div class="flex gap-2">
+                                            <a href="{{ route('organizer.categories.print-wristbands', $category) }}" target="_blank" class="p-2 bg-blue-50 rounded-lg border border-blue-200 text-blue-500 hover:text-blue-700 hover:border-blue-300 transition shadow-sm" title="Print Wristbands">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                            </a>
                                             <a href="{{ route('organizer.events.categories.edit', [$event, $category]) }}" class="p-2 bg-orange-50 rounded-lg border border-orange-200 text-orange-500 hover:text-orange-700 hover:border-orange-300 transition shadow-sm">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                             </a>
