@@ -95,6 +95,20 @@
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
         }
+
+        /* Global Orange Theme Overrides */
+        .bg-orange-600, .bg-orange-500, .bg-orange-400 {
+            background-color: #f97316 !important;
+            color: #000000 !important;
+        }
+        
+        .bg-orange-600 *, .bg-orange-500 *, .bg-orange-400 * {
+            color: #000000 !important;
+        }
+
+        .bg-orange-600:hover, .bg-orange-500:hover, .bg-orange-400:hover {
+            background-color: #ea580c !important;
+        }
     </style>
 </head>
 <body class="antialiased bg-[#111118] text-[#e8e4df] min-h-screen">
