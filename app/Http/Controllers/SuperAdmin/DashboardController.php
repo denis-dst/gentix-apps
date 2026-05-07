@@ -31,6 +31,7 @@ class DashboardController extends Controller
 
         $active_events = Event::where('status', 'published')
             ->with('tenant')
+            ->withCount('tickets')
             ->orderBy('event_start_date', 'asc')
             ->take(5)
             ->get();

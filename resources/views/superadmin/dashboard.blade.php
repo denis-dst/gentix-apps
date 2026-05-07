@@ -83,7 +83,7 @@
                     <tbody class="divide-y divide-slate-50">
                         @forelse($recent_transactions ?? [] as $transaction)
                         <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-4 text-xs font-bold text-slate-700 font-mono">{{ $transaction->transaction_number }}</td>
+                            <td class="px-6 py-4 text-xs font-bold text-slate-700 font-mono">{{ $transaction->reference_no }}</td>
                             <td class="px-6 py-4">
                                 <div class="text-xs font-bold text-slate-800 truncate max-w-[150px]">{{ $transaction->event->name ?? 'N/A' }}</div>
                             </td>
@@ -95,10 +95,10 @@
                                         'pending' => 'bg-amber-100 text-amber-700',
                                         'failed' => 'bg-rose-100 text-rose-700',
                                     ];
-                                    $class = $statusClasses[$transaction->status] ?? 'bg-slate-100 text-slate-600';
+                                    $class = $statusClasses[$transaction->payment_status] ?? 'bg-slate-100 text-slate-600';
                                 @endphp
                                 <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider {{ $class }}">
-                                    {{ $transaction->status }}
+                                    {{ $transaction->payment_status }}
                                 </span>
                             </td>
                         </tr>

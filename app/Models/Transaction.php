@@ -44,6 +44,11 @@ class Transaction extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    public function buyer()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     public function processor()
     {
         return $this->belongsTo(User::class, 'processed_by');
