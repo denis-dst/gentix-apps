@@ -82,6 +82,29 @@ class POSController extends Controller
     }
 
     /**
+     * Cek Status E-Voucher sebelum Redeem
+     */
+    public function checkTicket($code)
+    {
+        $ticket = Ticket::where('ticket_code', $code)
+            ->with(['category', 'transaction'])
+            ->first();
+
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket not found'], 404);
+        }
+
+        $this->authorizeTenant($ticket->event);
+
+        return response()->json([
+            'ticket' => $ticket,
+            'visitor' => $ticket->transaction->customer_name,
+            'category' => $ticket->category->name,
+            'is_redeemable' => $ticket->status === 'sold'
+        ]);
+    }
+
+    /**
      * Validasi & Asimilasi E-Voucher (Redemption)
      */
     public function redeemTicket(Request $request)

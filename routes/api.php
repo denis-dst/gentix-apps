@@ -45,6 +45,7 @@ Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket'])->group(
     
     // Penjualan & Redemption
     Route::post('/pos/events/{event}/sell', [POSController::class, 'sellTicket']);
+    Route::get('/pos/check-ticket/{code}', [POSController::class, 'checkTicket']);
     Route::post('/pos/redeem', [POSController::class, 'redeemTicket']);
 });
 
