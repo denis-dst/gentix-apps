@@ -54,7 +54,7 @@ class TicketCategoryController extends Controller
     public function edit(Event $event, TicketCategory $category)
     {
         $this->authorizeTenant($event);
-        if ($category->event_id !== $event->id) abort(403);
+        if ($category->event_id != $event->id) abort(403);
 
         return view('organizer.tickets.edit', compact('event', 'category'));
     }
@@ -106,7 +106,7 @@ class TicketCategoryController extends Controller
 
     private function authorizeTenant(Event $event)
     {
-        if ($event->tenant_id !== auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
+        if ($event->tenant_id != auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             abort(403, 'Unauthorized access to this event');
         }
     }
