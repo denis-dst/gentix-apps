@@ -114,14 +114,15 @@ class POSController extends Controller
                     'visitor' => $ticket->transaction->customer_name,
                     'category' => $ticket->category->name,
                     'wristband_qr' => $ticket->wristband_qr
-                ]
-            ], 422);
+                ],
+                'is_redeemable' => false
+            ], 200); // Menggunakan 200 agar app bisa menampilkan detail sekali saja tanpa terus menerus alert error
         }
 
         return response()->json([
             'status' => 'success',
             'message' => 'Tiket Valid!',
-            'sub_message' => 'Silahkan scan gelang dan ambil foto pengunjung.',
+            'sub_message' => 'Ambil foto pengunjung untuk verifikasi.',
             'sound' => 'success',
             'color' => 'green',
             'ticket' => [
@@ -140,8 +141,8 @@ class POSController extends Controller
     {
         $request->validate([
             'ticket_code' => 'required|exists:tickets,ticket_code',
-            'wristband_qr' => 'required|unique:tickets,wristband_qr',
-            'photo' => 'nullable|string' // Base64 or path, but let's assume multipart if possible, or string for path
+            'wristband_qr' => 'nullable|unique:tickets,wristband_qr',
+            'photo' => 'nullable|string'
         ]);
 
         $ticket = Ticket::where('ticket_code', $request->ticket_code)->first();
@@ -175,8 +176,8 @@ class POSController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Redeem Berhasil!',
-            'sub_message' => 'Gelang telah aktif. Silahkan berikan kepada pengunjung.',
+            'message' => 'SELESAI!',
+            'sub_message' => 'Redeem Berhasil. Kembali ke standby scan.',
             'sound' => 'success',
             'color' => 'green',
             'visitor' => $ticket->transaction->customer_name,
