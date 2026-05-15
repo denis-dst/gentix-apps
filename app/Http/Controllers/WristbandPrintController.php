@@ -44,17 +44,37 @@ class WristbandPrintController extends Controller
                     return back()->with('error', 'Kuota tidak mencukupi untuk generate tiket tambahan.');
                 }
 
-                for ($i = 0; $i < $limit; $i++) {
-                    Ticket::create([
+                \Illuminate\Support\Facades\DB::transaction(function() use ($category, $limit) {
+                    // Create a dummy transaction for offline stock
+                    $transaction = \App\Models\Transaction::create([
                         'tenant_id' => $category->tenant_id,
                         'event_id' => $category->event_id,
                         'ticket_category_id' => $category->id,
-                        'ticket_code' => 'GTX-OFF-' . strtoupper(\Illuminate\Support\Str::random(10)),
-                        'status' => 'sold', // Set to sold so it appears in print
+                        'quantity' => $limit,
+                        'reference_no' => 'STOCK-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                        'customer_name' => 'OFFLINE STOCK',
+                        'customer_email' => 'offline@gentix.id',
+                        'customer_phone' => '-',
+                        'customer_nik' => '0000000000000000',
+                        'total_amount' => $category->price * $limit,
+                        'payment_status' => 'paid',
+                        'channel' => 'offline_stock',
+                        'paid_at' => now(),
                     ]);
-                }
 
-                $category->increment('sold_count', $limit);
+                    for ($i = 0; $i < $limit; $i++) {
+                        Ticket::create([
+                            'tenant_id' => $category->tenant_id,
+                            'event_id' => $category->event_id,
+                            'transaction_id' => $transaction->id,
+                            'ticket_category_id' => $category->id,
+                            'ticket_code' => 'GTX-OFF-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                            'status' => 'sold', // Set to sold so it appears in print
+                        ]);
+                    }
+
+                    $category->increment('sold_count', $limit);
+                });
                 
                 return redirect()->route('organizer.categories.print-wristbands', $category);
             }
