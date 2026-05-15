@@ -58,7 +58,8 @@ class WristbandPrintController extends Controller
                         'customer_nik' => '0000000000000000',
                         'total_amount' => $category->price * $limit,
                         'payment_status' => 'paid',
-                        'channel' => 'offline_stock',
+                        'channel' => 'pos',
+                        'payment_method' => 'OFFLINE STOCK',
                         'paid_at' => now(),
                     ]);
 
