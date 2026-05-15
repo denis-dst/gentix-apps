@@ -17,7 +17,7 @@ class WristbandPrintController extends Controller
         // Check authorization
         $this->authorizeAccess($category->event);
 
-        $status = $request->get('status', 'sold'); // Default to printing sold tickets
+        $status = $request->get('status', 'sold'); 
         
         $query = Ticket::where('ticket_category_id', $category->id)
             ->with([
@@ -35,7 +35,31 @@ class WristbandPrintController extends Controller
         $tickets = $query->orderBy('ticket_code', 'asc')->get();
 
         if ($tickets->isEmpty()) {
-            return back()->with('error', 'Tidak ada tiket untuk dicetak dengan filter ini.');
+            // Jika user minta generate tiket stok (offline)
+            if ($request->has('generate_offline')) {
+                $count = (int) $request->get('count', 10); // Default 10 tiket
+                $limit = min($count, $category->quota - $category->tickets()->count());
+                
+                if ($limit <= 0) {
+                    return back()->with('error', 'Kuota tidak mencukupi untuk generate tiket tambahan.');
+                }
+
+                for ($i = 0; $i < $limit; $i++) {
+                    Ticket::create([
+                        'tenant_id' => $category->tenant_id,
+                        'event_id' => $category->event_id,
+                        'ticket_category_id' => $category->id,
+                        'ticket_code' => 'GTX-OFF-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                        'status' => 'sold', // Set to sold so it appears in print
+                    ]);
+                }
+
+                $category->increment('sold_count', $limit);
+                
+                return redirect()->route('organizer.categories.print-wristbands', $category);
+            }
+
+            return back()->with('error', 'Tidak ada tiket untuk dicetak. Jika ingin cetak tiket stok untuk penjualan offline, silakan generate tiket terlebih dahulu.');
         }
 
         return view('wristbands.print', [
