@@ -61,6 +61,12 @@ Route::middleware(['auth:sanctum', 'role:Petugas Loket'])->group(function () {
  */
 Route::middleware(['auth:sanctum', 'role:Petugas Gate'])->group(function () {
     Route::get('/gate/list', [GateController::class, 'listGates']);
+    // Download wristband data untuk mode offline/local
+    Route::get('/gate/download-data', [GateController::class, 'downloadData']);
+    // Scan QR / Wristband
     Route::post('/gate/scan', [GateController::class, 'scan']);
+    // Upload scan logs ke server (background sync)
     Route::post('/gate/sync', [GateController::class, 'syncLogs']);
+    // Alias upload-data → syncLogs (digunakan oleh tombol "Upload Data" di app)
+    Route::post('/gate/upload-data', [GateController::class, 'syncLogs']);
 });

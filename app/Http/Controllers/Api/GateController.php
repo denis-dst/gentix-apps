@@ -33,6 +33,70 @@ class GateController extends Controller
         ]);
     }
 
+    public function downloadData(Request $request)
+    {
+        $request->validate([
+            'event_id' => 'required|exists:events,id',
+        ]);
+
+        $eventId = (int) $request->event_id;
+
+        $tickets = Ticket::query()
+            ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
+            ->leftJoin('transactions', 'transactions.id', '=', 'tickets.transaction_id')
+            ->where('tickets.event_id', $eventId)
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->select([
+                'tickets.id as ticket_id',
+                'tickets.event_id',
+                'tickets.tenant_id',
+                'tickets.ticket_category_id',
+                'tickets.ticket_code',
+                'tickets.wristband_qr',
+                'ticket_categories.name as category_name',
+                'transactions.customer_email',
+                'transactions.reference_no',
+            ])
+            ->get()
+            ->map(function ($ticket) {
+                return [
+                    'ticket_id' => $ticket->ticket_id,
+                    'event_id' => $ticket->event_id,
+                    'tenant_id' => $ticket->tenant_id,
+                    'ticket_category_id' => $ticket->ticket_category_id,
+                    'ticket_code' => $ticket->ticket_code,
+                    'wristband_qr' => $ticket->wristband_qr,
+                    'category_name' => $ticket->category_name ?? '-',
+                    'customer_email' => $ticket->customer_email ?? '-',
+                    'reference_no' => $ticket->reference_no ?? '-',
+                ];
+            })
+            ->values();
+
+        $gates = Gate::where('event_id', $eventId)
+            ->where('is_active', true)
+            ->with(['ticketCategories' => function ($query) {
+                $query->select('ticket_categories.id', 'name');
+            }])
+            ->get()
+            ->map(function ($gate) {
+                return [
+                    'gate_id' => $gate->id,
+                    'event_id' => $gate->event_id,
+                    'gate_name' => $gate->name,
+                    'allowed_category_ids' => $gate->ticketCategories->pluck('id')->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'status' => 'SUCCESS',
+            'event_id' => $eventId,
+            'tickets' => $tickets,
+            'gates' => $gates,
+        ]);
+    }
+
     /**
      * Pemindaian Berkecepatan Tinggi & Anti-Passback
      */
@@ -57,7 +121,11 @@ class GateController extends Controller
             return response()->json([
                 'status' => 'REJECT',
                 'message' => 'Invalid Wristband / Ticket Code',
-                'color' => 'pink'
+                'color' => 'pink',
+                'ticket_code' => $scanCode,
+                'category' => '-',
+                'email' => '-',
+                'reference_no' => '-',
             ], 404);
         }
 
@@ -72,7 +140,10 @@ class GateController extends Controller
                         'message' => 'Wrong Gate! Access Denied for ' . $ticket->category->name,
                         'color' => 'pink',
                         'visitor' => $ticket->transaction->customer_name ?? '-',
-                        'category' => $ticket->category->name
+                        'category' => $ticket->category->name,
+                        'ticket_code' => $ticket->ticket_code,
+                        'email' => $ticket->transaction->customer_email ?? '-',
+                        'reference_no' => $ticket->transaction->reference_no ?? '-',
                     ], 403);
                 }
                 // Use gate name from the database if gate_id is provided
@@ -94,7 +165,10 @@ class GateController extends Controller
                     'message' => 'Tiket sudah berada di dalam area!',
                     'color' => 'pink',
                     'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name
+                    'category' => $ticket->category->name,
+                    'ticket_code' => $ticket->ticket_code,
+                    'email' => $ticket->transaction->customer_email ?? '-',
+                    'reference_no' => $ticket->transaction->reference_no ?? '-',
                 ], 403);
             }
         } else {
@@ -106,7 +180,10 @@ class GateController extends Controller
                         : 'Tiket belum pernah Check-in!',
                     'color' => 'pink',
                     'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name
+                    'category' => $ticket->category->name,
+                    'ticket_code' => $ticket->ticket_code,
+                    'email' => $ticket->transaction->customer_email ?? '-',
+                    'reference_no' => $ticket->transaction->reference_no ?? '-',
                 ], 403);
             }
         }
@@ -128,7 +205,10 @@ class GateController extends Controller
             'message' => 'Access Granted: ' . $request->type,
             'visitor' => $ticket->transaction->customer_name ?? '-',
             'category' => $ticket->category->name,
-            'color' => 'green'
+            'color' => 'green',
+            'ticket_code' => $ticket->ticket_code,
+            'email' => $ticket->transaction->customer_email ?? '-',
+            'reference_no' => $ticket->transaction->reference_no ?? '-',
         ]);
     }
 
@@ -137,16 +217,33 @@ class GateController extends Controller
      */
     public function syncLogs(Request $request)
     {
-        $logs = $request->input('logs', []); // Array of offline logs
+        $request->validate([
+            'logs' => 'required|array',
+        ]);
+
+        $logs = $request->input('logs', []);
         
         foreach ($logs as $logData) {
-            // Check if ticket category is allowed for the gate (for offline logs)
-            // Note: This assumes the mobile app already validated it, 
-            // but we can re-validate here if needed.
-            
+            if (empty($logData['offline_id']) || empty($logData['ticket_id']) || empty($logData['type'])) {
+                continue;
+            }
+
             GateLog::updateOrCreate(
                 ['meta->offline_id' => $logData['offline_id']],
-                array_merge($logData, ['meta' => ['synced_at' => now()]])
+                [
+                    'tenant_id' => $logData['tenant_id'],
+                    'event_id' => $logData['event_id'],
+                    'ticket_id' => $logData['ticket_id'],
+                    'gate_name' => $logData['gate_name'],
+                    'type' => $logData['type'],
+                    'scanned_at' => $logData['scanned_at'],
+                    'device_id' => $logData['device_id'] ?? null,
+                    'scanned_by' => auth()->id(),
+                    'meta' => [
+                        'offline_id' => $logData['offline_id'],
+                        'synced_at' => now(),
+                    ],
+                ]
             );
         }
 
