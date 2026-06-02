@@ -20,6 +20,50 @@
         <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
             <form action="{{ route('organizer.settings.terms.update') }}" method="POST" class="p-8 sm:p-12 space-y-8">
                 @csrf
+
+                <!-- Notification Settings -->
+                <div class="p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">📳 Pengaturan Notifikasi E-Voucher</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Aktifkan atau matikan pengiriman E-Voucher secara otomatis ke email & WhatsApp pembeli/peserta.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <!-- Email Notification Toggle -->
+                        <label class="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-indigo-400 transition"
+                               x-data="{ enabled: {{ ($tenant->meta['email_notifications_enabled'] ?? true) ? 'true' : 'false' }} }">
+                            <div class="relative shrink-0">
+                                <input type="checkbox" name="email_notifications_enabled" value="1"
+                                       x-model="enabled"
+                                       {{ ($tenant->meta['email_notifications_enabled'] ?? true) ? 'checked' : '' }}
+                                       class="sr-only">
+                                <div :class="enabled ? 'bg-indigo-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                    <div :class="enabled ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">Kirim via Email</p>
+                                <p class="text-[10px] text-slate-500">Kirim otomatis e-voucher ke email terdaftar</p>
+                            </div>
+                        </label>
+
+                        <!-- WhatsApp Notification Toggle -->
+                        <label class="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-emerald-400 transition"
+                               x-data="{ enabled: {{ ($tenant->meta['wa_notifications_enabled'] ?? true) ? 'true' : 'false' }} }">
+                            <div class="relative shrink-0">
+                                <input type="checkbox" name="wa_notifications_enabled" value="1"
+                                       x-model="enabled"
+                                       {{ ($tenant->meta['wa_notifications_enabled'] ?? true) ? 'checked' : '' }}
+                                       class="sr-only">
+                                <div :class="enabled ? 'bg-emerald-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                    <div :class="enabled ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">Kirim via WhatsApp</p>
+                                <p class="text-[10px] text-slate-500">Kirim otomatis e-voucher ke nomor WA terdaftar</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
                 
                 <!-- Quill CSS -->
                 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">

@@ -25,6 +25,16 @@ class TicketNotificationService
     protected function sendEmail(Ticket $ticket)
     {
         try {
+            $tenant = $ticket->transaction->tenant;
+            if ($tenant) {
+                $meta = $tenant->meta ?? [];
+                $emailEnabled = $meta['email_notifications_enabled'] ?? true;
+                if (!$emailEnabled) {
+                    Log::info('Email notifications are disabled for tenant: ' . $tenant->name);
+                    return;
+                }
+            }
+
             $email = $ticket->visitor_data['email'] ?? $ticket->transaction->customer_email ?? null;
             
             if ($email) {
@@ -38,6 +48,16 @@ class TicketNotificationService
     protected function sendWhatsApp(Ticket $ticket)
     {
         try {
+            $tenant = $ticket->transaction->tenant;
+            if ($tenant) {
+                $meta = $tenant->meta ?? [];
+                $waEnabled = $meta['wa_notifications_enabled'] ?? true;
+                if (!$waEnabled) {
+                    Log::info('WhatsApp notifications are disabled for tenant: ' . $tenant->name);
+                    return;
+                }
+            }
+
             $phone = $ticket->visitor_data['phone'] ?? $ticket->transaction->customer_phone ?? null;
             
             if (!$phone) return;
