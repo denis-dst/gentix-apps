@@ -128,11 +128,57 @@ class GateController extends Controller
             ], 403);
         }
 
+        // Logic check for IN/OUT
+        $lastLog = GateLog::where('ticket_id', $ticket->id)
+            ->with('scanner')
+            ->orderBy('scanned_at', 'desc')
+            ->first();
+
+        $alreadyInState = false;
+        if ($request->mode === 'IN') {
+            if ($lastLog && $lastLog->type === 'IN') {
+                $alreadyInState = true;
+            }
+        } else {
+            if ($lastLog && $lastLog->type === 'OUT') {
+                $alreadyInState = true;
+            }
+        }
+
+        if ($alreadyInState) {
+            $operatorName = $lastLog->scanner ? $lastLog->scanner->name : ($lastLog->gate_name ?? 'System');
+            $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
+            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+
+            return response()->json([
+                'success' => false,
+                'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
+                'customer' => $visitorName,
+                'category' => $ticket->category->name
+            ], 400);
+        }
+
+        if ($request->mode === 'OUT') {
+            // Mode OUT: Check if ever IN
+            $hasIn = GateLog::where('ticket_id', $ticket->id)
+                ->where('type', 'IN')
+                ->exists();
+
+            if (!$hasIn) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tiket belum pernah Check-in!',
+                    'customer' => $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-'),
+                    'category' => $ticket->category->name
+                ], 400);
+            }
+        }
+
         // For group checking (transactions with quantity > 1), we return the group details
         $transaction = $ticket->transaction;
         if ($transaction && $transaction->tickets()->count() > 1) {
             $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
-                $q->orderBy('scanned_at', 'desc');
+                $q->with('scanner')->orderBy('scanned_at', 'desc');
             }])->get();
 
             $attendeesList = $ticketsInGroup->map(function($t) {
@@ -144,7 +190,9 @@ class GateController extends Controller
                     'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
                     'gender' => $t->visitor_data['gender'] ?? null,
                     'is_checked_in' => $isCheckedIn,
-                    'category' => $t->category->name
+                    'category' => $t->category->name,
+                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
                 ];
             });
 
@@ -157,50 +205,6 @@ class GateController extends Controller
                 'attendees' => $attendeesList,
                 'scanned_ticket_id' => $ticket->id
             ]);
-        }
-
-        // Logic check for IN/OUT
-        if ($request->mode === 'IN') {
-            // Check if already IN and not yet OUT
-            $lastLog = GateLog::where('ticket_id', $ticket->id)
-                ->orderBy('scanned_at', 'desc')
-                ->first();
-
-            if ($lastLog && $lastLog->type === 'IN') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tiket sudah berada di dalam area!',
-                    'customer' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name
-                ], 400);
-            }
-        } else {
-            // Mode OUT: Check if ever IN
-            $hasIn = GateLog::where('ticket_id', $ticket->id)
-                ->where('type', 'IN')
-                ->exists();
-
-            if (!$hasIn) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tiket belum pernah Check-in!',
-                    'customer' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name
-                ], 400);
-            }
-
-            $lastLog = GateLog::where('ticket_id', $ticket->id)
-                ->orderBy('scanned_at', 'desc')
-                ->first();
-
-            if ($lastLog && $lastLog->type === 'OUT') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tiket sudah berada di luar area!',
-                    'customer' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name
-                ], 400);
-            }
         }
 
         try {

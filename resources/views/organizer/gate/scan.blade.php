@@ -226,6 +226,9 @@
                                             <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider" x-text="attendee.ticket_code"></span>
                                             <span class="text-[8px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded uppercase" x-text="attendee.gender || 'n/a'"></span>
                                         </div>
+                                        <template x-if="attendee.is_checked_in">
+                                            <div class="text-[10px] text-emerald-400 font-bold mt-1" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
+                                        </template>
                                     </div>
                                 </div>
                                 <div class="flex items-center">

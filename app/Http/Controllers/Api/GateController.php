@@ -153,11 +153,61 @@ class GateController extends Controller
             $gateName = $request->gate_name;
         }
 
+        // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
+        $lastLog = GateLog::where('ticket_id', $ticket->id)
+            ->with('scanner')
+            ->orderBy('scanned_at', 'desc')
+            ->first();
+
+        $alreadyInState = false;
+        if ($request->type === 'IN') {
+            if ($lastLog && $lastLog->type === 'IN') {
+                $alreadyInState = true;
+            }
+        } else {
+            if ($lastLog && $lastLog->type === 'OUT') {
+                $alreadyInState = true;
+            }
+        }
+
+        if ($alreadyInState) {
+            $operatorName = $lastLog->scanner ? $lastLog->scanner->name : ($lastLog->gate_name ?? 'System');
+            $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
+            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
+                'color' => 'pink',
+                'visitor' => $visitorName,
+                'category' => $ticket->category->name,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
+        }
+
+        if ($request->type === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
+            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => $lastLog && $lastLog->type === 'OUT'
+                    ? 'Tiket sudah berada di luar area!'
+                    : 'Tiket belum pernah Check-in!',
+                'color' => 'pink',
+                'visitor' => $visitorName,
+                'category' => $ticket->category->name,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
+        }
+
         // For group checking (transactions with quantity > 1), we return the group details
         $transaction = $ticket->transaction;
         if ($transaction && $transaction->tickets()->count() > 1) {
             $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
-                $q->orderBy('scanned_at', 'desc');
+                $q->with('scanner')->orderBy('scanned_at', 'desc');
             }])->get();
 
             $attendeesList = $ticketsInGroup->map(function($t) {
@@ -169,7 +219,9 @@ class GateController extends Controller
                     'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
                     'gender' => $t->visitor_data['gender'] ?? null,
                     'is_checked_in' => $isCheckedIn,
-                    'category' => $t->category->name
+                    'category' => $t->category->name,
+                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
                 ];
             });
 
@@ -185,41 +237,6 @@ class GateController extends Controller
                 'email' => $transaction->customer_email ?? '-',
                 'reference_no' => $transaction->reference_no ?? '-',
             ]);
-        }
-
-        // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
-        $lastLog = GateLog::where('ticket_id', $ticket->id)
-            ->orderBy('scanned_at', 'desc')
-            ->first();
-
-        if ($request->type === 'IN') {
-            if ($lastLog && $lastLog->type === 'IN') {
-                return response()->json([
-                    'status' => 'REJECT',
-                    'message' => 'Tiket sudah berada di dalam area!',
-                    'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name,
-                    'ticket_code' => $ticket->ticket_code,
-                    'email' => $ticket->transaction->customer_email ?? '-',
-                    'reference_no' => $ticket->transaction->reference_no ?? '-',
-                ], 403);
-            }
-        } else {
-            if (!$lastLog || $lastLog->type !== 'IN') {
-                return response()->json([
-                    'status' => 'REJECT',
-                    'message' => $lastLog && $lastLog->type === 'OUT'
-                        ? 'Tiket sudah berada di luar area!'
-                        : 'Tiket belum pernah Check-in!',
-                    'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name,
-                    'ticket_code' => $ticket->ticket_code,
-                    'email' => $ticket->transaction->customer_email ?? '-',
-                    'reference_no' => $ticket->transaction->reference_no ?? '-',
-                ], 403);
-            }
         }
 
         // Log the movement
