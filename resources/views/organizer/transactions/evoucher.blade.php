@@ -155,12 +155,26 @@
                         
                         <div class="flex justify-between items-center text-xs pt-2">
                             <span class="text-slate-400 font-medium">Nama</span>
-                            <span class="text-slate-700 font-bold">{{ $transaction->customer_name }}</span>
+                            <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['name'] ?? $transaction->customer_name }}</span>
                         </div>
+                        @if(isset($ticket->visitor_data['gender']))
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">Gender</span>
+                            <span class="text-slate-700 font-bold capitalize">{{ $ticket->visitor_data['gender'] }}</span>
+                        </div>
+                        @endif
+                        @if(isset($ticket->visitor_data['umroh_answer']) && $ticket->visitor_data['umroh_answer'])
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400 font-medium">Umroh Batik Travel</span>
+                            <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['umroh_answer'] }}</span>
+                        </div>
+                        @endif
+                        @if(!$transaction->event->is_free)
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-slate-400 font-medium">NIK</span>
                             <span class="text-slate-700 font-bold">{{ $transaction->customer_nik ?? '-' }}</span>
                         </div>
+                        @endif
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-slate-400 font-medium">Email</span>
                             <span class="text-slate-700 font-bold">{{ $transaction->customer_email }}</span>

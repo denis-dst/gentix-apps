@@ -128,6 +128,37 @@ class GateController extends Controller
             ], 403);
         }
 
+        // For group checking (transactions with quantity > 1), we return the group details
+        $transaction = $ticket->transaction;
+        if ($transaction && $transaction->tickets()->count() > 1) {
+            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
+                $q->orderBy('scanned_at', 'desc');
+            }])->get();
+
+            $attendeesList = $ticketsInGroup->map(function($t) {
+                $lastLog = $t->gateLogs->first();
+                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                return [
+                    'ticket_id' => $t->id,
+                    'ticket_code' => $t->ticket_code,
+                    'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
+                    'gender' => $t->visitor_data['gender'] ?? null,
+                    'is_checked_in' => $isCheckedIn,
+                    'category' => $t->category->name
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'is_group' => true,
+                'message' => 'Detail grup ditemukan',
+                'customer' => $transaction->customer_name,
+                'category' => $ticket->category->name,
+                'attendees' => $attendeesList,
+                'scanned_ticket_id' => $ticket->id
+            ]);
+        }
+
         // Logic check for IN/OUT
         if ($request->mode === 'IN') {
             // Check if already IN and not yet OUT
@@ -191,8 +222,66 @@ class GateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil ' . ($request->mode === 'IN' ? 'Check-in' : 'Check-out'),
-                'customer' => $ticket->transaction->customer_name,
+                'customer' => $ticket->visitor_data['name'] ?? $ticket->transaction->customer_name,
                 'category' => $ticket->category->name,
+                'in_count' => $inCount,
+                'out_count' => $outCount,
+                'occupancy' => $inCount - $outCount
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkCheckin(Request $request, Event $event)
+    {
+        $request->validate([
+            'ticket_ids' => 'required|array',
+            'ticket_ids.*' => 'exists:tickets,id',
+            'mode' => 'required|in:IN,OUT',
+            'gate_name' => 'required|string'
+        ]);
+
+        try {
+            DB::transaction(function() use ($request, $event) {
+                foreach ($request->ticket_ids as $ticketId) {
+                    // Check logic status first to prevent duplicate active state
+                    $lastLog = GateLog::where('ticket_id', $ticketId)
+                        ->orderBy('scanned_at', 'desc')
+                        ->first();
+
+                    $alreadyInState = $lastLog && $lastLog->type === $request->mode;
+
+                    // If checking in, make sure it's not already in. If checking out, make sure it's checked in first
+                    if ($request->mode === 'IN') {
+                        if ($alreadyInState) continue;
+                    } else {
+                        $hasIn = GateLog::where('ticket_id', $ticketId)->where('type', 'IN')->exists();
+                        if (!$hasIn || $alreadyInState) continue;
+                    }
+
+                    GateLog::create([
+                        'tenant_id' => $event->tenant_id,
+                        'event_id' => $event->id,
+                        'ticket_id' => $ticketId,
+                        'gate_name' => $request->gate_name,
+                        'type' => $request->mode,
+                        'scanned_at' => now(),
+                        'scanned_by' => auth()->id()
+                    ]);
+                }
+            });
+
+            $inCount = GateLog::where('event_id', $event->id)->where('type', 'IN')->count();
+            $outCount = GateLog::where('event_id', $event->id)->where('type', 'OUT')->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil memproses check-in masal',
                 'in_count' => $inCount,
                 'out_count' => $outCount,
                 'occupancy' => $inCount - $outCount

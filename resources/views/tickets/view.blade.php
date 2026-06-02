@@ -110,9 +110,9 @@
 
             <div class="grid grid-cols-3 gap-8 items-stretch">
                 <!-- Info Section -->
-                <div class="col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
+                <div class="col-span-3 lg:col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
                     <h3 class="text-lg font-black text-slate-900 font-outfit border-b border-slate-200 pb-3">
-                        {{ $isFree ? 'Informasi Peserta' : 'Informasi Pesanan' }}
+                        {{ $isFree ? 'Informasi Kontak Pemesan' : 'Informasi Pesanan' }}
                     </h3>
                     <div class="space-y-3">
                         <div class="flex justify-between text-sm">
@@ -137,47 +137,27 @@
 
                         <div class="pt-4 border-t border-slate-200 space-y-3">
                             <div class="flex justify-between text-sm">
-                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Nama</span>
+                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Nama Pemesan</span>
                                 <span class="text-slate-800 font-bold uppercase">{{ $ticket->transaction->customer_name }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
-                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">NIK</span>
-                                <span class="text-slate-800 font-bold">{{ $ticket->transaction->customer_nik }}</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Email</span>
+                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Email Pemesan</span>
                                 <span class="text-slate-800 font-bold">{{ $ticket->transaction->customer_email }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">No. WhatsApp</span>
                                 <span class="text-slate-800 font-bold">{{ $ticket->transaction->customer_phone }}</span>
                             </div>
-
-                            @if($isFree && $ticket->transaction->customer_gender)
-                            <div class="flex justify-between text-sm">
-                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Gender</span>
-                                <span class="font-black uppercase {{ $ticket->transaction->customer_gender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
-                                    {{ $ticket->transaction->customer_gender === 'ikhwan' ? '🧔 Ikhwan' : '🧕 Akhwat' }}
-                                </span>
-                            </div>
-                            @endif
-
-                            @if($isFree && $ticket->transaction->customer_umroh_answer)
-                            <div class="flex justify-between text-sm items-start gap-4">
-                                <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px] shrink-0">Umroh Bersama Batik</span>
-                                <span class="text-slate-800 font-bold text-right">{{ $ticket->transaction->customer_umroh_answer }}</span>
-                            </div>
-                            @endif
                         </div>
                     </div>
                 </div>
 
-                <!-- QR Section -->
-                <div class="col-span-1 border-2 {{ $isFree ? 'border-emerald-100' : 'border-slate-100' }} rounded-[2rem] p-8 flex flex-col items-center justify-center text-center space-y-6">
+                <!-- QR Section for Single Ticket (or default view) -->
+                <div class="col-span-3 lg:col-span-1 border-2 {{ $isFree ? 'border-emerald-100' : 'border-slate-100' }} rounded-[2rem] p-8 flex flex-col items-center justify-center text-center space-y-6 bg-white">
                     <div>
                         <h4 class="font-black text-xl text-slate-900 font-outfit uppercase">{{ $ticket->category->name }}</h4>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                            {{ $isFree ? 'E-Voucher Peserta' : 'Item 1 of ' . $ticket->transaction->quantity }}
+                            {{ $ticket->visitor_data['name'] ?? $ticket->transaction->customer_name }}
                         </p>
                     </div>
 
@@ -194,6 +174,59 @@
                 </div>
             </div>
 
+            <!-- Group Tickets Section (if multi-ticket) -->
+            @if($ticket->transaction->tickets->count() > 1)
+            <div class="pt-8 border-t-2 border-slate-100 space-y-6">
+                <h3 class="text-lg font-black text-slate-900 font-outfit uppercase tracking-tight">
+                    🎟️ Daftar E-Voucher Peserta (Total: {{ $ticket->transaction->tickets->count() }} Peserta)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    @foreach($ticket->transaction->tickets as $idx => $t)
+                        <div class="border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-3xl p-6 flex items-center justify-between gap-4">
+                            <div class="space-y-3 min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center shrink-0">
+                                        {{ $idx + 1 }}
+                                    </span>
+                                    <h4 class="font-black text-sm text-slate-800 truncate uppercase font-outfit">
+                                        {{ $t->visitor_data['name'] ?? $ticket->transaction->customer_name }}
+                                    </h4>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-bold space-y-1">
+                                    <div class="flex justify-between">
+                                        <span>Kode Tiket:</span>
+                                        <span class="font-mono text-slate-800">{{ $t->ticket_code }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Kategori:</span>
+                                        <span class="text-slate-800 uppercase">{{ $t->category->name }}</span>
+                                    </div>
+                                    @if(isset($t->visitor_data['gender']))
+                                    <div class="flex justify-between">
+                                        <span>Gender:</span>
+                                        <span class="text-slate-800 uppercase">{{ $t->visitor_data['gender'] }}</span>
+                                    </div>
+                                    @endif
+                                    @if(isset($t->visitor_data['umroh_answer']) && $t->visitor_data['umroh_answer'])
+                                    <div class="flex justify-between items-start gap-2">
+                                        <span>Umroh:</span>
+                                        <span class="text-slate-800 text-right truncate max-w-[150px]">{{ $t->visitor_data['umroh_answer'] }}</span>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="shrink-0 flex flex-col items-center gap-1.5 bg-white p-2 border border-slate-100 rounded-2xl shadow-sm">
+                                {!! QrCode::size(80)->generate($t->ticket_code) !!}
+                                <span class="text-[8px] font-black font-mono text-slate-400 tracking-wider">{{ $t->ticket_code }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             <!-- Check-in instruction for free events -->
             @if($isFree)
             <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
@@ -202,7 +235,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-black text-amber-800">Cara Check-in di Lokasi</p>
-                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem) — cukup scan langsung.</p>
+                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem) — cukup scan langsung salah satu QR Code dari rombongan Anda.</p>
                 </div>
             </div>
             @endif
