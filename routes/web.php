@@ -104,6 +104,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\Organizer\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
+    Route::post('transactions/{transaction}/cancel', [App\Http\Controllers\Organizer\TransactionController::class, 'cancel'])->name('transactions.cancel');
 
     // Redeem System
     Route::get('redeem', [App\Http\Controllers\Organizer\RedeemController::class, 'index'])->name('redeem.index');

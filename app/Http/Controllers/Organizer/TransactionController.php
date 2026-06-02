@@ -67,13 +67,82 @@ class TransactionController extends Controller
             return back()->with('error', 'Transaksi sudah berstatus PAID.');
         }
 
-        $transaction->update([
-            'payment_status' => 'paid',
-            'paid_at' => now(),
-            'processed_by' => auth()->id(),
-            'payment_method' => $transaction->payment_method ?? 'MANUAL_VERIFICATION'
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function() use ($transaction) {
+            $transaction->update([
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+                'processed_by' => auth()->id(),
+                'payment_method' => $transaction->payment_method ?? 'MANUAL_VERIFICATION'
+            ]);
+
+            $category = $transaction->category;
+            
+            // Check if tickets already exist to prevent duplicate generation
+            if ($transaction->tickets()->count() === 0) {
+                for ($i = 0; $i < $transaction->quantity; $i++) {
+                    $ticket = \App\Models\Ticket::create([
+                        'tenant_id' => $transaction->tenant_id,
+                        'event_id' => $transaction->event_id,
+                        'transaction_id' => $transaction->id,
+                        'ticket_category_id' => $transaction->ticket_category_id,
+                        'ticket_code' => 'GTX-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                        'status' => 'sold',
+                    ]);
+
+                    // Send Notification
+                    try {
+                        $notificationService = new \App\Services\TicketNotificationService();
+                        $notificationService->sendEVoucher($ticket);
+                    } catch (\Exception $e) {
+                        // Ignore mail/WA error in admin panel
+                    }
+                }
+
+                if ($category) {
+                    $category->increment('sold_count', $transaction->quantity);
+                }
+            }
+        });
 
         return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' telah dikonfirmasi lunas.');
+    }
+
+    public function cancel(Transaction $transaction)
+    {
+        $tenantId = auth()->user()->tenant_id;
+        if ($transaction->tenant_id !== $tenantId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (in_array($transaction->payment_status, ['failed', 'expired', 'refunded'])) {
+            return back()->with('error', 'Transaksi sudah berstatus tidak aktif (failed/expired/refunded).');
+        }
+
+        $wasPaid = $transaction->payment_status === 'paid';
+
+        \Illuminate\Support\Facades\DB::transaction(function() use ($transaction, $wasPaid) {
+            // Update transaction status
+            $transaction->update([
+                'payment_status' => 'failed', // Mark as failed/cancelled
+            ]);
+
+            // Restore quota (decrement sold_count) only if it was paid
+            if ($wasPaid) {
+                $category = $transaction->category;
+                if ($category) {
+                    $category->decrement('sold_count', $transaction->quantity);
+                }
+
+                // Soft delete the tickets associated with this transaction
+                $transaction->tickets()->delete();
+            }
+
+            // Restore promo code usage if any
+            if ($transaction->promoCode) {
+                $transaction->promoCode->decrement('used_count');
+            }
+        });
+
+        return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' berhasil dicancel dan kuota telah dikembalikan.');
     }
 }
