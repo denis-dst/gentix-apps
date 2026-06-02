@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +45,14 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+
+            Log::warning('Login failed', [
+                'email' => $this->string('email')->toString(),
+                'ip' => $this->ip(),
+                'session_path' => config('session.path'),
+                'session_domain' => config('session.domain'),
+                'session_secure' => config('session.secure'),
+            ]);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),

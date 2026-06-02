@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GenTix | Solusi Ticketing & Gate Control</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #111827;
+      --surface-alt: #1f2937;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #22c55e;
+      --warning: #fbbf24;
+      --border: rgba(148, 163, 184, 0.2);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, #020617 0%, #111827 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrapper {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35);
+      overflow: hidden;
+    }
+    header {
+      padding: 40px 40px 28px;
+      display: grid;
+      gap: 24px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      width: fit-content;
+    }
+    .headline {
+      display: grid;
+      gap: 16px;
+    }
+    .headline h1 {
+      margin: 0;
+      font-size: clamp(2.6rem, 3.4vw, 4rem);
+      letter-spacing: -0.04em;
+    }
+    .headline p {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+    .hero-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .hero-card {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 20px;
+      padding: 20px;
+      min-height: 130px;
+    }
+    .hero-card h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .hero-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+    section {
+      padding: 32px 40px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      gap: 24px;
+    }
+    section h2 {
+      margin: 0;
+      font-size: 1.55rem;
+      color: var(--text);
+    }
+    .section-copy {
+      display: grid;
+      gap: 16px;
+    }
+    .feature-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .feature-box {
+      background: rgba(30, 41, 59, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .feature-box h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+    .feature-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.97rem;
+    }
+    .list-compact {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .list-compact li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+    .list-compact li::before {
+      content: "•";
+      color: var(--accent);
+      font-weight: 700;
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+    .footer {
+      padding: 32px 40px 36px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.96);
+    }
+    .footer p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 999px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #0ea5e9, #22c55e);
+      color: #0f172a;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.2s ease;
+    }
+    .cta:hover { transform: translateY(-2px); }
+    @media (max-width: 780px) {
+      .wrapper { padding: 24px 16px 40px; }
+      header, section, .footer { padding-left: 24px; padding-right: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <header>
+        <span class="badge">GenTix | Turnkey Event Ticketing</span>
+        <div class="headline">
+          <h1>Solusi Ticketing dan Gate Control Profesional untuk Liga 1, Liga 2, dan Event Organizer</h1>
+          <p>GenTix hadir sebagai platform lengkap untuk pengelolaan tiket, keamanan masuk, operasional lapangan, dan pengalaman penonton yang modern.</p>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-card">
+            <h3>Admin Pusat & Tenant</h3>
+            <p>Manajemen multi-tenant, global insight, dan dashboard real-time untuk memantau trafik dan penjualan.</p>
+          </div>
+          <div class="hero-card">
+            <h3>Field Team Ready</h3>
+            <p>Aplikasi Flutter untuk petugas loket dan gate, lengkap dengan scan QR, anti-passback, dan visual feedback instan.</p>
+          </div>
+          <div class="hero-card">
+            <h3>Integrasi Pembayaran</h3>
+            <p>Midtrans, VA, QRIS, E-Wallet, dan CC plus webhook otomatis untuk status pembayaran real-time.</p>
+          </div>
+        </div>
+      </header>
+      <section>
+        <div class="section-copy">
+          <h2>Nilai Utama GenTix</h2>
+          <p>Dirancang untuk klub sepak bola dan penyelenggara event, GenTix menggabungkan otomasi ticketing, kontrol akses, dan perlindungan anti-fraud dalam satu ekosistem yang dapat diandalkan.</p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-box">
+            <h3>Ticketing & Promo</h3>
+            <p>Penjualan kategori tiket, kuota, periode, pembatasan NIK, dan voucher diskon terkelola dengan cerdas.</p>
+          </div>
+          <div class="feature-box">
+            <h3>Scan & Gate Control</h3>
+            <p>Scan masuk/keluar cepat, anti-passback, dan kontrol yang langsung mengurangi antrean dan kebocoran tiket.</p>
+          </div>
+          <div class="feature-box">
+            <h3>Keamanan & Akurasi</h3>
+            <p>Kode keamanan 6-digit per event, QR unik per tiket, dan riwayat foto saat redeem untuk deteksi penipuan.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="section-copy">
+          <h2>Fitur yang Mendukung Operasional Event</h2>
+          <ul class="list-compact">
+            <li>Portal admin Laravel dengan Role-Based Access Control (Superadmin, Organizer, Crew).</li>
+            <li>Lifecycle event: dari draft hingga publish, termasuk manajemen tenant dan recovery data.</li>
+            <li>Sistem voucher dan promo yang otomatis menghitung limit penggunaan.</li>
+            <li>Automasi notifikasi E-Ticket via email dan WhatsApp setelah pembayaran berhasil.</li>
+            <li>Mode offline-ready untuk lapangan dengan koneksi tak stabil.</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <div class="section-copy">
+          <h2>Kenapa Pilih GenTix?</h2>
+          <div class="feature-grid">
+            <div class="feature-box">
+              <h3>Efisiensi Operasi</h3>
+              <p>Kurangi kesalahan manual dan proses secara digital dari loket hingga pintu masuk.</p>
+            </div>
+            <div class="feature-box">
+              <h3>Pengalaman Suporter</h3>
+              <p>Memberikan e-ticketing modern yang nyaman dan aman bagi penonton laga dan acara.</p>
+            </div>
+            <div class="feature-box">
+              <h3>Skalabilitas</h3>
+              <p>Siap mendukung event besar di stadion dengan manajemen tim dan tenant terpusat.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="footer">
+        <p><strong>GenTix</strong> — sistem ticketing yang tangguh, aman, dan terotomatisasi secara end-to-end.</p>
+        <a class="cta" href="#">Presentasi ke Klub & Penyelenggara Event</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

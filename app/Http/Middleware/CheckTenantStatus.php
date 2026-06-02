@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckTenantStatus
@@ -24,6 +25,12 @@ class CheckTenantStatus
 
         if ($user && $user->tenant) {
             if ($user->tenant->status !== 'active') {
+                Log::warning('Login redirected because tenant is inactive', [
+                    'user_id' => $user->id,
+                    'tenant_id' => $user->tenant->id,
+                    'tenant_status' => $user->tenant->status,
+                ]);
+
                 auth()->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
