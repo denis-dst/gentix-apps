@@ -15,6 +15,23 @@
 
         <form action="{{ route('organizer.events.categories.store', $event) }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             @csrf
+
+            @if ($errors->any())
+                <div class="p-6 bg-red-50 border-b border-red-100 text-red-700">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div>
+                            <h4 class="font-bold text-sm">Gagal menyimpan Kategori Tiket:</h4>
+                            <ul class="list-disc list-inside text-xs mt-1 space-y-1">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="p-8 space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Basic Info -->
@@ -24,12 +41,19 @@
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Category Name</label>
                             <input type="text" name="name" value="{{ old('name') }}" required placeholder="e.g. VIP, Early Bird, Festival" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                         </div>
+
+                        @if ($event->is_free)
+                            <input type="hidden" name="price" value="0">
+                        @endif
+
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Price (IDR)</label>
-                                <input type="number" name="price" value="{{ old('price') }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
-                            </div>
-                            <div>
+                            @if (!$event->is_free)
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Price (IDR)</label>
+                                    <input type="number" name="price" value="{{ old('price') }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                </div>
+                            @endif
+                            <div class="{{ $event->is_free ? 'col-span-2' : '' }}">
                                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Quota</label>
                                 <input type="number" name="quota" value="{{ old('quota') }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                             </div>

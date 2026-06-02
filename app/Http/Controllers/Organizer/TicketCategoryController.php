@@ -22,7 +22,7 @@ class TicketCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
+            'price' => $event->is_free ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
             'nik_restriction' => 'nullable|string|max:255',
             'nik_restriction_message' => 'nullable|string|max:255',
             'badge_text' => 'nullable|string|max:255',
@@ -37,6 +37,9 @@ class TicketCategoryController extends Controller
         $data = $validated;
         $data['event_id'] = $event->id;
         $data['tenant_id'] = $event->tenant_id;
+        if ($event->is_free) {
+            $data['price'] = 0;
+        }
 
         if ($request->hasFile('category_image')) {
             $data['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
@@ -66,7 +69,7 @@ class TicketCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
+            'price' => $event->is_free ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
             'nik_restriction' => 'nullable|string|max:255',
             'nik_restriction_message' => 'nullable|string|max:255',
             'badge_text' => 'nullable|string|max:255',
@@ -79,6 +82,9 @@ class TicketCategoryController extends Controller
         ]);
 
         $data = $validated;
+        if ($event->is_free) {
+            $data['price'] = 0;
+        }
 
         if ($request->hasFile('category_image')) {
             if ($category->category_image) Storage::disk('public')->delete($category->category_image);

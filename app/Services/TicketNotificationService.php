@@ -28,7 +28,7 @@ class TicketNotificationService
             $email = $ticket->visitor_data['email'] ?? $ticket->transaction->customer_email ?? null;
             
             if ($email) {
-                Mail::to($email)->send(new EVoucherMail($ticket));
+                Mail::to($email)->send(new EVoucherMail($ticket->transaction));
             }
         } catch (\Exception $e) {
             Log::error('Failed to send e-voucher email for ticket ' . $ticket->ticket_code . ': ' . $e->getMessage());

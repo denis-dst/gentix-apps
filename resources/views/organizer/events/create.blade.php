@@ -16,6 +16,26 @@
 
             <form action="{{ route('organizer.events.store') }}" method="POST" enctype="multipart/form-data" class="p-8 space-y-8">
                 @csrf
+
+                @if ($errors->any())
+                    <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-bold text-red-800">Terdapat beberapa kesalahan pengisian form:</h3>
+                                <ul class="mt-2 list-disc list-inside text-xs text-red-700 space-y-1">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 
                 <div class="space-y-6">
                     <div>
@@ -86,6 +106,48 @@
                             <input type="file" name="wristband_sponsor_logos[]" multiple class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
                         </div>
                     </div>
+
+                    {{-- ============================================================
+                         FREE EVENT OPTIONS
+                         ============================================================ --}}
+                    <div class="pt-6 border-t-2 border-dashed border-emerald-100 space-y-4" x-data="{ isFree: false }">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">⚡ Mode Event</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Pilih apakah event ini berbayar atau gratis</p>
+                            </div>
+                        </div>
+
+                        <!-- Free Event Toggle -->
+                        <label class="flex items-center gap-4 p-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl cursor-pointer transition hover:border-emerald-400"
+                               :class="isFree ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'">
+                            <div class="relative">
+                                <input type="checkbox" name="is_free" id="is_free" value="1" 
+                                       x-model="isFree"
+                                       class="sr-only">
+                                <div :class="isFree ? 'bg-emerald-500' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                    <div :class="isFree ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">Event Gratis (Tanpa Pembayaran)</p>
+                                <p class="text-xs text-slate-500">Peserta langsung mendapatkan E-Voucher setelah isi form registrasi</p>
+                            </div>
+                        </label>
+
+                        <!-- Umroh Question Option (shown if is_free) -->
+                        <div x-show="isFree" x-cloak class="p-5 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
+                            <label class="flex items-center gap-4 cursor-pointer">
+                                <input type="checkbox" name="umroh_question_enabled" id="umroh_question_enabled" value="1"
+                                       class="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                                <div>
+                                    <p class="text-sm font-black text-amber-800">🕌 Aktifkan Pertanyaan Umroh</p>
+                                    <p class="text-xs text-amber-600">Tambahkan pertanyaan: "Pernah Umroh Bersama Batik Umroh Travel? Tanggal/Tahun berapa?"</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="flex gap-4 pt-4 border-t border-slate-50 mt-8">

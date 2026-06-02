@@ -25,6 +25,34 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        // Filter out empty/invalid file uploads before validation to prevent Laravel from failing on nullable fields
+        foreach ([
+            'wristband_league_logo',
+            'wristband_home_club_logo',
+            'wristband_away_club_logo',
+        ] as $input) {
+            if ($request->files->has($input)) {
+                $file = $request->files->get($input);
+                if ($file && !$file->isValid()) {
+                    $request->files->remove($input);
+                }
+            }
+        }
+
+        if ($request->files->has('wristband_sponsor_logos')) {
+            $files = $request->files->get('wristband_sponsor_logos');
+            if (is_array($files)) {
+                $filtered = array_filter($files, function ($file) {
+                    return $file && $file->isValid();
+                });
+                if (empty($filtered)) {
+                    $request->files->remove('wristband_sponsor_logos');
+                } else {
+                    $request->files->set('wristband_sponsor_logos', $filtered);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'venue' => 'required|string|max:255',
@@ -79,6 +107,35 @@ class EventController extends Controller
     public function update(Request $request, Event $event)
     {
         $this->authorizeTenant($event);
+
+        // Filter out empty/invalid file uploads before validation to prevent Laravel from failing on nullable fields
+        foreach ([
+            'background_image',
+            'wristband_league_logo',
+            'wristband_home_club_logo',
+            'wristband_away_club_logo',
+        ] as $input) {
+            if ($request->files->has($input)) {
+                $file = $request->files->get($input);
+                if ($file && !$file->isValid()) {
+                    $request->files->remove($input);
+                }
+            }
+        }
+
+        if ($request->files->has('wristband_sponsor_logos')) {
+            $files = $request->files->get('wristband_sponsor_logos');
+            if (is_array($files)) {
+                $filtered = array_filter($files, function ($file) {
+                    return $file && $file->isValid();
+                });
+                if (empty($filtered)) {
+                    $request->files->remove('wristband_sponsor_logos');
+                } else {
+                    $request->files->set('wristband_sponsor_logos', $filtered);
+                }
+            }
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
