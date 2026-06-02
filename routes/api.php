@@ -65,6 +65,8 @@ Route::middleware(['auth:sanctum', 'role:Petugas Gate'])->group(function () {
     Route::get('/gate/download-data', [GateController::class, 'downloadData']);
     // Scan QR / Wristband
     Route::post('/gate/scan', [GateController::class, 'scan']);
+    // Bulk Check-in/Check-out
+    Route::post('/gate/bulk-checkin', [GateController::class, 'bulkCheckin']);
     // Upload scan logs ke server (background sync)
     Route::post('/gate/sync', [GateController::class, 'syncLogs']);
     // Alias upload-data → syncLogs (digunakan oleh tombol "Upload Data" di app)

@@ -153,6 +153,40 @@ class GateController extends Controller
             $gateName = $request->gate_name;
         }
 
+        // For group checking (transactions with quantity > 1), we return the group details
+        $transaction = $ticket->transaction;
+        if ($transaction && $transaction->tickets()->count() > 1) {
+            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
+                $q->orderBy('scanned_at', 'desc');
+            }])->get();
+
+            $attendeesList = $ticketsInGroup->map(function($t) {
+                $lastLog = $t->gateLogs->first();
+                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                return [
+                    'ticket_id' => $t->id,
+                    'ticket_code' => $t->ticket_code,
+                    'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
+                    'gender' => $t->visitor_data['gender'] ?? null,
+                    'is_checked_in' => $isCheckedIn,
+                    'category' => $t->category->name
+                ];
+            });
+
+            return response()->json([
+                'status' => 'SUCCESS',
+                'is_group' => true,
+                'message' => 'Detail grup ditemukan',
+                'visitor' => $transaction->customer_name ?? '-',
+                'category' => $ticket->category->name,
+                'attendees' => $attendeesList,
+                'scanned_ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $transaction->customer_email ?? '-',
+                'reference_no' => $transaction->reference_no ?? '-',
+            ]);
+        }
+
         // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
         $lastLog = GateLog::where('ticket_id', $ticket->id)
             ->orderBy('scanned_at', 'desc')
@@ -248,5 +282,64 @@ class GateController extends Controller
         }
 
         return response()->json(['message' => count($logs) . ' logs synced successfully']);
+    }
+
+    /**
+     * Bulk Check-in/Check-out for Group Scan
+     */
+    public function bulkCheckin(Request $request)
+    {
+        $request->validate([
+            'ticket_ids' => 'required|array',
+            'ticket_ids.*' => 'exists:tickets,id',
+            'type' => 'required|in:IN,OUT',
+            'gate_id' => 'nullable|exists:gates,id',
+            'gate_name' => 'required|string',
+            'device_id' => 'nullable'
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function() use ($request) {
+                foreach ($request->ticket_ids as $ticketId) {
+                    $ticket = Ticket::findOrFail($ticketId);
+                    
+                    // Check logic status first to prevent duplicate active state
+                    $lastLog = GateLog::where('ticket_id', $ticketId)
+                        ->orderBy('scanned_at', 'desc')
+                        ->first();
+
+                    $alreadyInState = $lastLog && $lastLog->type === $request->type;
+
+                    if ($request->type === 'IN') {
+                        if ($alreadyInState) continue;
+                    } else {
+                        $hasIn = GateLog::where('ticket_id', $ticketId)->where('type', 'IN')->exists();
+                        if (!$hasIn || $alreadyInState) continue;
+                    }
+
+                    GateLog::create([
+                        'tenant_id' => $ticket->tenant_id,
+                        'event_id' => $ticket->event_id,
+                        'ticket_id' => $ticketId,
+                        'gate_name' => $request->gate_name,
+                        'type' => $request->type,
+                        'scanned_at' => now(),
+                        'device_id' => $request->device_id,
+                        'scanned_by' => auth()->id()
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'status' => 'SUCCESS',
+                'message' => 'Berhasil memproses check-in masal',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'ERROR',
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
