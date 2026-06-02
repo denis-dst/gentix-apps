@@ -33,6 +33,8 @@ class EventController extends Controller
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
             'security_code' => 'nullable|string|size:6',
+            'is_free' => 'nullable|boolean',
+            'umroh_question_enabled' => 'nullable|boolean',
             'wristband_league_name' => 'nullable|string|max:255',
             'wristband_league_logo' => 'nullable|image|max:1024',
             'wristband_home_club_logo' => 'nullable|image|max:1024',
@@ -40,6 +42,10 @@ class EventController extends Controller
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
+
+        $validated['is_free'] = $request->boolean('is_free');
+        $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
+
 
         $validated['tenant_id'] = auth()->user()->tenant_id;
         $validated['status'] = 'draft';
@@ -85,6 +91,8 @@ class EventController extends Controller
             'status' => 'required|in:draft,published,cancelled',
             'background_image' => 'nullable|image|max:2048',
             'security_code' => 'required|string|size:6',
+            'is_free' => 'nullable|boolean',
+            'umroh_question_enabled' => 'nullable|boolean',
             'wristband_league_name' => 'nullable|string|max:255',
             'wristband_league_logo' => 'nullable|image|max:1024',
             'wristband_home_club_logo' => 'nullable|image|max:1024',
@@ -92,6 +100,9 @@ class EventController extends Controller
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
+        $validated['is_free'] = $request->boolean('is_free');
+        $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
+
         $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
         unset(
             $validated['wristband_league_name'],

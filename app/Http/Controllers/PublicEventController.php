@@ -151,7 +151,17 @@ class PublicEventController extends Controller
     public function checkout(Request $request, $slug)
     {
         $event = Event::where('slug', $slug)->firstOrFail();
-        
+
+        // -------------------------------------------------------
+        // FREE EVENT: validation rules include gender & umroh
+        // -------------------------------------------------------
+        if ($event->is_free) {
+            return $this->processFreeCheckout($request, $event);
+        }
+
+        // -------------------------------------------------------
+        // PAID EVENT: existing Midtrans flow (unchanged)
+        // -------------------------------------------------------
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
             'quantity' => 'required|integer|min:1|max:10', // Increased to 10 for testing
@@ -308,9 +318,119 @@ class PublicEventController extends Controller
         });
     }
 
+    /**
+     * Handle Free Event Registration (no payment required).
+     * Creates transaction + tickets immediately, then sends E-Voucher.
+     */
+    private function processFreeCheckout(Request $request, Event $event)
+    {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'ticket_category_id' => 'required|exists:ticket_categories,id',
+            'nik'                => 'required|string|size:16',
+            'name'               => 'required|string|max:255',
+            'phone'              => 'required|string|max:20',
+            'email'              => 'required|email|max:255',
+            'gender'             => 'required|in:ikhwan,akhwat',
+            'umroh_answer'       => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal: ' . $validator->errors()->first()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $category = TicketCategory::findOrFail($validated['ticket_category_id']);
+
+        // NIK Prefix Restriction Check (still applies to free events)
+        if ($category->nik_restriction) {
+            $prefixes = array_map('trim', explode(',', $category->nik_restriction));
+            $match = false;
+            foreach ($prefixes as $prefix) {
+                if (str_starts_with($validated['nik'], $prefix)) {
+                    $match = true;
+                    break;
+                }
+            }
+            if (!$match) {
+                $message = $category->nik_restriction_message ?: 'Mohon Maaf, NIK Anda Tidak Diizinkan Untuk Melakukan Registrasi Ini';
+                return response()->json(['success' => false, 'message' => $message]);
+            }
+        }
+
+        // Quota Check
+        if ($category->sold_count + 1 > $category->quota) {
+            return response()->json(['success' => false, 'message' => 'Mohon maaf, kuota pendaftaran sudah penuh.']);
+        }
+
+        // Time Check
+        $now = now();
+        if ($category->sale_start_at && $now->lt($category->sale_start_at)) {
+            return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini belum dibuka.']);
+        }
+        if ($category->sale_end_at && $now->gt($category->sale_end_at)) {
+            return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini sudah ditutup.']);
+        }
+
+        return DB::transaction(function () use ($event, $category, $validated) {
+            $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+
+            // Create Transaction — immediately paid (free)
+            $transaction = Transaction::create([
+                'tenant_id'            => $event->tenant_id,
+                'event_id'             => $event->id,
+                'ticket_category_id'   => $category->id,
+                'quantity'             => 1,
+                'reference_no'         => $referenceNo,
+                'customer_name'        => $validated['name'],
+                'customer_email'       => $validated['email'],
+                'customer_phone'       => $validated['phone'],
+                'customer_nik'         => $validated['nik'],
+                'customer_gender'      => $validated['gender'],
+                'customer_umroh_answer'=> $validated['umroh_answer'] ?? null,
+                'discount_amount'      => 0,
+                'total_amount'         => 0,
+                'payment_status'       => 'paid',
+                'payment_method'       => 'free',
+                'paid_at'              => now(),
+                'channel'              => 'online',
+            ]);
+
+            // Create Ticket immediately
+            $ticket = Ticket::create([
+                'tenant_id'          => $event->tenant_id,
+                'event_id'           => $event->id,
+                'transaction_id'     => $transaction->id,
+                'ticket_category_id' => $category->id,
+                'ticket_code'        => 'GTX-' . strtoupper(Str::random(10)),
+                'status'             => 'sold',
+            ]);
+
+            // Increment sold count
+            $category->increment('sold_count', 1);
+
+            // Send E-Voucher notification
+            $notificationService = new \App\Services\TicketNotificationService();
+            $notificationService->sendEVoucher($ticket);
+
+            return response()->json([
+                'success'      => true,
+                'reference_no' => $referenceNo,
+                'ticket_code'  => $ticket->ticket_code,
+            ]);
+        });
+    }
+
     public function success($reference)
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
+
+        // Free events are already paid — skip Midtrans check
+        if ($transaction->payment_method === 'free') {
+            return view('checkout.success', compact('transaction'));
+        }
 
         // If tickets are not generated yet, try to check status with Midtrans
         if ($transaction->tickets->isEmpty()) {

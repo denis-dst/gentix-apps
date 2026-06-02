@@ -13,7 +13,8 @@ class Event extends Model
     protected $fillable = [
         'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 
         'background_image', 'banner_image', 'event_start_date', 
-        'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code'
+        'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
+        'is_free', 'umroh_question_enabled',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class Event extends Model
         'gate_open_at' => 'datetime',
         'gate_close_at' => 'datetime',
         'meta' => 'array',
+        'is_free' => 'boolean',
+        'umroh_question_enabled' => 'boolean',
     ];
 
     public function tenant()

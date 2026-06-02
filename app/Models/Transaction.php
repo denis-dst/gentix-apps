@@ -14,6 +14,7 @@ class Transaction extends Model
         'tenant_id', 'event_id', 'ticket_category_id', 'quantity', 'promo_code_id',
         'user_id', 'reference_no', 
         'customer_name', 'customer_email', 'customer_phone', 'customer_nik',
+        'customer_gender', 'customer_umroh_answer',
         'discount_amount', 'total_amount', 'payment_status', 'payment_method', 
         'payment_reference', 'channel', 'processed_by', 'paid_at'
     ];
