@@ -181,7 +181,7 @@
 
             const data = await response.json();
             if (data.success) {
-                window.location.href = `/tickets/view/${data.ticket_code}`;
+                window.location.href = `{{ url('tickets/view') }}/${data.ticket_code}`;
             } else {
                 alert(data.message || 'Gagal memproses pendaftaran.');
             }
