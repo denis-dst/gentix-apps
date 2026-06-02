@@ -14,9 +14,9 @@ class RoleSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Create roles
-        Role::updateOrCreate(['name' => 'superadmin']);
-        Role::updateOrCreate(['name' => 'organizer']);
-        Role::updateOrCreate(['name' => 'loket']);
-        Role::updateOrCreate(['name' => 'gate']);
+        Role::updateOrCreate(['name' => 'Superadmin']);
+        Role::updateOrCreate(['name' => 'Penyedia Event']);
+        Role::updateOrCreate(['name' => 'Petugas Loket']);
+        Role::updateOrCreate(['name' => 'Petugas Gate']);
     }
 }
