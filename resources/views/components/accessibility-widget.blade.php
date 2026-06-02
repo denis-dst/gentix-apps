@@ -21,7 +21,7 @@
     }" 
     class="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-[99]">
     
-    <div x-show="open" @click.away="open = false" x-transition class="absolute bottom-full left-0 mb-4 bg-[#111118] border border-white/10 rounded-2xl p-4 shadow-2xl w-48 md:w-56 text-white">
+    <div x-show="open" x-cloak @click.away="open = false" x-transition class="absolute bottom-full left-0 mb-4 bg-[#111118] border border-white/10 rounded-2xl p-4 shadow-2xl w-48 md:w-56 text-white">
         <div class="text-xs md:text-sm font-bold mb-3 pb-2 border-b border-white/10">{{ app()->getLocale() == 'id' ? 'Aksesibilitas' : 'Accessibility' }}</div>
         
         <button @click="toggleContrast()" class="w-full text-left px-2 py-2 md:px-3 text-xs md:text-sm rounded-lg hover:bg-white/5 transition flex justify-between items-center mb-1">

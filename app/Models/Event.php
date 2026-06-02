@@ -14,7 +14,7 @@ class Event extends Model
         'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 
         'background_image', 'banner_image', 'event_start_date', 
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
-        'is_free', 'umroh_question_enabled',
+        'is_free', 'max_tickets_per_transaction', 'umroh_question_enabled',
     ];
 
     protected $casts = [
@@ -24,6 +24,7 @@ class Event extends Model
         'gate_close_at' => 'datetime',
         'meta' => 'array',
         'is_free' => 'boolean',
+        'max_tickets_per_transaction' => 'integer',
         'umroh_question_enabled' => 'boolean',
     ];
 

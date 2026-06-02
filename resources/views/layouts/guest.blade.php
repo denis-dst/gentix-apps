@@ -21,6 +21,7 @@
                 --gentix-600: #ea580c;
                 --gentix-700: #c2410c;
             }
+            [x-cloak] { display: none !important; }
             body {
                 font-family: 'Plus Jakarta Sans', sans-serif;
                 background-color: #111118;

@@ -135,6 +135,13 @@
                             </div>
                         </label>
 
+                        <!-- Max tickets per transaction (shown if is_free) -->
+                        <div x-show="isFree" x-cloak class="p-5 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Jumlah Maksimal Tiket per Transaksi</label>
+                            <input type="number" name="max_tickets_per_transaction" value="1" min="1" max="100" class="w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 transition py-2.5 px-4 font-bold">
+                            <p class="text-[10px] text-slate-400 mt-1">Batasi berapa tiket yang dapat dipesan dalam satu pendaftaran gratis.</p>
+                        </div>
+
                         <!-- Umroh Question Option (shown if is_free) -->
                         <div x-show="isFree" x-cloak class="p-5 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
                             <label class="flex items-center gap-4 cursor-pointer">
@@ -142,7 +149,7 @@
                                        class="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
                                 <div>
                                     <p class="text-sm font-black text-amber-800">🕌 Aktifkan Pertanyaan Umroh</p>
-                                    <p class="text-xs text-amber-600">Tambahkan pertanyaan: "Pernah Umroh Bersama Batik Umroh Travel? Tanggal/Tahun berapa?"</p>
+                                    <p class="text-xs text-amber-600">Tambahkan pertanyaan: "Pernah Ikut Umroh Bersama Batik Travel Kapan?"</p>
                                 </div>
                             </label>
                         </div>

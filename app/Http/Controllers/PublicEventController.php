@@ -326,7 +326,8 @@ class PublicEventController extends Controller
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
-            'nik'                => 'required|string|size:16',
+            'quantity'           => 'required|integer|min:1|max:' . ($event->max_tickets_per_transaction ?? 1),
+            'nik'                => 'nullable|string|max:16',
             'name'               => 'required|string|max:255',
             'phone'              => 'required|string|max:20',
             'email'              => 'required|email|max:255',
@@ -344,8 +345,8 @@ class PublicEventController extends Controller
         $validated = $validator->validated();
         $category = TicketCategory::findOrFail($validated['ticket_category_id']);
 
-        // NIK Prefix Restriction Check (still applies to free events)
-        if ($category->nik_restriction) {
+        // NIK Prefix Restriction Check (only if NIK is provided and restricted)
+        if (!empty($validated['nik']) && $category->nik_restriction) {
             $prefixes = array_map('trim', explode(',', $category->nik_restriction));
             $match = false;
             foreach ($prefixes as $prefix) {
@@ -361,7 +362,7 @@ class PublicEventController extends Controller
         }
 
         // Quota Check
-        if ($category->sold_count + 1 > $category->quota) {
+        if ($category->sold_count + $validated['quantity'] > $category->quota) {
             return response()->json(['success' => false, 'message' => 'Mohon maaf, kuota pendaftaran sudah penuh.']);
         }
 
@@ -382,12 +383,12 @@ class PublicEventController extends Controller
                 'tenant_id'            => $event->tenant_id,
                 'event_id'             => $event->id,
                 'ticket_category_id'   => $category->id,
-                'quantity'             => 1,
+                'quantity'             => $validated['quantity'],
                 'reference_no'         => $referenceNo,
                 'customer_name'        => $validated['name'],
                 'customer_email'       => $validated['email'],
                 'customer_phone'       => $validated['phone'],
-                'customer_nik'         => $validated['nik'],
+                'customer_nik'         => $validated['nik'] ?? null,
                 'customer_gender'      => $validated['gender'],
                 'customer_umroh_answer'=> $validated['umroh_answer'] ?? null,
                 'discount_amount'      => 0,
@@ -398,27 +399,29 @@ class PublicEventController extends Controller
                 'channel'              => 'online',
             ]);
 
-            // Create Ticket immediately
-            $ticket = Ticket::create([
-                'tenant_id'          => $event->tenant_id,
-                'event_id'           => $event->id,
-                'transaction_id'     => $transaction->id,
-                'ticket_category_id' => $category->id,
-                'ticket_code'        => 'GTX-' . strtoupper(Str::random(10)),
-                'status'             => 'sold',
-            ]);
+            // Create Tickets immediately
+            for ($i = 0; $i < $validated['quantity']; $i++) {
+                $ticket = Ticket::create([
+                    'tenant_id'          => $event->tenant_id,
+                    'event_id'           => $event->id,
+                    'transaction_id'     => $transaction->id,
+                    'ticket_category_id' => $category->id,
+                    'ticket_code'        => 'GTX-' . strtoupper(Str::random(10)),
+                    'status'             => 'sold',
+                ]);
+
+                // Send E-Voucher notification
+                $notificationService = new \App\Services\TicketNotificationService();
+                $notificationService->sendEVoucher($ticket);
+            }
 
             // Increment sold count
-            $category->increment('sold_count', 1);
-
-            // Send E-Voucher notification
-            $notificationService = new \App\Services\TicketNotificationService();
-            $notificationService->sendEVoucher($ticket);
+            $category->increment('sold_count', $validated['quantity']);
 
             return response()->json([
                 'success'      => true,
                 'reference_no' => $referenceNo,
-                'ticket_code'  => $ticket->ticket_code,
+                'ticket_code'  => isset($ticket) ? $ticket->ticket_code : null,
             ]);
         });
     }
