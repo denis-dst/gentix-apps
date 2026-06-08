@@ -52,6 +52,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
     Route::post('tickets/{ticket}/cancel', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTicket'])->name('tickets.cancel');
     Route::post('transactions/{transaction}/cancel', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTransaction'])->name('transactions.cancel');
+    Route::post('transactions/{transaction}/cancel-tickets', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTickets'])->name('transactions.cancel-tickets');
     Route::get('reports', [App\Http\Controllers\SuperAdmin\ReportController::class, 'index'])->name('reports.index');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
