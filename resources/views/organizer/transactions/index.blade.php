@@ -77,6 +77,7 @@
                                         ];
                                     })
                                     ->values();
+                                $cancelableTicketsPayload = base64_encode($cancelableTickets->toJson());
                             @endphp
                             <tr class="hover:bg-slate-50/40 transition group">
                                 <td class="px-4 py-5 text-center">
@@ -142,9 +143,9 @@
                                             <button type="button" 
                                                     data-tx-id="{{ $tx->id }}"
                                                     data-reference-no="{{ $tx->reference_no }}"
-                                                    data-tickets='@json($cancelableTickets)'
+                                                    data-tickets-payload="{{ $cancelableTicketsPayload }}"
                                                     data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
-                                                    onclick="triggerCancelModal(this)"
+                                                    data-cancel-trigger
                                                     title="Cancel Transaksi (Satuan / Semua)" 
                                                     class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -167,9 +168,9 @@
                                                 <button type="button" 
                                                         data-tx-id="{{ $tx->id }}"
                                                         data-reference-no="{{ $tx->reference_no }}"
-                                                        data-tickets='@json($cancelableTickets)'
+                                                        data-tickets-payload="{{ $cancelableTicketsPayload }}"
                                                         data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
-                                                        onclick="triggerCancelModal(this)"
+                                                        data-cancel-trigger
                                                         class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
                                                     🚫 Batal Transaksi (Pilih Tiket)
                                                 </button>
@@ -295,6 +296,17 @@
     </div>
 
     <script>
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-cancel-trigger]');
+
+            if (!button) {
+                return;
+            }
+
+            event.preventDefault();
+            triggerCancelModal(button);
+        });
+
         function triggerCancelModal(button) {
             const txId = button.getAttribute('data-tx-id');
             const referenceNo = button.getAttribute('data-reference-no');
@@ -302,7 +314,7 @@
             let tickets = [];
 
             try {
-                tickets = JSON.parse(button.getAttribute('data-tickets') || '[]');
+                tickets = JSON.parse(atob(button.getAttribute('data-tickets-payload') || 'W10='));
             } catch (error) {
                 console.error('Gagal membaca data tiket untuk pembatalan.', error);
             }
@@ -341,16 +353,40 @@
             tickets.forEach(ticket => {
                 const item = document.createElement('div');
                 item.className = 'flex items-start gap-3 p-3.5 hover:bg-slate-50/50 transition';
-                item.innerHTML = `
-                    <input type="checkbox" name="ticket_ids[]" value="${ticket.id}" id="ticket-cb-${ticket.id}" onchange="updateSelectAllState()" class="ticket-checkbox mt-0.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4">
-                    <label for="ticket-cb-${ticket.id}" class="flex-1 cursor-pointer select-none">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-mono font-black text-slate-700">${ticket.code}</span>
-                            <span class="px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-black text-[9px] uppercase tracking-wider">${ticket.category}</span>
-                        </div>
-                        <div class="text-xs font-black text-slate-800 uppercase mt-1">${ticket.name}</div>
-                    </label>
-                `;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'ticket_ids[]';
+                checkbox.value = ticket.id;
+                checkbox.id = 'ticket-cb-' + ticket.id;
+                checkbox.className = 'ticket-checkbox mt-0.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4';
+                checkbox.addEventListener('change', updateSelectAllState);
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.className = 'flex-1 cursor-pointer select-none';
+
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between';
+
+                const code = document.createElement('span');
+                code.className = 'text-xs font-mono font-black text-slate-700';
+                code.textContent = ticket.code || '-';
+
+                const category = document.createElement('span');
+                category.className = 'px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-black text-[9px] uppercase tracking-wider';
+                category.textContent = ticket.category || '-';
+
+                const name = document.createElement('div');
+                name.className = 'text-xs font-black text-slate-800 uppercase mt-1';
+                name.textContent = ticket.name || '-';
+
+                header.appendChild(code);
+                header.appendChild(category);
+                label.appendChild(header);
+                label.appendChild(name);
+                item.appendChild(checkbox);
+                item.appendChild(label);
                 listContainer.appendChild(item);
             });
 
