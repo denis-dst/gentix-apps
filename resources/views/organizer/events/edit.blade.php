@@ -180,6 +180,12 @@
                                 <p class="mt-2 text-[10px] text-gray-500 italic">Pengaturan ini dipakai untuk semua kategori tiket dalam event ini.</p>
                             </div>
 
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Informasi E-Voucher Tambahan (Dinamis)</label>
+                            <textarea name="evoucher_info" rows="3" placeholder="Contoh: Gabung ke Group Whatsapp Peserta melalui link berikut: https://chat.whatsapp.com/..." class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition py-3 px-4 text-sm">{{ old('evoucher_info', $event->evoucher_info) }}</textarea>
+                            <p class="text-[10px] text-gray-400 mt-1 italic">Informasi ini akan ditampilkan di bagian paling atas halaman E-Voucher peserta. Link URL akan otomatis menjadi link klik.</p>
+                        </div>
+
                         {{-- ============================================================
                              FREE EVENT OPTIONS
                              ============================================================ --}}
@@ -216,7 +222,7 @@
                                            class="w-5 h-5 mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
                                     <div>
                                         <p class="text-sm font-black text-amber-800">🕌 Aktifkan Pertanyaan Umroh</p>
-                                        <p class="text-xs text-amber-600 mt-0.5">Tambahkan pertanyaan: "Pernah Umroh Bersama Batik Umroh Travel? Tanggal/Tahun berapa?"</p>
+                                        <p class="text-xs text-amber-600 mt-0.5">Tambahkan pertanyaan: "Alumni Grup Keberangkatan Tanggal Berapa? (Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir)"</p>
                                     </div>
                                 </label>
                             </div>

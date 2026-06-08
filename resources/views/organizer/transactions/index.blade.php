@@ -51,6 +51,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50/70 border-b border-slate-100">
+                            <th class="w-10 px-4 py-5"></th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu & Invoice</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Tiket</th>
@@ -63,6 +64,11 @@
                     <tbody class="divide-y divide-slate-50">
                         @forelse($transactions as $tx)
                             <tr class="hover:bg-slate-50/40 transition group">
+                                <td class="px-4 py-5 text-center">
+                                    <button type="button" onclick="toggleRow('tickets-{{ $tx->id }}')" class="p-1 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-slate-600 focus:outline-none">
+                                        <svg id="icon-{{ $tx->id }}" class="w-5 h-5 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </button>
+                                </td>
                                 <td class="px-8 py-5">
                                     <div class="text-xs font-black text-slate-600 font-mono">{{ $tx->reference_no }}</div>
                                     <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase">{{ $tx->created_at->format('d M Y H:i') }}</div>
@@ -90,20 +96,22 @@
                                 <td class="px-8 py-5">
                                     @if($tx->payment_status === 'paid')
                                         <span class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider">PAID</span>
+                                    @elseif($tx->payment_status === 'refunded')
+                                        <span class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider">REFUNDED</span>
                                     @else
                                         <span class="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider">{{ strtoupper($tx->payment_status) }}</span>
                                     @endif
                                 </td>
                                 <td class="px-8 py-5">
                                     <div class="flex items-center gap-2">
-                                        @if($tx->payment_status !== 'paid')
+                                        @if($tx->payment_status !== 'paid' && $tx->payment_status !== 'refunded')
                                             <form method="POST" action="{{ route('organizer.transactions.mark-as-paid', $tx) }}" onsubmit="return confirm('PENTING: Pastikan uang pembayaran sudah diterima secara manual sebelum melakukan verifikasi ini. Lanjutkan?')">
                                                 @csrf
                                                 <button type="submit" title="Konfirmasi Pembayaran Manual" class="p-2.5 bg-orange-500 text-black rounded-xl hover:bg-orange-600 transition shadow-sm border border-orange-200">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                                                 </button>
                                             </form>
-                                        @else
+                                        @elseif($tx->payment_status === 'paid')
                                             <form method="POST" action="{{ route('organizer.transactions.resend-evoucher', $tx) }}" class="inline">
                                                 @csrf
                                                 <button type="submit" title="Kirim Ulang Email" class="p-2.5 bg-orange-500 text-black rounded-xl hover:bg-orange-600 transition shadow-sm">
@@ -117,9 +125,84 @@
                                     </div>
                                 </td>
                             </tr>
+                            <!-- Collapsible Ticket Detail Row -->
+                            <tr id="tickets-{{ $tx->id }}" class="hidden bg-slate-50/50">
+                                <td></td>
+                                <td colspan="7" class="px-8 py-5 border-b border-slate-100">
+                                    <div class="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                                        <div class="flex items-center justify-between border-b border-slate-50 pb-3">
+                                            <div>
+                                                <h4 class="text-xs font-black text-slate-700 uppercase tracking-widest">Detail Rincian Tiket Peserta</h4>
+                                                <p class="text-[10px] font-bold text-slate-400 mt-0.5">Daftar e-voucher untuk pemesanan ini</p>
+                                            </div>
+                                            @if($tx->payment_status === 'paid' && $tx->tickets->where('status', '!=', 'void')->count() > 0)
+                                                <form method="POST" action="{{ route('organizer.transactions.cancel', $tx) }}" onsubmit="return confirm('PENTING: Anda akan membatalkan SELURUH transaksi ini dan mem-void semua tiket di dalamnya. Kuota akan otomatis dikembalikan ke stok. Lanjutkan?')">
+                                                    @csrf
+                                                    <button type="submit" class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
+                                                        🚫 Batal Seluruh Transaksi (Refund)
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full text-left border-collapse text-xs">
+                                                <thead>
+                                                    <tr class="text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                                        <th class="py-2.5">Kode Tiket</th>
+                                                        <th class="py-2.5">Pemegang/Pengunjung</th>
+                                                        <th class="py-2.5">Kategori</th>
+                                                        <th class="py-2.5">Status</th>
+                                                        <th class="py-2.5 text-right">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-50">
+                                                    @foreach($tx->tickets as $ticket)
+                                                        <tr class="hover:bg-slate-50/50 transition">
+                                                            <td class="py-3 font-mono font-black text-slate-600">{{ $ticket->ticket_code }}</td>
+                                                            <td class="py-3">
+                                                                <div class="font-black text-slate-800 uppercase">
+                                                                    {{ $ticket->visitor_data['name'] ?? $tx->customer_name }}
+                                                                </div>
+                                                                <div class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+                                                                    NIK: {{ $ticket->visitor_data['nik'] ?? $tx->customer_nik ?? '-' }} 
+                                                                    | Gender: {{ $ticket->visitor_data['gender'] ?? $tx->customer_gender ?? '-' }}
+                                                                </div>
+                                                            </td>
+                                                            <td class="py-3 text-slate-500 font-bold">{{ $ticket->category->name ?? '-' }}</td>
+                                                            <td class="py-3">
+                                                                @if($ticket->status === 'sold')
+                                                                    <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
+                                                                @elseif($ticket->status === 'redeemed')
+                                                                    <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold text-[9px] uppercase tracking-wide">REDEEMED</span>
+                                                                @elseif($ticket->status === 'void')
+                                                                    <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-bold text-[9px] uppercase tracking-wide">VOID (CANCELED)</span>
+                                                                @else
+                                                                    <span class="px-2 py-0.5 rounded bg-slate-50 text-slate-500 font-bold text-[9px] uppercase tracking-wide">{{ strtoupper($ticket->status) }}</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="py-3 text-right">
+                                                                @if($ticket->status !== 'void')
+                                                                    <form method="POST" action="{{ route('organizer.tickets.cancel', $ticket) }}" class="inline" onsubmit="return confirm('PENTING: Anda yakin ingin membatalkan TIKET SATUAN ini? Kuota akan otomatis dikembalikan ke stok. Lanjutkan?')">
+                                                                        @csrf
+                                                                        <button type="submit" class="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition">
+                                                                            Cancel Tiket
+                                                                        </button>
+                                                                    </form>
+                                                                @else
+                                                                    <span class="text-[9px] text-slate-300 font-black uppercase">BATAL (CANCELED)</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-8 py-20 text-center">
+                                <td colspan="8" class="px-8 py-20 text-center">
                                     <div class="flex flex-col items-center">
                                         <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
                                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
@@ -138,4 +221,18 @@
             {{ $transactions->links() }}
         </div>
     </div>
+
+    <script>
+        function toggleRow(id) {
+            const row = document.getElementById(id);
+            const btnIcon = document.getElementById('icon-' + id.split('-')[1]);
+            if (row.classList.contains('hidden')) {
+                row.classList.remove('hidden');
+                btnIcon.classList.add('rotate-90');
+            } else {
+                row.classList.add('hidden');
+                btnIcon.classList.remove('rotate-90');
+            }
+        }
+    </script>
 </x-app-layout>

@@ -511,11 +511,11 @@
                                 <!-- Pertanyaan Umroh (conditional) -->
                                 <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
                                     <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                                        🕌 Pernah Umroh Bersama Batik Umroh Travel?
+                                        🕌 "Alumni Grup Keberangkatan Tanggal Berapa?
                                     </label>
-                                    <p class="text-[10px] text-amber-600">Jika pernah, sebutkan tanggal / tahun berapa</p>
+                                    <p class="text-[10px] text-amber-600">(Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir)</p>
                                     <input type="text" x-model="umrohAnswer" id="umroh-answer"
-                                           placeholder="Contoh: Tahun 2023, atau belum pernah"
+                                           placeholder="Contoh: Tahun 2023"
                                            class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
                                 </div>
 

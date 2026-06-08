@@ -127,6 +127,18 @@
         @enderror
     </div>
 
+    <!-- Evoucher Info -->
+    <div class="col-span-1 md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+        <label for="evoucher_info" class="block font-medium text-sm text-gray-700 mb-1">Informasi E-Voucher Tambahan (Dinamis)</label>
+        <textarea name="evoucher_info" id="evoucher_info" rows="3" 
+                  class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
+                  placeholder="e.g. Gabung ke Group Whatsapp Peserta melalui link berikut: https://chat.whatsapp.com/...">{{ old('evoucher_info', $event->evoucher_info ?? '') }}</textarea>
+        <p class="mt-1 text-xs text-gray-500 italic">Informasi ini akan ditampilkan di bagian paling atas halaman E-Voucher peserta. Link URL akan otomatis menjadi link klik.</p>
+        @error('evoucher_info')
+            <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+        @enderror
+    </div>
+
     @php($wristbandMeta = $event->meta ?? [])
     <div class="col-span-1 md:col-span-2 border-t border-gray-100 pt-4 mt-2 space-y-4">
         <h4 class="text-sm font-bold text-gray-800">Wristband Layout</h4>

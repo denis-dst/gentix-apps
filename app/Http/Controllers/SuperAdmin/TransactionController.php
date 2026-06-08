@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use App\Models\Event;
 use App\Models\Tenant;
+use App\Models\Ticket;
 use App\Models\TicketCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -80,5 +81,61 @@ class TransactionController extends Controller
         ]);
 
         return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' telah dikonfirmasi lunas oleh SuperAdmin.');
+    }
+
+    public function cancelTicket(Ticket $ticket)
+    {
+        if ($ticket->status === 'void') {
+            return back()->with('error', 'Tiket ini sudah dibatalkan sebelumnya.');
+        }
+
+        \DB::transaction(function() use ($ticket) {
+            $ticket->update(['status' => 'void']);
+
+            if ($ticket->category) {
+                $ticket->category->decrement('sold_count', 1);
+            }
+
+            $transaction = $ticket->transaction;
+            $oldQty = $transaction->quantity;
+            $newQty = max(0, $oldQty - 1);
+
+            $pricePerTicket = $oldQty > 0 ? ($transaction->total_amount / $oldQty) : 0;
+            $newAmount = max(0, $transaction->total_amount - $pricePerTicket);
+
+            $transaction->update([
+                'quantity' => $newQty,
+                'total_amount' => $newAmount,
+                'payment_status' => $newQty === 0 ? 'refunded' : $transaction->payment_status
+            ]);
+        });
+
+        return back()->with('success', 'Tiket ' . $ticket->ticket_code . ' berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+    }
+
+    public function cancelTransaction(Transaction $transaction)
+    {
+        if ($transaction->payment_status === 'refunded') {
+            return back()->with('error', 'Transaksi ini sudah dibatalkan sebelumnya.');
+        }
+
+        \DB::transaction(function() use ($transaction) {
+            $activeTickets = $transaction->tickets()->where('status', '!=', 'void')->get();
+
+            foreach ($activeTickets as $ticket) {
+                $ticket->update(['status' => 'void']);
+                if ($ticket->category) {
+                    $ticket->category->decrement('sold_count', 1);
+                }
+            }
+
+            $transaction->update([
+                'quantity' => 0,
+                'total_amount' => 0,
+                'payment_status' => 'refunded'
+            ]);
+        });
+
+        return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' berhasil dibatalkan sepenuhnya dan semua kuota telah dikembalikan oleh SuperAdmin.');
     }
 }

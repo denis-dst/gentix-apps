@@ -107,6 +107,12 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Informasi E-Voucher Tambahan (Dinamis)</label>
+                        <textarea name="evoucher_info" rows="3" placeholder="Contoh: Gabung ke Group Whatsapp Peserta melalui link berikut: https://chat.whatsapp.com/..." class="w-full rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition py-3 px-5 text-sm">{{ old('evoucher_info') }}</textarea>
+                        <p class="text-[10px] text-slate-400 mt-1 italic px-1">Informasi ini akan ditampilkan di bagian paling atas halaman E-Voucher peserta. Link URL akan otomatis menjadi link klik.</p>
+                    </div>
+
                     {{-- ============================================================
                          FREE EVENT OPTIONS
                          ============================================================ --}}

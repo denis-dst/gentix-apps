@@ -14,7 +14,7 @@ class Event extends Model
         'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 
         'background_image', 'banner_image', 'event_start_date', 
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
-        'is_free', 'umroh_question_enabled',
+        'is_free', 'umroh_question_enabled', 'evoucher_info',
     ];
 
     protected $casts = [

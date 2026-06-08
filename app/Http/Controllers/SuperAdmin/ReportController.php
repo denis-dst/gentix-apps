@@ -48,9 +48,8 @@ class ReportController extends Controller
         $transactions = Transaction::query()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'tenant', 'tickets'])
+            ->with(['event', 'tenant', 'tickets.category'])
             ->orderByDesc('created_at')
-            ->limit(10)
             ->get();
 
         return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions'));
