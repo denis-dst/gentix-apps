@@ -125,7 +125,11 @@
                                         
                                         @if(!in_array($tx->payment_status, ['failed', 'expired', 'refunded']))
                                             <button type="button" 
-                                                    onclick="openCancelModal('{{ $tx->id }}', '{{ $tx->reference_no }}', {{ json_encode($tx->tickets->where('status', '!=', 'void')->map(function($t) use ($tx) { return ['id' => $t->id, 'code' => $t->ticket_code, 'name' => $t->visitor_data['name'] ?? $tx->customer_name, 'category' => $t->category->name ?? '-']; })->values()) }}, '{{ route('organizer.transactions.cancel-tickets', $tx) }}')"
+                                                    data-tx-id="{{ $tx->id }}"
+                                                    data-reference-no="{{ $tx->reference_no }}"
+                                                    data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => $t->visitor_data["name"] ?? $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
+                                                    data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
+                                                    onclick="triggerCancelModal(this)"
                                                     title="Cancel Transaksi (Satuan / Semua)" 
                                                     class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -146,7 +150,11 @@
                                             </div>
                                             @if($tx->payment_status === 'paid' && $tx->tickets->where('status', '!=', 'void')->count() > 0)
                                                 <button type="button" 
-                                                        onclick="openCancelModal('{{ $tx->id }}', '{{ $tx->reference_no }}', {{ json_encode($tx->tickets->where('status', '!=', 'void')->map(function($t) use ($tx) { return ['id' => $t->id, 'code' => $t->ticket_code, 'name' => $t->visitor_data['name'] ?? $tx->customer_name, 'category' => $t->category->name ?? '-']; })->values()) }}, '{{ route('organizer.transactions.cancel-tickets', $tx) }}')"
+                                                        data-tx-id="{{ $tx->id }}"
+                                                        data-reference-no="{{ $tx->reference_no }}"
+                                                        data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => $t->visitor_data["name"] ?? $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
+                                                        data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
+                                                        onclick="triggerCancelModal(this)"
                                                         class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
                                                     🚫 Batal Transaksi (Pilih Tiket)
                                                 </button>
@@ -272,6 +280,14 @@
     </div>
 
     <script>
+        function triggerCancelModal(button) {
+            const txId = button.getAttribute('data-tx-id');
+            const referenceNo = button.getAttribute('data-reference-no');
+            const tickets = JSON.parse(button.getAttribute('data-tickets'));
+            const actionUrl = button.getAttribute('data-action-url');
+            openCancelModal(txId, referenceNo, tickets, actionUrl);
+        }
+
         function toggleRow(id) {
             const row = document.getElementById(id);
             const btnIcon = document.getElementById('icon-' + id.split('-')[1]);
