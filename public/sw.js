@@ -14,6 +14,11 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Only intercept GET requests to prevent issues with POST form submissions (like checkout)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => response || fetch(event.request))
