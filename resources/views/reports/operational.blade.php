@@ -134,16 +134,22 @@
 
         <!-- Tab Buttons (Glassmorphic design) -->
         <div class="px-6 py-3 border-b border-slate-100 flex items-center gap-2 bg-white">
-            <button type="button" id="tab-btn-tx" onclick="switchReportTab('transactions')" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black">
+            <button type="button" 
+                    @click="activeReportTab = 'transactions'; window.activeTab = 'transactions'; filterReportTables()" 
+                    :class="activeReportTab === 'transactions' ? 'bg-orange-600 text-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200">
                 📂 Per Transaksi (Satuan)
             </button>
-            <button type="button" id="tab-btn-tickets" onclick="switchReportTab('tickets')" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200">
+            <button type="button" 
+                    @click="activeReportTab = 'tickets'; window.activeTab = 'tickets'; filterReportTables()" 
+                    :class="activeReportTab === 'tickets' ? 'bg-orange-600 text-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200">
                 🎫 Per Tiket (Detail Peserta)
             </button>
         </div>
 
         <!-- 1. Laporan Per Transaksi (Satuan) -->
-        <div id="report-tab-transactions" class="block">
+        <div id="report-tab-transactions" x-show="activeReportTab === 'transactions'">
             <div class="overflow-x-auto">
                 <table id="table-report-tx" class="w-full text-left border-collapse">
                     <thead>
@@ -216,7 +222,7 @@
         </div>
 
         <!-- 2. Laporan Per Tiket (Detail Keseluruhan) -->
-        <div id="report-tab-tickets" class="hidden">
+        <div id="report-tab-tickets" x-show="activeReportTab === 'tickets'" x-cloak>
             <div class="overflow-x-auto">
                 <table id="table-report-tickets" class="w-full text-left border-collapse">
                     <thead>
@@ -305,31 +311,6 @@
 
     window.switchReportTab = function(tab) {
         window.activeTab = tab;
-        const btnTx = document.getElementById('tab-btn-tx');
-        const btnTickets = document.getElementById('tab-btn-tickets');
-        const paneTx = document.getElementById('report-tab-transactions');
-        const paneTickets = document.getElementById('report-tab-tickets');
-
-        if (tab === 'transactions') {
-            if (btnTx) btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
-            if (btnTickets) btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
-            if (paneTx) {
-                paneTx.className = "block animate-in fade-in duration-200";
-            }
-            if (paneTickets) {
-                paneTickets.className = "hidden";
-            }
-        } else {
-            if (btnTx) btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
-            if (btnTickets) btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
-            if (paneTx) {
-                paneTx.className = "hidden";
-            }
-            if (paneTickets) {
-                paneTickets.className = "block animate-in fade-in duration-200";
-            }
-        }
-        
         window.filterReportTables(); // Recalculate pagination
     }
 

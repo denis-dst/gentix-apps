@@ -143,4 +143,57 @@ class TransactionController extends Controller
 
         return back()->with('success', 'Transaksi #' . $transaction->reference_no . ' berhasil dibatalkan sepenuhnya dan semua kuota telah dikembalikan oleh SuperAdmin.');
     }
+
+    public function cancelTickets(Request $request, Transaction $transaction)
+    {
+        $request->validate([
+            'ticket_ids' => 'required|array',
+            'ticket_ids.*' => 'exists:tickets,id'
+        ]);
+
+        $ticketIds = $request->input('ticket_ids');
+
+        $ticketsToCancel = $transaction->tickets()
+            ->whereIn('id', $ticketIds)
+            ->where('status', '!=', 'void')
+            ->get();
+
+        if ($ticketsToCancel->isEmpty()) {
+            return back()->with('error', 'Tidak ada tiket aktif terpilih untuk dibatalkan.');
+        }
+
+        \DB::transaction(function() use ($transaction, $ticketsToCancel) {
+            $numCanceled = $ticketsToCancel->count();
+
+            foreach ($ticketsToCancel as $ticket) {
+                $ticket->update(['status' => 'void']);
+                if ($ticket->category) {
+                    $ticket->category->decrement('sold_count', 1);
+                }
+            }
+
+            $oldQty = $transaction->quantity;
+            $newQty = max(0, $oldQty - $numCanceled);
+
+            $pricePerTicket = $oldQty > 0 ? ($transaction->total_amount / $oldQty) : 0;
+            $refundAmount = $pricePerTicket * $numCanceled;
+            $newAmount = max(0, $transaction->total_amount - $refundAmount);
+
+            $updateData = [
+                'quantity' => $newQty,
+                'total_amount' => $newAmount,
+            ];
+
+            if ($newQty === 0) {
+                $updateData['payment_status'] = $transaction->payment_status === 'paid' ? 'refunded' : 'failed';
+                if ($transaction->promoCode) {
+                    $transaction->promoCode->decrement('used_count');
+                }
+            }
+
+            $transaction->update($updateData);
+        });
+
+        return back()->with('success', 'Tiket terpilih (' . $ticketsToCancel->count() . ' tiket) berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+    }
 }

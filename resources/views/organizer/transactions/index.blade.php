@@ -124,12 +124,12 @@
                                         @endif
                                         
                                         @if(!in_array($tx->payment_status, ['failed', 'expired', 'refunded']))
-                                            <form method="POST" action="{{ route('organizer.transactions.cancel', $tx) }}" onsubmit="return confirm('PENTING: Membatalkan transaksi ini akan menonaktifkan tiket/e-voucher terkait dan mengembalikan kuota tiket. Lanjutkan?')">
-                                                @csrf
-                                                <button type="submit" title="Cancel Transaksi & Kembalikan Kuota" class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
-                                            </form>
+                                            <button type="button" 
+                                                    onclick="openCancelModal('{{ $tx->id }}', '{{ $tx->reference_no }}', {{ json_encode($tx->tickets->where('status', '!=', 'void')->map(function($t) use ($tx) { return ['id' => $t->id, 'code' => $t->ticket_code, 'name' => $t->visitor_data['name'] ?? $tx->customer_name, 'category' => $t->category->name ?? '-']; })->values()) }}, '{{ route('organizer.transactions.cancel-tickets', $tx) }}')"
+                                                    title="Cancel Transaksi (Satuan / Semua)" 
+                                                    class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
                                         @endif
                                     </div>
                                 </td>
@@ -145,12 +145,11 @@
                                                 <p class="text-[10px] font-bold text-slate-400 mt-0.5">Daftar e-voucher untuk pemesanan ini</p>
                                             </div>
                                             @if($tx->payment_status === 'paid' && $tx->tickets->where('status', '!=', 'void')->count() > 0)
-                                                <form method="POST" action="{{ route('organizer.transactions.cancel', $tx) }}" onsubmit="return confirm('PENTING: Anda akan membatalkan SELURUH transaksi ini dan mem-void semua tiket di dalamnya. Kuota akan otomatis dikembalikan ke stok. Lanjutkan?')">
-                                                    @csrf
-                                                    <button type="submit" class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
-                                                        🚫 Batal Seluruh Transaksi (Refund)
-                                                    </button>
-                                                </form>
+                                                <button type="button" 
+                                                        onclick="openCancelModal('{{ $tx->id }}', '{{ $tx->reference_no }}', {{ json_encode($tx->tickets->where('status', '!=', 'void')->map(function($t) use ($tx) { return ['id' => $t->id, 'code' => $t->ticket_code, 'name' => $t->visitor_data['name'] ?? $tx->customer_name, 'category' => $t->category->name ?? '-']; })->values()) }}, '{{ route('organizer.transactions.cancel-tickets', $tx) }}')"
+                                                        class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
+                                                    🚫 Batal Transaksi (Pilih Tiket)
+                                                </button>
                                             @endif
                                         </div>
                                         <div class="overflow-x-auto">
@@ -231,6 +230,47 @@
         </div>
     </div>
 
+    <!-- Cancel Tickets Modal -->
+    <div id="cancel-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeCancelModal()"></div>
+        <!-- Modal Content -->
+        <div class="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <form id="cancel-modal-form" method="POST" action="" onsubmit="return validateCancelForm()">
+                @csrf
+                <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 font-outfit">Batalkan Tiket Peserta</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5" id="cancel-modal-subtitle">Invoice: -</p>
+                    </div>
+                    <button type="button" onclick="closeCancelModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar">
+                    <p class="text-xs font-semibold text-slate-500">Pilih tiket peserta yang ingin dibatalkan. Kuota tiket akan dikembalikan secara otomatis.</p>
+                    
+                    <!-- Select All Option -->
+                    <div class="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <input type="checkbox" id="cancel-select-all" onchange="toggleSelectAllTickets(this)" class="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4">
+                        <label for="cancel-select-all" class="text-xs font-black text-slate-700 uppercase cursor-pointer select-none">Pilih Semua Tiket</label>
+                    </div>
+
+                    <!-- Tickets List Container -->
+                    <div id="cancel-tickets-list" class="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-white">
+                        <!-- Dynamic check lists will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeCancelModal()" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition">Batal</button>
+                    <button type="submit" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-lg shadow-rose-200">Konfirmasi Pembatalan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function toggleRow(id) {
             const row = document.getElementById(id);
@@ -242,6 +282,66 @@
                 row.classList.add('hidden');
                 btnIcon.classList.remove('rotate-90');
             }
+        }
+
+        function openCancelModal(txId, referenceNo, tickets, actionUrl) {
+            document.getElementById('cancel-modal-subtitle').textContent = 'Invoice: ' + referenceNo;
+            document.getElementById('cancel-modal-form').action = actionUrl;
+
+            const listContainer = document.getElementById('cancel-tickets-list');
+            listContainer.innerHTML = '';
+
+            // Reset Select All checkbox
+            document.getElementById('cancel-select-all').checked = false;
+
+            if (tickets.length === 0) {
+                listContainer.innerHTML = '<div class="p-4 text-center text-xs font-bold text-slate-400">Tidak ada tiket aktif yang dapat dibatalkan.</div>';
+                return;
+            }
+
+            tickets.forEach(ticket => {
+                const item = document.createElement('div');
+                item.className = 'flex items-start gap-3 p-3.5 hover:bg-slate-50/50 transition';
+                item.innerHTML = `
+                    <input type="checkbox" name="ticket_ids[]" value="${ticket.id}" id="ticket-cb-${ticket.id}" onchange="updateSelectAllState()" class="ticket-checkbox mt-0.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4">
+                    <label for="ticket-cb-${ticket.id}" class="flex-1 cursor-pointer select-none">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-black text-slate-700">${ticket.code}</span>
+                            <span class="px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-black text-[9px] uppercase tracking-wider">${ticket.category}</span>
+                        </div>
+                        <div class="text-xs font-black text-slate-800 uppercase mt-1">${ticket.name}</div>
+                    </label>
+                `;
+                listContainer.appendChild(item);
+            });
+
+            document.getElementById('cancel-modal').classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancel-modal').classList.add('hidden');
+        }
+
+        function toggleSelectAllTickets(master) {
+            const checkboxes = document.querySelectorAll('.ticket-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+            });
+        }
+
+        function updateSelectAllState() {
+            const checkboxes = document.querySelectorAll('.ticket-checkbox');
+            const checkedCount = document.querySelectorAll('.ticket-checkbox:checked').length;
+            document.getElementById('cancel-select-all').checked = checkboxes.length === checkedCount && checkboxes.length > 0;
+        }
+
+        function validateCancelForm() {
+            const checkedCount = document.querySelectorAll('.ticket-checkbox:checked').length;
+            if (checkedCount === 0) {
+                alert('Silakan pilih minimal satu tiket untuk dibatalkan.');
+                return false;
+            }
+            return confirm('Apakah Anda yakin ingin membatalkan ' + checkedCount + ' tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok.');
         }
     </script>
 </x-app-layout>
