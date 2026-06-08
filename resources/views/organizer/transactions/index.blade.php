@@ -63,6 +63,21 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         @forelse($transactions as $tx)
+                            @php
+                                $cancelableTickets = $tx->tickets
+                                    ->where('status', '!=', 'void')
+                                    ->map(function ($ticket) use ($tx) {
+                                        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                                        return [
+                                            'id' => $ticket->id,
+                                            'code' => $ticket->ticket_code,
+                                            'name' => $visitorData['name'] ?? $tx->customer_name,
+                                            'category' => $ticket->category->name ?? '-',
+                                        ];
+                                    })
+                                    ->values();
+                            @endphp
                             <tr class="hover:bg-slate-50/40 transition group">
                                 <td class="px-4 py-5 text-center">
                                     <button type="button" onclick="toggleRow('tickets-{{ $tx->id }}')" class="p-1 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-slate-600 focus:outline-none">
@@ -127,7 +142,7 @@
                                             <button type="button" 
                                                     data-tx-id="{{ $tx->id }}"
                                                     data-reference-no="{{ $tx->reference_no }}"
-                                                    data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => $t->visitor_data["name"] ?? $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
+                                                    data-tickets='@json($cancelableTickets)'
                                                     data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
                                                     onclick="triggerCancelModal(this)"
                                                     title="Cancel Transaksi (Satuan / Semua)" 
@@ -152,7 +167,7 @@
                                                 <button type="button" 
                                                         data-tx-id="{{ $tx->id }}"
                                                         data-reference-no="{{ $tx->reference_no }}"
-                                                        data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => is_array($t->visitor_data) && isset($t->visitor_data["name"]) ? $t->visitor_data["name"] : $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
+                                                        data-tickets='@json($cancelableTickets)'
                                                         data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
                                                         onclick="triggerCancelModal(this)"
                                                         class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
