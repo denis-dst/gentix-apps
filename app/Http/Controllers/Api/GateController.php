@@ -155,37 +155,88 @@ class GateController extends Controller
 
         // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
         $lastLog = GateLog::where('ticket_id', $ticket->id)
+            ->with('scanner')
             ->orderBy('scanned_at', 'desc')
             ->first();
 
+        $alreadyInState = false;
         if ($request->type === 'IN') {
             if ($lastLog && $lastLog->type === 'IN') {
-                return response()->json([
-                    'status' => 'REJECT',
-                    'message' => 'Tiket sudah berada di dalam area!',
-                    'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name,
-                    'ticket_code' => $ticket->ticket_code,
-                    'email' => $ticket->transaction->customer_email ?? '-',
-                    'reference_no' => $ticket->transaction->reference_no ?? '-',
-                ], 403);
+                $alreadyInState = true;
             }
         } else {
-            if (!$lastLog || $lastLog->type !== 'IN') {
-                return response()->json([
-                    'status' => 'REJECT',
-                    'message' => $lastLog && $lastLog->type === 'OUT'
-                        ? 'Tiket sudah berada di luar area!'
-                        : 'Tiket belum pernah Check-in!',
-                    'color' => 'pink',
-                    'visitor' => $ticket->transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name,
-                    'ticket_code' => $ticket->ticket_code,
-                    'email' => $ticket->transaction->customer_email ?? '-',
-                    'reference_no' => $ticket->transaction->reference_no ?? '-',
-                ], 403);
+            if ($lastLog && $lastLog->type === 'OUT') {
+                $alreadyInState = true;
             }
+        }
+
+        if ($alreadyInState) {
+            $operatorName = $lastLog->scanner ? $lastLog->scanner->name : ($lastLog->gate_name ?? 'System');
+            $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
+            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
+                'color' => 'pink',
+                'visitor' => $visitorName,
+                'category' => $ticket->category->name,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
+        }
+
+        if ($request->type === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
+            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => $lastLog && $lastLog->type === 'OUT'
+                    ? 'Tiket sudah berada di luar area!'
+                    : 'Tiket belum pernah Check-in!',
+                'color' => 'pink',
+                'visitor' => $visitorName,
+                'category' => $ticket->category->name,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
+        }
+
+        // For group checking (transactions with quantity > 1), we return the group details
+        $transaction = $ticket->transaction;
+        if ($transaction && $transaction->tickets()->count() > 1) {
+            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
+                $q->with('scanner')->orderBy('scanned_at', 'desc');
+            }])->get();
+
+            $attendeesList = $ticketsInGroup->map(function($t) {
+                $lastLog = $t->gateLogs->first();
+                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                return [
+                    'ticket_id' => $t->id,
+                    'ticket_code' => $t->ticket_code,
+                    'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
+                    'gender' => $t->visitor_data['gender'] ?? null,
+                    'is_checked_in' => $isCheckedIn,
+                    'category' => $t->category->name,
+                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
+                ];
+            });
+
+            return response()->json([
+                'status' => 'SUCCESS',
+                'is_group' => true,
+                'message' => 'Detail grup ditemukan',
+                'visitor' => $transaction->customer_name ?? '-',
+                'category' => $ticket->category->name,
+                'attendees' => $attendeesList,
+                'scanned_ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $transaction->customer_email ?? '-',
+                'reference_no' => $transaction->reference_no ?? '-',
+            ]);
         }
 
         // Log the movement
@@ -248,5 +299,64 @@ class GateController extends Controller
         }
 
         return response()->json(['message' => count($logs) . ' logs synced successfully']);
+    }
+
+    /**
+     * Bulk Check-in/Check-out for Group Scan
+     */
+    public function bulkCheckin(Request $request)
+    {
+        $request->validate([
+            'ticket_ids' => 'required|array',
+            'ticket_ids.*' => 'exists:tickets,id',
+            'type' => 'required|in:IN,OUT',
+            'gate_id' => 'nullable|exists:gates,id',
+            'gate_name' => 'required|string',
+            'device_id' => 'nullable'
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function() use ($request) {
+                foreach ($request->ticket_ids as $ticketId) {
+                    $ticket = Ticket::findOrFail($ticketId);
+                    
+                    // Check logic status first to prevent duplicate active state
+                    $lastLog = GateLog::where('ticket_id', $ticketId)
+                        ->orderBy('scanned_at', 'desc')
+                        ->first();
+
+                    $alreadyInState = $lastLog && $lastLog->type === $request->type;
+
+                    if ($request->type === 'IN') {
+                        if ($alreadyInState) continue;
+                    } else {
+                        $hasIn = GateLog::where('ticket_id', $ticketId)->where('type', 'IN')->exists();
+                        if (!$hasIn || $alreadyInState) continue;
+                    }
+
+                    GateLog::create([
+                        'tenant_id' => $ticket->tenant_id,
+                        'event_id' => $ticket->event_id,
+                        'ticket_id' => $ticketId,
+                        'gate_name' => $request->gate_name,
+                        'type' => $request->type,
+                        'scanned_at' => now(),
+                        'device_id' => $request->device_id,
+                        'scanned_by' => auth()->id()
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'status' => 'SUCCESS',
+                'message' => 'Berhasil memproses check-in masal',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'ERROR',
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

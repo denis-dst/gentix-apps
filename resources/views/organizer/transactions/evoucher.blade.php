@@ -230,7 +230,7 @@
                 <!-- Booking Info & QR Section -->
                 <h4 class="text-lg font-bold text-slate-800 mb-4">Informasi Pesanan</h4>
                 <div class="grid grid-cols-12 gap-0 border border-slate-200 rounded-lg overflow-hidden mb-8">
-                    <!-- Left Side: Buyer Data -->
+                    <!-- Left Side: Buyer Data (Attendee/Visitor data) -->
                     <div class="col-span-8 bg-slate-50/50 p-6 border-r border-slate-200">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center text-xs">
@@ -239,23 +239,35 @@
                             </div>
                             <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-400 font-medium">Tanggal Transaksi</span>
-                                <span
-                                    class="text-slate-700 font-bold">{{ $transaction->paid_at ? $transaction->paid_at->format('d F Y H:i') : $transaction->created_at->format('d F Y H:i') }}
-                                    WIB</span>
+                                <span class="text-slate-700 font-bold">{{ $transaction->paid_at ? $transaction->paid_at->format('d F Y H:i') : $transaction->created_at->format('d F Y H:i') }} WIB</span>
                             </div>
                             <div class="flex justify-between items-center text-xs pb-3 border-b border-slate-200">
                                 <span class="text-slate-400 font-medium">Metode Pembayaran</span>
                                 <span class="text-slate-700 font-bold uppercase">{{ $transaction->payment_method }}</span>
                             </div>
-
+                            
                             <div class="flex justify-between items-center text-xs pt-2">
                                 <span class="text-slate-400 font-medium">Nama</span>
-                                <span class="text-slate-700 font-bold">{{ $transaction->customer_name }}</span>
+                                <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['name'] ?? $transaction->customer_name }}</span>
                             </div>
+                            @if(isset($ticket->visitor_data['gender']))
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400 font-medium">Gender</span>
+                                <span class="text-slate-700 font-bold capitalize">{{ $ticket->visitor_data['gender'] }}</span>
+                            </div>
+                            @endif
+                            @if(isset($ticket->visitor_data['umroh_answer']) && $ticket->visitor_data['umroh_answer'])
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400 font-medium">Umroh Batik Travel</span>
+                                <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['umroh_answer'] }}</span>
+                            </div>
+                            @endif
+                            @if(!$transaction->event->is_free)
                             <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-400 font-medium">NIK</span>
                                 <span class="text-slate-700 font-bold">{{ $transaction->customer_nik ?? '-' }}</span>
                             </div>
+                            @endif
                             <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-400 font-medium">Email</span>
                                 <span class="text-slate-700 font-bold">{{ $transaction->customer_email }}</span>

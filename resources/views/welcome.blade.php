@@ -16,6 +16,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
         <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <script>
             tailwind.config = {
                 theme: {
@@ -80,6 +81,7 @@
         .hero-overlay {
             background: linear-gradient(to bottom, rgba(17, 17, 24, 0.88) 0%, rgba(17, 17, 24, 0.55) 50%, rgba(17, 17, 24, 0.95) 100%);
         }
+        [x-cloak] { display: none !important; }
         ::selection { background: rgba(249, 115, 22, 0.3); }
         
         button[type="submit"] {
@@ -158,7 +160,7 @@
                             {{ app()->getLocale() }}
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div x-show="open" @click.away="open = false" x-transition class="absolute top-full mt-4 right-0 glass rounded-xl py-2 w-24">
+                        <div x-show="open" x-cloak @click.away="open = false" x-transition class="absolute top-full mt-4 right-0 glass rounded-xl py-2 w-24">
                             <a href="{{ route('lang.switch', 'id') }}" class="block px-4 py-2 text-sm text-stone-300 hover:text-white hover:bg-white/5 {{ app()->getLocale() == 'id' ? 'font-bold text-white' : '' }}">ID</a>
                             <a href="{{ route('lang.switch', 'en') }}" class="block px-4 py-2 text-sm text-stone-300 hover:text-white hover:bg-white/5 {{ app()->getLocale() == 'en' ? 'font-bold text-white' : '' }}">EN</a>
                         </div>

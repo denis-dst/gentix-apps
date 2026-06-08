@@ -129,6 +129,11 @@ class TransactionController extends Controller
                 }
             }
 
+            // Restore promo code usage if any
+            if ($transaction->promoCode) {
+                $transaction->promoCode->decrement('used_count');
+            }
+
             $transaction->update([
                 'quantity' => 0,
                 'total_amount' => 0,

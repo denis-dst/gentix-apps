@@ -65,11 +65,10 @@
     selectedCategory: null,
     quantity: 0,
     nik: '',
-    name: '',
     phone: '',
     email: '',
-    gender: '',
-    umrohAnswer: '',
+    attendees: [],
+    currentAttendee: 0,
     paymentMethod: 'qris',
     notifWA: true,
     notifEmail: true,
@@ -137,16 +136,25 @@
             alert(this.lang === 'id' ? 'Silakan pilih tiket.' : 'Please select ticket.');
             return;
         }
-        if (this.nik.length < 16) {
-            alert(this.lang === 'id' ? 'NIK harus 16 digit.' : 'NIK must be 16 digits.');
-            return;
-        }
-
-        if (this.selectedCategory.nik_restriction) {
-            const allowed = this.selectedCategory.nik_restriction.split(',').map(p => p.trim());
-            if (!allowed.some(p => this.nik.startsWith(p))) {
-                alert(this.selectedCategory.nik_restriction_message || 'NIK tidak diizinkan.');
+        if (this.isFreeEvent) {
+            if (!this.phone) {
+                alert(this.lang === 'id' ? 'Silakan masukkan nomor WhatsApp.' : 'Please enter WhatsApp number.');
                 return;
+            }
+            this.attendees = Array.from({length: this.quantity}, () => ({name: '', gender: '', umroh_answer: ''}));
+            this.currentAttendee = 0;
+        } else {
+            if (this.nik.length < 16) {
+                alert(this.lang === 'id' ? 'NIK harus 16 digit.' : 'NIK must be 16 digits.');
+                return;
+            }
+
+            if (this.selectedCategory.nik_restriction) {
+                const allowed = this.selectedCategory.nik_restriction.split(',').map(p => p.trim());
+                if (!allowed.some(p => this.nik.startsWith(p))) {
+                    alert(this.selectedCategory.nik_restriction_message || 'NIK tidak diizinkan.');
+                    return;
+                }
             }
         }
         this.step = 2;
@@ -154,8 +162,9 @@
 
     async submitFreeRegistration() {
         if (!this.selectedCategory) return;
-        if (!this.gender) {
-            alert('Silakan pilih Gender (Ikhwan/Akhwat).');
+        const invalid = this.attendees.some((a, i) => !a.name || !a.gender);
+        if (invalid) {
+            alert('Silakan lengkapi nama dan gender untuk semua peserta.');
             return;
         }
         this.isSubmitting = true;
@@ -170,18 +179,16 @@
                 },
                 body: JSON.stringify({
                     ticket_category_id: this.selectedCategory.id,
-                    nik: this.nik,
-                    name: this.name,
+                    quantity: this.quantity,
                     phone: this.phone,
                     email: this.email,
-                    gender: this.gender,
-                    umroh_answer: this.umrohAnswer,
+                    attendees: this.attendees
                 })
             });
 
             const data = await response.json();
             if (data.success) {
-                window.location.href = `{{ url('tickets/view') }}/${data.ticket_code}`;
+                window.location.href = `{{ url('checkout/success') }}/${data.reference_no}`;
             } else {
                 alert(data.message || 'Gagal memproses pendaftaran.');
             }
@@ -354,17 +361,13 @@
 
                                     <div>
                                         @if($event->is_free)
-                                            {{-- Free event: simple button to select this category --}}
-                                            <button 
-                                                @click="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: 0, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, 1)"
-                                                :class="selectedCategory && selectedCategory.id === {{ $category->id }} ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400'"
-                                                class="px-5 py-2.5 border-2 rounded-xl font-bold text-sm transition-all">
-                                                <span x-show="!(selectedCategory && selectedCategory.id === {{ $category->id }})">Pilih</span>
-                                                <span x-show="selectedCategory && selectedCategory.id === {{ $category->id }}" class="flex items-center gap-1">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                                    Dipilih
-                                                </span>
-                                            </button>
+                                            <select 
+                                                @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: 0, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
+                                                class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                                                @for($i = 0; $i <= ($event->max_tickets_per_transaction ?? 1); $i++)
+                                                    <option value="{{ $i }}">{{ $i }}</option>
+                                                @endfor
+                                            </select>
                                         @else
                                             <select 
                                                 @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: {{ $category->price }}, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
@@ -402,7 +405,7 @@
                             </div>
 
                             <div class="space-y-2">
-                                <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name : 'Pilih Kategori'"></div>
+                                <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' tiket)' : 'Pilih Kategori'"></div>
                                 <div class="flex justify-between items-end pt-2 border-t border-slate-100">
                                     <div class="text-slate-400 text-sm font-bold">Harga</div>
                                     <div class="text-2xl font-black text-emerald-600 font-outfit">GRATIS</div>
@@ -410,22 +413,19 @@
                             </div>
 
                             <div class="space-y-3 pt-2 border-t border-slate-50">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">NIK (16 Digit)</label>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nomor WhatsApp</label>
                                 <div class="relative">
                                     <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"/></svg>
+                                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                                     </div>
-                                    <input type="text" x-model="nik" id="nik-input" placeholder="Masukkan 16 Digit NIK" maxlength="16"
+                                    <input type="text" x-model="phone" id="phone-input" placeholder="08xxxxxxxxxx"
                                            class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:bg-white transition-all outline-none">
                                 </div>
-                                <p class="text-[10px] text-slate-400" :class="nik.length === 16 ? 'text-emerald-600' : ''">
-                                    <span x-text="nik.length"></span>/16 digit
-                                </p>
                             </div>
 
                             <button @click="goToStep2" 
                                     id="btn-lanjut-free"
-                                    :disabled="!selectedCategory || nik.length < 16"
+                                    :disabled="!selectedCategory || quantity === 0 || !phone"
                                     class="w-full py-4 bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-2xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all transform active:scale-95">
                                 Lanjut Isi Data Diri →
                             </button>
@@ -444,82 +444,126 @@
 
                             <!-- Category info strip -->
                             <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name : ''"></span>
+                                <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' Tiket)' : ''"></span>
                                 <span class="text-xs font-black text-emerald-600">GRATIS</span>
                             </div>
 
-                            <form @submit.prevent="submitFreeRegistration" class="space-y-4">
-                                <!-- Nama Lengkap -->
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nama Lengkap</label>
-                                    <input type="text" x-model="name" id="free-name" placeholder="Nama sesuai KTP" required
-                                           class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
-                                </div>
-
-                                <!-- Nomor WhatsApp -->
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
-                                    <div class="relative">
-                                        <div class="absolute left-3 top-1/2 -translate-y-1/2">
-                                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                            <form @submit.prevent="submitFreeRegistration" class="space-y-5">
+                                <!-- Data Pemesan (WhatsApp & Email) -->
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                                    <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Kontak Pemesan</h4>
+                                    
+                                    <!-- Nomor WhatsApp (Readonly from Step 1) -->
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                                        <div class="relative">
+                                            <div class="absolute left-3 top-1/2 -translate-y-1/2">
+                                                <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                            </div>
+                                            <input type="text" x-model="phone" readonly
+                                                   class="w-full bg-slate-100 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-500 outline-none">
                                         </div>
-                                        <input type="text" x-model="phone" id="free-phone" placeholder="08xxxxxxxxxx" required
-                                               class="w-full bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                    </div>
+
+                                    <!-- Email Pemesan -->
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Alamat Email *</label>
+                                        <input type="email" x-model="email" placeholder="nama@email.com" required
+                                               class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
                                     </div>
                                 </div>
 
-                                <!-- Email -->
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Alamat Email</label>
-                                    <input type="email" x-model="email" id="free-email" placeholder="nama@email.com" required
-                                           class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
-                                </div>
+                                <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
+                                <template x-if="quantity > 1">
+                                    <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl">
+                                        <template x-for="(attendee, index) in attendees" :key="index">
+                                            <button type="button" 
+                                                    @click="currentAttendee = index"
+                                                    :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+                                                    class="flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
+                                                Peserta <span x-text="index + 1"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </template>
 
-                                <!-- Gender -->
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Gender</label>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <!-- Ikhwan -->
-                                        <label id="label-ikhwan"
-                                               :class="gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300'"
-                                               class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                            <input type="radio" x-model="gender" value="ikhwan" class="sr-only">
-                                            <div :class="gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                <div x-show="gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-sm font-black">🧔 Ikhwan</div>
-                                                <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
-                                            </div>
+                                <!-- Attendee Fields Card -->
+                                <div class="bg-white border-2 border-emerald-500/10 rounded-3xl p-5 space-y-4">
+                                    <div class="flex justify-between items-center pb-2 border-b border-slate-50">
+                                        <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">
+                                            Isi Data Peserta <span x-text="currentAttendee + 1"></span> dari <span x-text="quantity"></span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Nama Lengkap -->
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nama Lengkap</label>
+                                        <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
+                                               class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                    </div>
+
+                                    <!-- Gender -->
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Gender</label>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <!-- Ikhwan -->
+                                            <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300'"
+                                                   class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
+                                                <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                    <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-black">🧔 Ikhwan</div>
+                                                    <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
+                                                </div>
+                                            </label>
+                                            <!-- Akhwat -->
+                                            <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300'"
+                                                   class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
+                                                <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                    <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-black">🧕 Akhwat</div>
+                                                    <div class="text-[9px] font-medium opacity-60">Perempuan</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pertanyaan Umroh (conditional) -->
+                                    <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                                        <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                            🕌 Pernah Ikut Umroh Bersama Batik Travel Kapan?
                                         </label>
-                                        <!-- Akhwat -->
-                                        <label id="label-akhwat"
-                                               :class="gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300'"
-                                               class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                            <input type="radio" x-model="gender" value="akhwat" class="sr-only">
-                                            <div :class="gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                <div x-show="gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-sm font-black">🧕 Akhwat</div>
-                                                <div class="text-[9px] font-medium opacity-60">Perempuan</div>
-                                            </div>
-                                        </label>
+                                        <p class="text-[10px] text-amber-600">Jika tidak yakin, sebutkan tahun berapa</p>
+                                        <input type="text" x-model="attendees[currentAttendee].umroh_answer"
+                                               placeholder="Contoh: 2023"
+                                               class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
                                     </div>
                                 </div>
 
-                                <!-- Pertanyaan Umroh (conditional) -->
-                                <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                                    <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                                        🕌 "Alumni Grup Keberangkatan Tanggal Berapa?
-                                    </label>
-                                    <p class="text-[10px] text-amber-600">(Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir)</p>
-                                    <input type="text" x-model="umrohAnswer" id="umroh-answer"
-                                           placeholder="Contoh: Tahun 2023"
-                                           class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
-                                </div>
+                                <!-- Navigation buttons within form -->
+                                <template x-if="quantity > 1">
+                                    <div class="flex justify-between gap-3">
+                                        <button type="button" 
+                                                @click="if(currentAttendee > 0) currentAttendee--" 
+                                                :disabled="currentAttendee === 0"
+                                                class="flex-1 py-2 px-3 bg-slate-100 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
+                                            ← Sebelumnya
+                                        </button>
+                                        <button type="button" 
+                                                @click="if(currentAttendee < quantity - 1) currentAttendee++" 
+                                                :disabled="currentAttendee === quantity - 1"
+                                                class="flex-1 py-2 px-3 bg-slate-900 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+                                            Berikutnya →
+                                        </button>
+                                    </div>
+                                </template>
 
-                                <!-- Summary -->
+                                <!-- Summary & Submit -->
                                 <div class="pt-2 border-t border-slate-100">
                                     <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
                                         <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
@@ -528,7 +572,7 @@
 
                                     <button type="submit" 
                                             id="btn-daftar-submit"
-                                            :disabled="isSubmitting || !name || !phone || !email || !gender"
+                                            :disabled="isSubmitting || !phone || !email || attendees.some(a => !a.name || !a.gender)"
                                             class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
                                         <template x-if="isSubmitting">
                                             <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

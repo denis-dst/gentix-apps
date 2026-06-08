@@ -187,6 +187,78 @@
                 </div>
             </div>
 
+            <!-- Group Check-in Modal Overlay -->
+            <div x-show="isGroupScan" x-cloak 
+                 class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 z-[60] overflow-y-auto">
+                <div x-show="isGroupScan" 
+                     @click.away="closeGroupModal()"
+                     class="bg-[#0d1117] border border-white/10 w-full max-w-lg rounded-[2rem] shadow-2xl flex flex-col overflow-hidden my-8 transform transition-all animate-in zoom-in duration-300">
+                    
+                    <!-- Modal Header -->
+                    <div class="px-6 py-5 bg-[#161b22] border-b border-white/5 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-black font-outfit text-white">Daftar Anggota Transaksi</h3>
+                            <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5" x-text="'Invoice: ' + (groupData ? groupData.customer : '')"></p>
+                        </div>
+                        <button @click="closeGroupModal()" class="text-slate-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body (Attendees List) -->
+                    <div class="p-6 max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
+                        <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            <span>Daftar Peserta</span>
+                            <button type="button" @click="toggleSelectAllGroup()" class="text-indigo-400 hover:text-indigo-300 text-[10px]">
+                                <span x-text="selectedTicketIds.length === groupData?.attendees.length ? 'Batal Pilih Semua' : 'Pilih Semua'"></span>
+                            </button>
+                        </div>
+
+                        <template x-for="attendee in (groupData ? groupData.attendees : [])" :key="attendee.ticket_id">
+                            <label :class="selectedTicketIds.includes(attendee.ticket_id) ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-white/5 bg-[#161b22]/50 hover:bg-[#161b22]'"
+                                   class="flex items-center justify-between p-4 border rounded-xl cursor-pointer transition">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" :value="attendee.ticket_id" x-model="selectedTicketIds" 
+                                           class="rounded border-white/10 bg-white/5 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4">
+                                    <div>
+                                        <div class="text-sm font-black text-white" x-text="attendee.name"></div>
+                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider" x-text="attendee.ticket_code"></span>
+                                            <span class="text-[8px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded uppercase" x-text="attendee.gender || 'n/a'"></span>
+                                        </div>
+                                        <template x-if="attendee.is_checked_in">
+                                            <div class="text-[10px] text-emerald-400 font-bold mt-1" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <template x-if="attendee.is_checked_in">
+                                        <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-black uppercase rounded-lg tracking-widest">DI DALAM</span>
+                                    </template>
+                                    <template x-if="!attendee.is_checked_in">
+                                        <span class="px-2.5 py-1 bg-slate-500/10 text-slate-400 border border-white/5 text-[8px] font-black uppercase rounded-lg tracking-widest">DI LUAR</span>
+                                    </template>
+                                </div>
+                            </label>
+                        </template>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-6 py-4 bg-[#161b22] border-t border-white/5 flex gap-3">
+                        <button @click="closeGroupModal()" 
+                                class="flex-1 py-3 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/5 transition">
+                            Batal
+                        </button>
+                        <button @click="submitBulkCheckin()" 
+                                :disabled="selectedTicketIds.length === 0"
+                                :class="mode === 'IN' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'"
+                                class="flex-1 py-3 text-white disabled:opacity-40 disabled:pointer-events-none rounded-xl text-xs font-black uppercase tracking-widest transition shadow-lg">
+                            Konfirmasi <span x-text="mode === 'IN' ? 'Check-in' : 'Check-out'"></span> (<span x-text="selectedTicketIds.length"></span>)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- History Sidebar -->
             <aside class="hidden lg:flex w-96 bg-[#010409] border-l border-white/5 flex-col shrink-0 h-full overflow-hidden z-40">
                 <div class="h-16 px-6 bg-[#0d1117] border-b border-white/5 flex items-center justify-between shrink-0">
@@ -258,10 +330,15 @@
                 history: [],
                 html5QrCode: null,
 
+                // Group Scan State
+                isGroupScan: false,
+                groupData: null,
+                selectedTicketIds: [],
+
                 init() {
                     this.$nextTick(() => this.focusInput());
-                    document.addEventListener('click', () => { if (this.inputType === 'auto') this.focusInput(); });
-                    setInterval(() => { if (this.inputType === 'auto' && this.status === 'idle') this.focusInput(); }, 1000);
+                    document.addEventListener('click', () => { if (this.inputType === 'auto' && !this.isGroupScan) this.focusInput(); });
+                    setInterval(() => { if (this.inputType === 'auto' && this.status === 'idle' && !this.isGroupScan) this.focusInput(); }, 1000);
                 },
 
                 focusInput() { if (this.$refs.ticketInput) this.$refs.ticketInput.focus(); },
@@ -287,14 +364,13 @@
                         { facingMode: "environment" }, 
                         config, 
                         (text) => { 
-                            if (this.status !== 'processing') {
+                            if (this.status !== 'processing' && !this.isGroupScan) {
                                 this.scannedCode = text; 
                                 this.processScan(); 
                             }
                         }
                     ).catch(err => {
                         console.error("Camera Error:", err);
-                        // Fallback to manual if camera fails
                     });
                 },
 
@@ -328,10 +404,31 @@
                     .then(r => r.ok ? r.json() : r.json().then(e => { throw e }))
                     .then(d => this.handleSuccess(d))
                     .catch(e => this.handleError(e.message || 'Gagal'))
-                    .finally(() => { if (this.inputType === 'auto') this.focusInput(); });
+                    .finally(() => { if (this.inputType === 'auto' && !this.isGroupScan) this.focusInput(); });
                 },
 
                 handleSuccess(d) {
+                    if (d.is_group) {
+                        this.status = 'idle';
+                        this.groupData = d;
+                        this.isGroupScan = true;
+                        
+                        // Default check only unchecked tickets when checking-in, or checked tickets when checking-out
+                        this.selectedTicketIds = d.attendees
+                            .filter(a => {
+                                if (this.mode === 'IN') {
+                                    // Highlight currently scanned ticket as selected by default
+                                    return !a.is_checked_in || a.ticket_id === d.scanned_ticket_id;
+                                } else {
+                                    return a.is_checked_in || a.ticket_id === d.scanned_ticket_id;
+                                }
+                            })
+                            .map(a => a.ticket_id);
+                        
+                        document.getElementById('sound-success').play();
+                        return;
+                    }
+
                     this.status = 'success';
                     this.result = { customer: d.customer, category: d.category };
                     this.inCount = d.in_count; this.outCount = d.out_count;
@@ -346,6 +443,70 @@
                     this.history.unshift({ success: false, type: this.mode, code: this.lastScannedCode, time: new Date().toLocaleTimeString() });
                     document.getElementById('sound-error').play();
                     setTimeout(() => { if (this.status === 'error') this.status = 'idle'; }, 3000);
+                },
+
+                closeGroupModal() {
+                    this.isGroupScan = false;
+                    this.groupData = null;
+                    this.selectedTicketIds = [];
+                    if (this.inputType === 'auto') this.$nextTick(() => this.focusInput());
+                },
+
+                toggleSelectAllGroup() {
+                    if (!this.groupData) return;
+                    if (this.selectedTicketIds.length === this.groupData.attendees.length) {
+                        this.selectedTicketIds = [];
+                    } else {
+                        this.selectedTicketIds = this.groupData.attendees.map(a => a.ticket_id);
+                    }
+                },
+
+                submitBulkCheckin() {
+                    if (this.selectedTicketIds.length === 0) return;
+                    this.status = 'processing';
+                    
+                    fetch('{{ route('organizer.gate.bulk-checkin', $event) }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                        body: JSON.stringify({
+                            ticket_ids: this.selectedTicketIds,
+                            mode: this.mode,
+                            gate_name: '{{ session('gate_name') }}'
+                        })
+                    })
+                    .then(r => r.ok ? r.json() : r.json().then(e => { throw e }))
+                    .then(d => {
+                        this.inCount = d.in_count;
+                        this.outCount = d.out_count;
+                        
+                        // Add elements to log history
+                        this.selectedTicketIds.forEach(id => {
+                            const att = this.groupData.attendees.find(a => a.ticket_id === id);
+                            if (att) {
+                                this.history.unshift({
+                                    success: true,
+                                    type: this.mode,
+                                    name: att.name,
+                                    category: att.category,
+                                    time: new Date().toLocaleTimeString()
+                                });
+                            }
+                        });
+
+                        // Show quick temporary success state
+                        this.isGroupScan = false;
+                        this.groupData = null;
+                        this.selectedTicketIds = [];
+                        
+                        this.status = 'success';
+                        this.result = { customer: 'Check-in Grup', category: 'Berhasil memproses ' + this.mode };
+                        setTimeout(() => { this.status = 'idle'; }, 1500);
+                    })
+                    .catch(e => {
+                        this.isGroupScan = false;
+                        this.handleError(e.message || 'Gagal memproses bulk check-in');
+                    })
+                    .finally(() => { if (this.inputType === 'auto') this.focusInput(); });
                 }
             }
         }

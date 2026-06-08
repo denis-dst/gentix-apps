@@ -127,6 +127,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::post('gate/{event}/setup', [App\Http\Controllers\Organizer\GateController::class, 'setup'])->name('gate.setup.post');
     Route::get('gate/{event}/scan', [App\Http\Controllers\Organizer\GateController::class, 'scan'])->name('gate.scan');
     Route::post('gate/process', [App\Http\Controllers\Organizer\GateController::class, 'process'])->name('gate.process');
+    Route::post('gate/{event}/bulk-checkin', [App\Http\Controllers\Organizer\GateController::class, 'bulkCheckin'])->name('gate.bulk-checkin');
 
     // Tenant Settings (T&C)
     Route::get('settings/terms', [App\Http\Controllers\Organizer\TenantSettingsController::class, 'editTerms'])->name('settings.terms');

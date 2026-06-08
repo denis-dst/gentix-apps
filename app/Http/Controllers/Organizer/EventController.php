@@ -62,6 +62,7 @@ class EventController extends Controller
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
             'security_code' => 'nullable|string|size:6',
             'is_free' => 'nullable|boolean',
+            'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'evoucher_info' => 'nullable|string',
             'wristband_league_name' => 'nullable|string|max:255',
@@ -73,6 +74,7 @@ class EventController extends Controller
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
+        $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
 
 
@@ -150,6 +152,7 @@ class EventController extends Controller
             'background_image' => 'nullable|image|max:2048',
             'security_code' => 'required|string|size:6',
             'is_free' => 'nullable|boolean',
+            'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'evoucher_info' => 'nullable|string',
             'wristband_league_name' => 'nullable|string|max:255',
@@ -160,6 +163,7 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
         $validated['is_free'] = $request->boolean('is_free');
+        $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
 
         $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
