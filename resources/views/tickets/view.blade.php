@@ -287,8 +287,8 @@
                         @endif
                     @else
                         <div class="grid grid-cols-1 gap-1">
-                            <div class="flex gap-2"><span>1.</span><span>Wajib mengisi data pembelian tiket dengan benar.</span></div>
-                            <div class="flex gap-2"><span>2.</span><span>E-Voucher ini hanya berlaku untuk 1 (satu) orang peserta.</span></div>
+                            <div class="flex gap-2"><span>1.</span><span>Wajib mengisi data E-Voucher dengan benar.</span></div>
+                            <div class="flex gap-2"><span>2.</span><span>QR pada E-Voucher ini hanya berlaku untuk 1 (satu) orang peserta.</span></div>
                             <div class="flex gap-2"><span>3.</span><span>Check-in dilakukan dengan scan QR Code di pintu masuk.</span></div>
                         </div>
                     @endif
