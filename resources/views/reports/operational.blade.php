@@ -296,38 +296,46 @@
         </div>
     </div>
 </div>
-
 <script>
-    // Tab switching state
-    let activeTab = 'transactions';
-    let txCurrentPage = 1;
-    let ticketsCurrentPage = 1;
-    const itemsPerPage = 15;
+    // Tab switching state attached to window to ensure global availability
+    window.activeTab = 'transactions';
+    window.txCurrentPage = 1;
+    window.ticketsCurrentPage = 1;
+    window.itemsPerPage = 15;
 
-    function switchReportTab(tab) {
-        activeTab = tab;
+    window.switchReportTab = function(tab) {
+        window.activeTab = tab;
         const btnTx = document.getElementById('tab-btn-tx');
         const btnTickets = document.getElementById('tab-btn-tickets');
         const paneTx = document.getElementById('report-tab-transactions');
         const paneTickets = document.getElementById('report-tab-tickets');
 
         if (tab === 'transactions') {
-            btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
-            btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
-            paneTx.className = "block animate-in fade-in duration-200";
-            paneTickets.className = "hidden";
+            if (btnTx) btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
+            if (btnTickets) btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
+            if (paneTx) {
+                paneTx.className = "block animate-in fade-in duration-200";
+            }
+            if (paneTickets) {
+                paneTickets.className = "hidden";
+            }
         } else {
-            btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
-            btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
-            paneTx.className = "hidden";
-            paneTickets.className = "block animate-in fade-in duration-200";
+            if (btnTx) btnTx.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200";
+            if (btnTickets) btnTickets.className = "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black";
+            if (paneTx) {
+                paneTx.className = "hidden";
+            }
+            if (paneTickets) {
+                paneTickets.className = "block animate-in fade-in duration-200";
+            }
         }
         
-        filterReportTables(); // Recalculate pagination
+        window.filterReportTables(); // Recalculate pagination
     }
 
-    function filterReportTables() {
-        const query = document.getElementById('report-search-input').value.toLowerCase().trim();
+    window.filterReportTables = function() {
+        const queryInput = document.getElementById('report-search-input');
+        const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
         
         // 1. Process Transactions
         const txRows = document.querySelectorAll('.tx-row');
@@ -359,11 +367,11 @@
 
         // Handle transaction pagination
         const totalTx = visibleTx.length;
-        const totalTxPages = Math.ceil(totalTx / itemsPerPage) || 1;
-        if (txCurrentPage > totalTxPages) txCurrentPage = totalTxPages;
+        const totalTxPages = Math.ceil(totalTx / window.itemsPerPage) || 1;
+        if (window.txCurrentPage > totalTxPages) window.txCurrentPage = totalTxPages;
         
-        const txStartIdx = (txCurrentPage - 1) * itemsPerPage;
-        const txEndIdx = Math.min(txStartIdx + itemsPerPage, totalTx);
+        const txStartIdx = (window.txCurrentPage - 1) * window.itemsPerPage;
+        const txEndIdx = Math.min(txStartIdx + window.itemsPerPage, totalTx);
 
         visibleTx.forEach((row, idx) => {
             if (idx >= txStartIdx && idx < txEndIdx) {
@@ -380,11 +388,11 @@
 
         // Handle ticket pagination
         const totalTickets = visibleTickets.length;
-        const totalTicketPages = Math.ceil(totalTickets / itemsPerPage) || 1;
-        if (ticketsCurrentPage > totalTicketPages) ticketsCurrentPage = totalTicketPages;
+        const totalTicketPages = Math.ceil(totalTickets / window.itemsPerPage) || 1;
+        if (window.ticketsCurrentPage > totalTicketPages) window.ticketsCurrentPage = totalTicketPages;
 
-        const ticketStartIdx = (ticketsCurrentPage - 1) * itemsPerPage;
-        const ticketEndIdx = Math.min(ticketStartIdx + itemsPerPage, totalTickets);
+        const ticketStartIdx = (window.ticketsCurrentPage - 1) * window.itemsPerPage;
+        const ticketEndIdx = Math.min(ticketStartIdx + window.itemsPerPage, totalTickets);
 
         visibleTickets.forEach((row, idx) => {
             if (idx >= ticketStartIdx && idx < ticketEndIdx) {
@@ -400,45 +408,45 @@
         }
     }
 
-    function prevReportPage(tab) {
+    window.prevReportPage = function(tab) {
         if (tab === 'transactions') {
-            if (txCurrentPage > 1) {
-                txCurrentPage--;
-                filterReportTables();
+            if (window.txCurrentPage > 1) {
+                window.txCurrentPage--;
+                window.filterReportTables();
             }
         } else {
-            if (ticketsCurrentPage > 1) {
-                ticketsCurrentPage--;
-                filterReportTables();
+            if (window.ticketsCurrentPage > 1) {
+                window.ticketsCurrentPage--;
+                window.filterReportTables();
             }
         }
     }
 
-    function nextReportPage(tab) {
+    window.nextReportPage = function(tab) {
         if (tab === 'transactions') {
             const matchedRows = document.querySelectorAll('.tx-row[data-matched="true"]').length;
-            const totalPages = Math.ceil(matchedRows / itemsPerPage);
-            if (txCurrentPage < totalPages) {
-                txCurrentPage++;
-                filterReportTables();
+            const totalPages = Math.ceil(matchedRows / window.itemsPerPage);
+            if (window.txCurrentPage < totalPages) {
+                window.txCurrentPage++;
+                window.filterReportTables();
             }
         } else {
             const matchedRows = document.querySelectorAll('.ticket-row[data-matched="true"]').length;
-            const totalPages = Math.ceil(matchedRows / itemsPerPage);
-            if (ticketsCurrentPage < totalPages) {
-                ticketsCurrentPage++;
-                filterReportTables();
+            const totalPages = Math.ceil(matchedRows / window.itemsPerPage);
+            if (window.ticketsCurrentPage < totalPages) {
+                window.ticketsCurrentPage++;
+                window.filterReportTables();
             }
         }
     }
 
-    function exportActiveTableToCSV() {
+    window.exportActiveTableToCSV = function() {
         let csv = [];
         let filename = '';
         let headers = [];
         let rows = [];
 
-        if (activeTab === 'transactions') {
+        if (window.activeTab === 'transactions') {
             filename = 'Laporan_Pendaftar_Per_Transaksi.csv';
             headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
             
@@ -506,9 +514,14 @@
         document.body.removeChild(downloadLink);
     }
 
-    // Initialize report tables on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        filterReportTables();
-    });
-</script>
+    // Initialize report tables on page load or on dynamic navigation load
+    function initOperationalReports() {
+        window.filterReportTables();
+    }
 
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOperationalReports);
+    } else {
+        initOperationalReports();
+    }
+</script>
