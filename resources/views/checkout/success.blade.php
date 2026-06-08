@@ -82,14 +82,7 @@
                 @endif
             </div>
 
-            <!-- Notif sent info -->
-            <div class="p-4 {{ $isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700' }} rounded-2xl border text-sm mb-6 text-left">
-                <p class="font-medium">📧 E-voucher telah dikirim ke:</p>
-                <p class="font-bold">{{ $transaction->customer_email }}</p>
-                @if($transaction->customer_phone)
-                    <p class="font-medium mt-1">📱 WhatsApp: {{ $transaction->customer_phone }}</p>
-                @endif
-            </div>
+           
 
             <!-- E-Voucher Access -->
             <div>
