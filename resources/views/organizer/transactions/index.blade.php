@@ -298,8 +298,15 @@
         function triggerCancelModal(button) {
             const txId = button.getAttribute('data-tx-id');
             const referenceNo = button.getAttribute('data-reference-no');
-            const tickets = JSON.parse(button.getAttribute('data-tickets'));
             const actionUrl = button.getAttribute('data-action-url');
+            let tickets = [];
+
+            try {
+                tickets = JSON.parse(button.getAttribute('data-tickets') || '[]');
+            } catch (error) {
+                console.error('Gagal membaca data tiket untuk pembatalan.', error);
+            }
+
             openCancelModal(txId, referenceNo, tickets, actionUrl);
         }
 
@@ -327,6 +334,7 @@
 
             if (tickets.length === 0) {
                 listContainer.innerHTML = '<div class="p-4 text-center text-xs font-bold text-slate-400">Tidak ada tiket aktif yang dapat dibatalkan.</div>';
+                document.getElementById('cancel-modal').classList.remove('hidden');
                 return;
             }
 
