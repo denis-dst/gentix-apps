@@ -9,8 +9,19 @@
     'confirmMessage' => 'Apakah Anda yakin ingin membatalkan tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok.',
 ])
 
-<details class="inline-block">
-    <summary title="{{ $summaryTitle }}" class="{{ $summaryClass }} cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+@once
+    <style>
+        .cancel-ticket-summary::-webkit-details-marker { display: none; }
+        .cancel-ticket-summary::marker { content: ''; }
+    </style>
+@endonce
+
+<details class="inline-block align-middle">
+    <summary
+        title="{{ $summaryTitle }}"
+        class="cancel-ticket-summary {{ $summaryClass }} {{ $summaryText ? 'inline-flex items-center justify-center' : 'inline-flex items-center justify-center w-9 h-9' }} cursor-pointer select-none leading-none"
+        style="list-style: none;"
+    >
         @if($summaryText)
             {{ $summaryText }}
         @else

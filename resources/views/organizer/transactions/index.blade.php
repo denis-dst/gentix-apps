@@ -17,11 +17,11 @@
                     <span>{{ session('success') }}</span>
                 </div>
                 @if(session('active_evoucher_url'))
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
+                    <div class="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-orange-700 space-y-2">
                         <p class="text-xs font-black uppercase tracking-wider">Kirimkan EVoucher terbaru ini kepada Pelanggan</p>
                         <div class="flex flex-col md:flex-row gap-2 md:items-center">
-                            <input type="text" readonly value="{{ session('active_evoucher_url') }}" class="flex-1 rounded-lg border-amber-200 bg-white text-xs font-bold text-slate-600">
-                            <button type="button" onclick="copyToClipboard(@js(session('active_evoucher_url')), this)" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-amber-700 transition">Salin URL</button>
+                            <input type="text" readonly value="{{ session('active_evoucher_url') }}" class="flex-1 rounded-lg border-orange-200 bg-white text-xs font-bold text-slate-600">
+                            <button type="button" onclick="copyToClipboard(@js(session('active_evoucher_url')), this)" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition">Salin URL</button>
                         </div>
                     </div>
                 @endif
