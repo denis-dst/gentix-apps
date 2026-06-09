@@ -540,7 +540,7 @@
                                         </label>
                                         <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
                                         <input type="text" x-model="attendees[currentAttendee].umroh_answer"
-                                               placeholder="Contoh: 2023"
+                                               placeholder="Contoh: 13 Januari 2024"
                                                class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
                                     </div>
                                 </div>
