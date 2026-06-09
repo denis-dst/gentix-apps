@@ -11,7 +11,7 @@ class Event extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 
+        'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 'google_maps_url',
         'background_image', 'banner_image', 'event_start_date', 
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
         'is_free', 'max_tickets_per_transaction', 'umroh_question_enabled', 'evoucher_info',

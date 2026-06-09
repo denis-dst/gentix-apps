@@ -54,6 +54,11 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Link Google Maps</label>
+                        <input type="url" name="google_maps_url" value="{{ old('google_maps_url') }}" placeholder="https://maps.google.com/..." class="w-full rounded-2xl border-slate-200 focus:border-purple-500 focus:ring-purple-500 transition py-3 px-5">
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Waktu Mulai</label>

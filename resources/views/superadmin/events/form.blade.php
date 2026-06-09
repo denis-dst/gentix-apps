@@ -62,6 +62,16 @@
         @enderror
     </div>
 
+    <div class="col-span-1 md:col-span-2">
+        <label for="google_maps_url" class="block font-medium text-sm text-gray-700 mb-1">Google Maps Link</label>
+        <input type="url" name="google_maps_url" id="google_maps_url" value="{{ old('google_maps_url', $event->google_maps_url ?? '') }}"
+               class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900"
+               placeholder="https://maps.google.com/...">
+        @error('google_maps_url')
+            <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+        @enderror
+    </div>
+
     <!-- Dates Section -->
     <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-2">
         <div>

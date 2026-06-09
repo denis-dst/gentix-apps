@@ -345,9 +345,18 @@
                             </div>
                             <div class="flex items-start gap-3">
                                 <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                <div class="text-lg font-black leading-tight">
-                                    <span x-show="lang === 'id'">{{ $venueLabelId }}</span>
-                                    <span x-show="lang === 'en'">{{ $venueLabelEn }}</span>
+                                <div class="space-y-1">
+                                    <div class="text-lg font-black leading-tight">
+                                        <span x-show="lang === 'id'">{{ $venueLabelId }}</span>
+                                        <span x-show="lang === 'en'">{{ $venueLabelEn }}</span>
+                                    </div>
+                                    @if($event->google_maps_url)
+                                        <a href="{{ $event->google_maps_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-700 hover:underline">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656m-3.656-9.9a9 9 0 0112.728 12.728l-7.071 7.071a1 1 0 01-1.414 0l-7.071-7.071A9 9 0 0110.172 5.93z" /></svg>
+                                            <span x-show="lang === 'id'">Buka di Google Maps</span>
+                                            <span x-show="lang === 'en'">Open in Google Maps</span>
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </div>

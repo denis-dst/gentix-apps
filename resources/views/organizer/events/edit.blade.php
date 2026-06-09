@@ -101,6 +101,11 @@
                             </div>
                         </div>
 
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Google Maps Link</label>
+                            <input type="url" name="google_maps_url" value="{{ old('google_maps_url', $event->google_maps_url) }}" placeholder="https://maps.google.com/..." class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition">
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Start Date</label>
