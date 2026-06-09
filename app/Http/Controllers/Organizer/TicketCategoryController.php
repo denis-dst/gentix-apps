@@ -57,7 +57,7 @@ class TicketCategoryController extends Controller
     public function edit(Event $event, TicketCategory $category)
     {
         $this->authorizeTenant($event);
-        if ($category->event_id != $event->id) abort(403);
+        $event = $this->resolveEventForCategory($event, $category);
 
         return view('organizer.tickets.edit', compact('event', 'category'));
     }
@@ -65,7 +65,7 @@ class TicketCategoryController extends Controller
     public function update(Request $request, Event $event, TicketCategory $category)
     {
         $this->authorizeTenant($event);
-        if ($category->event_id !== $event->id) abort(403);
+        $event = $this->resolveEventForCategory($event, $category);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -104,7 +104,7 @@ class TicketCategoryController extends Controller
     public function destroy(Event $event, TicketCategory $category)
     {
         $this->authorizeTenant($event);
-        if ($category->event_id !== $event->id) abort(403);
+        $event = $this->resolveEventForCategory($event, $category);
 
         $category->delete();
         return redirect()->route('organizer.events.edit', $event)->with('success', 'Ticket category deleted.');
@@ -115,5 +115,26 @@ class TicketCategoryController extends Controller
         if ($event->tenant_id != auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {
             abort(403, 'Unauthorized access to this event');
         }
+    }
+
+    private function resolveEventForCategory(Event $event, TicketCategory $category): Event
+    {
+        $sameTenant = (int) $category->tenant_id === (int) $event->tenant_id;
+
+        if (!$sameTenant) {
+            abort(403, 'Unauthorized access to this ticket category');
+        }
+
+        if ((int) $category->event_id === (int) $event->id) {
+            return $event;
+        }
+
+        $categoryEvent = $category->event;
+
+        if (!$categoryEvent || (int) $categoryEvent->tenant_id !== (int) $event->tenant_id) {
+            abort(403, 'Unauthorized access to this ticket category');
+        }
+
+        return $categoryEvent;
     }
 }
