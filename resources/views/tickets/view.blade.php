@@ -195,14 +195,22 @@
             </div>
 
             <!-- Group Tickets Section (if multi-ticket) -->
-            @if($ticket->transaction->tickets->count() > 1)
+            @php
+                $activeGroupTickets = $ticket->transaction->tickets->where('status', '!=', 'void')->values();
+                $voidGroupTicketsCount = $ticket->transaction->tickets->where('status', 'void')->count();
+            @endphp
+
+            @if($activeGroupTickets->count() > 1)
             <div class="pt-8 border-t-2 border-slate-100 space-y-6">
                 <h3 class="text-lg font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    🎟️ Daftar E-Voucher Peserta (Total: {{ $ticket->transaction->tickets->count() }} Peserta)
+                    🎟️ Daftar E-Voucher Peserta (Aktif: {{ $activeGroupTickets->count() }} Peserta)
                 </h3>
+                @if($voidGroupTicketsCount > 0)
+                    <p class="text-xs font-black text-rose-500 uppercase tracking-wider">{{ $voidGroupTicketsCount }} tiket dibatalkan dan tidak ditampilkan sebagai e-voucher.</p>
+                @endif
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    @foreach($ticket->transaction->tickets as $idx => $t)
+                    @foreach($activeGroupTickets as $idx => $t)
                         <div class="border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-3xl p-6 flex items-center justify-between gap-4">
                             <div class="space-y-3 min-w-0 flex-1">
                                 <div class="flex items-center gap-2">

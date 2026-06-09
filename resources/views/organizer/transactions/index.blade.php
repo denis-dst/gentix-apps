@@ -11,9 +11,20 @@
         </div>
 
         @if(session('success'))
-            <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                {{ session('success') }}
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-3 rounded-2xl text-sm font-bold space-y-3">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <span>{{ session('success') }}</span>
+                </div>
+                @if(session('active_evoucher_url'))
+                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
+                        <p class="text-xs font-black uppercase tracking-wider">Kirimkan EVoucher terbaru ini kepada Pelanggan</p>
+                        <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                            <input type="text" readonly value="{{ session('active_evoucher_url') }}" class="flex-1 rounded-lg border-amber-200 bg-white text-xs font-bold text-slate-600">
+                            <button type="button" onclick="copyToClipboard(@js(session('active_evoucher_url')), this)" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-amber-700 transition">Salin URL</button>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 
@@ -64,6 +75,8 @@
                     <tbody class="divide-y divide-slate-50">
                         @forelse($transactions as $tx)
                             @php
+                                $activeTicketsCount = $tx->tickets->where('status', '!=', 'void')->count();
+                                $voidTicketsCount = $tx->tickets->where('status', 'void')->count();
                                 $cancelableTickets = $tx->tickets
                                     ->where('status', '!=', 'void')
                                     ->map(function ($ticket) use ($tx) {
@@ -94,8 +107,11 @@
                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{{ $tx->customer_email }}</div>
                                 </td>
                                 <td class="px-8 py-5 text-right">
-                                    <div class="text-sm font-black text-slate-700">{{ $tx->tickets->count() }}</div>
+                                    <div class="text-sm font-black text-slate-700">{{ $activeTicketsCount }} / {{ $tx->tickets->count() }}</div>
                                     <div class="text-[9px] font-bold text-orange-500 uppercase">{{ $tx->tickets->first()->category->name ?? 'Mixed' }}</div>
+                                    @if($voidTicketsCount > 0)
+                                        <div class="text-[9px] font-black text-rose-500 uppercase mt-0.5">{{ $voidTicketsCount }} dibatalkan</div>
+                                    @endif
                                 </td>
                                 <td class="px-8 py-5 text-right">
                                     @if($tx->promoCode)
@@ -140,16 +156,13 @@
                                         @endif
                                         
                                         @if(!in_array($tx->payment_status, ['failed', 'expired', 'refunded']))
-                                            <button type="button" 
-                                                    data-tx-id="{{ $tx->id }}"
-                                                    data-reference-no="{{ $tx->reference_no }}"
-                                                    data-tickets-payload="{{ $cancelableTicketsPayload }}"
-                                                    data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
-                                                    data-cancel-trigger
-                                                    title="Cancel Transaksi (Satuan / Semua)" 
-                                                    class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                            <x-transactions.partials.cancel-tickets-popover
+                                                :action="route('organizer.transactions.cancel-tickets', $tx)"
+                                                :cancelable-tickets="$cancelableTickets"
+                                                :reference-no="$tx->reference_no"
+                                                summary-class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm"
+                                                confirm-message="Apakah Anda yakin ingin membatalkan tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok."
+                                            />
                                         @endif
                                     </div>
                                 </td>
@@ -165,15 +178,14 @@
                                                 <p class="text-[10px] font-bold text-slate-400 mt-0.5">Daftar e-voucher untuk pemesanan ini</p>
                                             </div>
                                             @if($tx->payment_status === 'paid' && $tx->tickets->where('status', '!=', 'void')->count() > 0)
-                                                <button type="button" 
-                                                        data-tx-id="{{ $tx->id }}"
-                                                        data-reference-no="{{ $tx->reference_no }}"
-                                                        data-tickets-payload="{{ $cancelableTicketsPayload }}"
-                                                        data-action-url="{{ route('organizer.transactions.cancel-tickets', $tx) }}"
-                                                        data-cancel-trigger
-                                                        class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
-                                                    🚫 Batal Transaksi (Pilih Tiket)
-                                                </button>
+                                                <x-transactions.partials.cancel-tickets-popover
+                                                    :action="route('organizer.transactions.cancel-tickets', $tx)"
+                                                    :cancelable-tickets="$cancelableTickets"
+                                                    :reference-no="$tx->reference_no"
+                                                    summary-class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition"
+                                                    summary-text="Batal Transaksi (Pilih Tiket)"
+                                                    confirm-message="Apakah Anda yakin ingin membatalkan tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok."
+                                                />
                                             @endif
                                         </div>
                                         <div class="overflow-x-auto">
@@ -296,16 +308,53 @@
     </div>
 
     <script>
-        document.addEventListener('click', function (event) {
-            const button = event.target.closest('[data-cancel-trigger]');
+        function copyToClipboard(text, button) {
+            const done = function () {
+                const originalText = button.textContent;
+                button.textContent = 'Tersalin';
+                setTimeout(function () {
+                    button.textContent = originalText;
+                }, 1500);
+            };
 
-            if (!button) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(done);
                 return;
             }
 
-            event.preventDefault();
-            triggerCancelModal(button);
-        });
+            const input = document.createElement('textarea');
+            input.value = text;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            done();
+        }
+
+        (function () {
+            function bootCancelModal() {
+                document.querySelectorAll('[data-cancel-trigger]').forEach(function (button) {
+                    if (button.dataset.cancelBound === '1') {
+                        return;
+                    }
+
+                    button.dataset.cancelBound = '1';
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        triggerCancelModal(button);
+                    });
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bootCancelModal);
+            } else {
+                bootCancelModal();
+            }
+        })();
 
         function triggerCancelModal(button) {
             const txId = button.getAttribute('data-tx-id');

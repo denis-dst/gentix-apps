@@ -125,8 +125,23 @@
         </div>
     </div>
 
+    @php
+        $activeTickets = $transaction->tickets->where('status', '!=', 'void')->values();
+        $voidTicketsCount = $transaction->tickets->where('status', 'void')->count();
+    @endphp
+
     <div class="evoucher-card">
-        @foreach($transaction->tickets as $index => $ticket)
+        @if($activeTickets->isEmpty())
+            <div class="p-10 text-center">
+                <div class="mx-auto w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-5">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" /></svg>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800 font-outfit">E-Voucher Tidak Berlaku</h2>
+                <p class="text-sm font-semibold text-slate-500 mt-2">Semua tiket pada invoice {{ $transaction->reference_no }} sudah dibatalkan.</p>
+            </div>
+        @endif
+
+        @foreach($activeTickets as $index => $ticket)
             <div class="ticket-page mb-10">
                 <!-- Header (Repeated on each page for clarity) -->
                 <div class="flex justify-between items-center border-b-2 border-slate-100 pb-6 mb-8">
@@ -285,7 +300,10 @@
                             <div class="text-xs font-black text-slate-800 uppercase leading-tight">
                                 {{ $ticket->category->name }}</div>
                             <div class="text-[9px] text-slate-400 font-bold uppercase">Item {{ $index + 1 }} of
-                                {{ $transaction->tickets->count() }}</div>
+                                {{ $activeTickets->count() }}</div>
+                            @if($voidTicketsCount > 0)
+                                <div class="text-[9px] text-rose-500 font-black uppercase">{{ $voidTicketsCount }} tiket dibatalkan</div>
+                            @endif
                         </div>
 
                         <div class="mb-4">

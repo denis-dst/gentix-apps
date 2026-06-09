@@ -11,9 +11,20 @@
         </div>
 
         @if(session('success'))
-            <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                {{ session('success') }}
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-3 rounded-2xl text-sm font-bold space-y-3">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <span>{{ session('success') }}</span>
+                </div>
+                @if(session('active_evoucher_url'))
+                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 space-y-2">
+                        <p class="text-xs font-black uppercase tracking-wider">Kirimkan EVoucher terbaru ini kepada Pelanggan</p>
+                        <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                            <input type="text" readonly value="{{ session('active_evoucher_url') }}" class="flex-1 rounded-lg border-amber-200 bg-white text-xs font-bold text-slate-600">
+                            <button type="button" onclick="copyToClipboard(@js(session('active_evoucher_url')), this)" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-amber-700 transition">Salin URL</button>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 
@@ -62,6 +73,24 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         @forelse($transactions as $tx)
+                            @php
+                                $activeTicketsCount = $tx->tickets->where('status', '!=', 'void')->count();
+                                $voidTicketsCount = $tx->tickets->where('status', 'void')->count();
+                                $cancelableTickets = $tx->tickets
+                                    ->where('status', '!=', 'void')
+                                    ->map(function ($ticket) use ($tx) {
+                                        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                                        return [
+                                            'id' => $ticket->id,
+                                            'code' => $ticket->ticket_code,
+                                            'name' => $visitorData['name'] ?? $tx->customer_name,
+                                            'category' => $ticket->category->name ?? '-',
+                                        ];
+                                    })
+                                    ->values();
+                                $cancelableTicketsPayload = base64_encode($cancelableTickets->toJson());
+                            @endphp
                             <tr class="hover:bg-slate-50/40 transition group">
                                 <td class="px-4 py-5 text-center">
                                     <button type="button" onclick="toggleRow('tickets-{{ $tx->id }}')" class="p-1 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-slate-600 focus:outline-none">
@@ -82,7 +111,10 @@
                                 </td>
                                 <td class="px-8 py-5 text-right">
                                     <div class="text-sm font-black text-green-600">Rp {{ number_format($tx->total_amount, 0, ',', '.') }}</div>
-                                    <div class="text-[9px] font-bold text-slate-400 uppercase">{{ $tx->tickets->count() }} TIKET</div>
+                                    <div class="text-[9px] font-bold text-slate-400 uppercase">{{ $activeTicketsCount }} / {{ $tx->tickets->count() }} TIKET AKTIF</div>
+                                    @if($voidTicketsCount > 0)
+                                        <div class="text-[9px] font-black text-rose-500 uppercase mt-0.5">{{ $voidTicketsCount }} dibatalkan</div>
+                                    @endif
                                 </td>
                                 <td class="px-8 py-5">
                                     @if($tx->payment_status === 'paid')
@@ -115,16 +147,14 @@
                                         @endif
                                         
                                         @if(!in_array($tx->payment_status, ['failed', 'expired', 'refunded']))
-                                            <button type="button" 
-                                                    data-tx-id="{{ $tx->id }}"
-                                                    data-reference-no="{{ $tx->reference_no }}"
-                                                    data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => $t->visitor_data["name"] ?? $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
-                                                    data-action-url="{{ route('superadmin.transactions.cancel-tickets', $tx) }}"
-                                                    onclick="triggerCancelModal(this)"
-                                                    title="Cancel Transaksi (Satuan / Semua)" 
-                                                    class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                            <x-transactions.partials.cancel-tickets-popover
+                                                :action="route('superadmin.transactions.cancel-tickets', $tx)"
+                                                :cancelable-tickets="$cancelableTickets"
+                                                heading="Batalkan Tiket Peserta (SuperAdmin)"
+                                                :reference-no="$tx->reference_no"
+                                                summary-class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition border border-rose-100 shadow-sm"
+                                                confirm-message="KONFIRMASI SUPERADMIN: Apakah Anda yakin ingin membatalkan tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok."
+                                            />
                                         @endif
                                     </div>
                                 </td>
@@ -140,15 +170,15 @@
                                                 <p class="text-[10px] font-bold text-slate-400 mt-0.5">Daftar e-voucher untuk pemesanan ini</p>
                                             </div>
                                             @if($tx->payment_status === 'paid' && $tx->tickets->where('status', '!=', 'void')->count() > 0)
-                                                <button type="button" 
-                                                        data-tx-id="{{ $tx->id }}"
-                                                        data-reference-no="{{ $tx->reference_no }}"
-                                                        data-tickets='@json($tx->tickets->where("status", "!=", "void")->map(function($t) use ($tx) { return ["id" => $t->id, "code" => $t->ticket_code, "name" => $t->visitor_data["name"] ?? $tx->customer_name, "category" => $t->category->name ?? "-"]; })->values())'
-                                                        data-action-url="{{ route('superadmin.transactions.cancel-tickets', $tx) }}"
-                                                        onclick="triggerCancelModal(this)"
-                                                        class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition">
-                                                    🚫 Batal Transaksi (Pilih Tiket)
-                                                </button>
+                                                <x-transactions.partials.cancel-tickets-popover
+                                                    :action="route('superadmin.transactions.cancel-tickets', $tx)"
+                                                    :cancelable-tickets="$cancelableTickets"
+                                                    heading="Batalkan Tiket Peserta (SuperAdmin)"
+                                                    :reference-no="$tx->reference_no"
+                                                    summary-class="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition"
+                                                    summary-text="Batal Transaksi (Pilih Tiket)"
+                                                    confirm-message="KONFIRMASI SUPERADMIN: Apakah Anda yakin ingin membatalkan tiket yang dipilih? Kuota akan otomatis dikembalikan ke stok."
+                                                />
                                             @endif
                                         </div>
                                         <div class="overflow-x-auto">
@@ -271,11 +301,66 @@
     </div>
 
     <script>
+        function copyToClipboard(text, button) {
+            const done = function () {
+                const originalText = button.textContent;
+                button.textContent = 'Tersalin';
+                setTimeout(function () {
+                    button.textContent = originalText;
+                }, 1500);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(done);
+                return;
+            }
+
+            const input = document.createElement('textarea');
+            input.value = text;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            done();
+        }
+
+        (function () {
+            function bootCancelModal() {
+                document.querySelectorAll('[data-cancel-trigger]').forEach(function (button) {
+                    if (button.dataset.cancelBound === '1') {
+                        return;
+                    }
+
+                    button.dataset.cancelBound = '1';
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        triggerCancelModal(button);
+                    });
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bootCancelModal);
+            } else {
+                bootCancelModal();
+            }
+        })();
+
         function triggerCancelModal(button) {
             const txId = button.getAttribute('data-tx-id');
             const referenceNo = button.getAttribute('data-reference-no');
-            const tickets = JSON.parse(button.getAttribute('data-tickets'));
             const actionUrl = button.getAttribute('data-action-url');
+            let tickets = [];
+
+            try {
+                tickets = JSON.parse(atob(button.getAttribute('data-tickets-payload') || 'W10='));
+            } catch (error) {
+                console.error('Gagal membaca data tiket untuk pembatalan.', error);
+            }
+
             openCancelModal(txId, referenceNo, tickets, actionUrl);
         }
 
@@ -303,22 +388,47 @@
 
             if (tickets.length === 0) {
                 listContainer.innerHTML = '<div class="p-4 text-center text-xs font-bold text-slate-400">Tidak ada tiket aktif yang dapat dibatalkan.</div>';
+                document.getElementById('cancel-modal').classList.remove('hidden');
                 return;
             }
 
             tickets.forEach(ticket => {
                 const item = document.createElement('div');
                 item.className = 'flex items-start gap-3 p-3.5 hover:bg-slate-50/50 transition';
-                item.innerHTML = `
-                    <input type="checkbox" name="ticket_ids[]" value="${ticket.id}" id="ticket-cb-${ticket.id}" onchange="updateSelectAllState()" class="ticket-checkbox mt-0.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4">
-                    <label for="ticket-cb-${ticket.id}" class="flex-1 cursor-pointer select-none">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-mono font-black text-slate-700">${ticket.code}</span>
-                            <span class="px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-black text-[9px] uppercase tracking-wider">${ticket.category}</span>
-                        </div>
-                        <div class="text-xs font-black text-slate-800 uppercase mt-1">${ticket.name}</div>
-                    </label>
-                `;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'ticket_ids[]';
+                checkbox.value = ticket.id;
+                checkbox.id = 'ticket-cb-' + ticket.id;
+                checkbox.className = 'ticket-checkbox mt-0.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4';
+                checkbox.addEventListener('change', updateSelectAllState);
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.className = 'flex-1 cursor-pointer select-none';
+
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between';
+
+                const code = document.createElement('span');
+                code.className = 'text-xs font-mono font-black text-slate-700';
+                code.textContent = ticket.code || '-';
+
+                const category = document.createElement('span');
+                category.className = 'px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-black text-[9px] uppercase tracking-wider';
+                category.textContent = ticket.category || '-';
+
+                const name = document.createElement('div');
+                name.className = 'text-xs font-black text-slate-800 uppercase mt-1';
+                name.textContent = ticket.name || '-';
+
+                header.appendChild(code);
+                header.appendChild(category);
+                label.appendChild(header);
+                label.appendChild(name);
+                item.appendChild(checkbox);
+                item.appendChild(label);
                 listContainer.appendChild(item);
             });
 

@@ -137,7 +137,18 @@ class TransactionController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Tiket ' . $ticket->ticket_code . ' berhasil dibatalkan dan kuota telah dikembalikan.');
+        $activeTicket = $ticket->transaction->tickets()
+            ->where('status', '!=', 'void')
+            ->latest('id')
+            ->first();
+
+        $redirect = back()->with('success', 'Tiket ' . $ticket->ticket_code . ' berhasil dibatalkan dan kuota telah dikembalikan.');
+
+        if ($activeTicket) {
+            $redirect->with('active_evoucher_url', route('tickets.view', $activeTicket->ticket_code));
+        }
+
+        return $redirect;
     }
 
     public function cancelTransaction(Transaction $transaction)
@@ -225,7 +236,18 @@ class TransactionController extends Controller
             $transaction->update($updateData);
         });
 
-        return back()->with('success', 'Tiket terpilih (' . $ticketsToCancel->count() . ' tiket) berhasil dibatalkan dan kuota telah dikembalikan.');
+        $activeTicket = $transaction->tickets()
+            ->where('status', '!=', 'void')
+            ->latest('id')
+            ->first();
+
+        $redirect = back()->with('success', 'Tiket terpilih (' . $ticketsToCancel->count() . ' tiket) berhasil dibatalkan dan kuota telah dikembalikan.');
+
+        if ($activeTicket) {
+            $redirect->with('active_evoucher_url', route('tickets.view', $activeTicket->ticket_code));
+        }
+
+        return $redirect;
     }
 
     private function authorizeTenant(Event $event)

@@ -110,7 +110,18 @@ class TransactionController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Tiket ' . $ticket->ticket_code . ' berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+        $activeTicket = $ticket->transaction->tickets()
+            ->where('status', '!=', 'void')
+            ->latest('id')
+            ->first();
+
+        $redirect = back()->with('success', 'Tiket ' . $ticket->ticket_code . ' berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+
+        if ($activeTicket) {
+            $redirect->with('active_evoucher_url', route('tickets.view', $activeTicket->ticket_code));
+        }
+
+        return $redirect;
     }
 
     public function cancelTransaction(Transaction $transaction)
@@ -194,6 +205,17 @@ class TransactionController extends Controller
             $transaction->update($updateData);
         });
 
-        return back()->with('success', 'Tiket terpilih (' . $ticketsToCancel->count() . ' tiket) berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+        $activeTicket = $transaction->tickets()
+            ->where('status', '!=', 'void')
+            ->latest('id')
+            ->first();
+
+        $redirect = back()->with('success', 'Tiket terpilih (' . $ticketsToCancel->count() . ' tiket) berhasil dibatalkan dan kuota telah dikembalikan oleh SuperAdmin.');
+
+        if ($activeTicket) {
+            $redirect->with('active_evoucher_url', route('tickets.view', $activeTicket->ticket_code));
+        }
+
+        return $redirect;
     }
 }

@@ -16,6 +16,10 @@ class TicketViewController extends Controller
             ->where('ticket_code', $code)
             ->firstOrFail();
 
+        if ($ticket->status === 'void') {
+            return response()->view('tickets.invalid', compact('ticket'), 410);
+        }
+
         return view('tickets.view', compact('ticket'));
     }
 }
