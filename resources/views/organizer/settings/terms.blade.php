@@ -67,128 +67,13 @@
                 
                 <div class="space-y-4">
                     <label for="terms_conditions" class="block text-sm font-black text-slate-700 uppercase tracking-widest">Konten Syarat & Ketentuan</label>
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 overflow-hidden shadow-sm focus-within:border-indigo-500 transition-all">
-                        <!-- Quill Editor Container -->
-                        <div id="terms_editor" style="height: 400px; border: none;" class="text-slate-600 leading-relaxed">
-                            {!! old('terms_conditions', $tenant->terms_conditions) !!}
-                        </div>
-                    </div>
-                    <!-- Hidden input to store Quill HTML content -->
-                    <input type="hidden" name="terms_conditions" id="terms_conditions_input" value="{{ old('terms_conditions', $tenant->terms_conditions) }}">
+                    <input id="terms_conditions_input" type="hidden" name="terms_conditions" value="{{ old('terms_conditions', $tenant->terms_conditions) }}">
+                    <trix-editor input="terms_conditions_input" class="trix-content min-h-[400px] bg-white rounded-3xl border-2 border-slate-100 shadow-sm focus-within:border-indigo-500 transition-all text-slate-600 leading-relaxed px-6 py-4" placeholder="Tuliskan syarat & ketentuan di sini..."></trix-editor>
                     
                     @error('terms_conditions')
                         <p class="text-rose-500 text-xs font-bold mt-2">{{ $message }}</p>
                     @enderror
                 </div>
-
-                <script>
-                    (function() {
-                        function loadAsset(url, type) {
-                            return new Promise((resolve, reject) => {
-                                if (type === 'css') {
-                                    if (document.querySelector(`link[href="${url}"]`)) {
-                                        resolve();
-                                        return;
-                                    }
-                                    const link = document.createElement('link');
-                                    link.rel = 'stylesheet';
-                                    link.href = url;
-                                    link.onload = resolve;
-                                    link.onerror = reject;
-                                    document.head.appendChild(link);
-                                } else if (type === 'js') {
-                                    if (window.Quill) {
-                                        resolve();
-                                        return;
-                                    }
-                                    let script = document.querySelector(`script[src="${url}"]`);
-                                    if (script) {
-                                        if (script.dataset.loaded === 'true') {
-                                            resolve();
-                                        } else {
-                                            script.addEventListener('load', resolve);
-                                            script.addEventListener('error', reject);
-                                        }
-                                        return;
-                                    }
-                                    script = document.createElement('script');
-                                    script.src = url;
-                                    script.dataset.loaded = 'false';
-                                    script.onload = () => {
-                                        script.dataset.loaded = 'true';
-                                        resolve();
-                                    };
-                                    script.onerror = reject;
-                                    document.head.appendChild(script);
-                                }
-                            });
-                        }
-
-                        function initEditor() {
-                            const editorEl = document.getElementById('terms_editor');
-                            const inputEl = document.getElementById('terms_conditions_input');
-                            if (!editorEl || !inputEl) {
-                                setTimeout(initEditor, 50);
-                                return;
-                            }
-                            if (editorEl.dataset.initialized === 'true') {
-                                return;
-                            }
-                            editorEl.dataset.initialized = 'true';
-
-                            Promise.all([
-                                loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css', 'css'),
-                                loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js', 'js')
-                            ]).then(() => {
-                                if (typeof Quill === 'undefined') return;
-                                
-                                var quill = new Quill(editorEl, {
-                                    theme: 'snow',
-                                    modules: {
-                                        toolbar: [
-                                            [{ 'header': [1, 2, 3, false] }],
-                                            ['bold', 'italic', 'underline', 'strike'],
-                                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                            ['link', 'clean']
-                                        ]
-                                    },
-                                    placeholder: 'Tuliskan syarat & ketentuan di sini...'
-                                });
-
-                                if (quill.root.innerHTML === '<p><br></p>' && inputEl.value) {
-                                    quill.root.innerHTML = inputEl.value;
-                                }
-
-                                quill.on('text-change', function() {
-                                    inputEl.value = quill.root.innerHTML;
-                                });
-
-                                const form = inputEl.closest('form');
-                                if (form) {
-                                    form.addEventListener('submit', function() {
-                                        inputEl.value = quill.root.innerHTML;
-                                    });
-                                }
-
-                                // Style toolbar
-                                setTimeout(() => {
-                                    var toolbar = editorEl.previousElementSibling;
-                                    if (toolbar && toolbar.classList.contains('ql-toolbar')) {
-                                        toolbar.style.border = 'none';
-                                        toolbar.style.borderBottom = '1px solid #f1f5f9';
-                                        toolbar.style.padding = '1rem';
-                                    }
-                                }, 50);
-                            }).catch(err => console.error('Failed to load Quill:', err));
-                        }
-
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', initEditor);
-                        } else {
-                            initEditor();
-                        }
-                    })();
-                </script>
 
                 <div class="bg-indigo-50 rounded-2xl p-6 border border-indigo-100 flex gap-4 items-start">
                     <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200">

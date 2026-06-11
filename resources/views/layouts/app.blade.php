@@ -12,6 +12,15 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <!-- Trix Editor -->
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+    <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+    <style>
+        trix-toolbar [data-trix-button-group="file-tools"] { display: none; }
+        .trix-content { min-height: 250px !important; }
+        trix-editor { background: white; border-radius: 0.75rem; border-color: #e2e8f0; }
+        trix-editor:focus-within { border-color: #a855f7; box-shadow: 0 0 0 1px #a855f7; outline: none; }
+    </style>
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">

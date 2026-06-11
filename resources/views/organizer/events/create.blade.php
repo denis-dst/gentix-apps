@@ -45,7 +45,8 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Deskripsi Event</label>
-                        <textarea name="description" rows="5" placeholder="Ceritakan tentang event ini..." class="w-full rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition py-4 px-6 text-sm">{{ old('description') }}</textarea>
+                        <input id="description_input" type="hidden" name="description" value="{{ old('description') }}">
+                        <trix-editor input="description_input" class="trix-content min-h-[150px] bg-white rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition-all text-sm px-6 py-4" placeholder="Ceritakan tentang event ini..."></trix-editor>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -174,123 +175,10 @@
                     <div class="pt-6 border-t border-slate-50 space-y-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Syarat & Ketentuan (S&K)</label>
                         
-                        <!-- Quill Editor Wrapper -->
-                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden focus-within:border-purple-500 transition-all">
-                            <div id="terms_editor" style="height: 250px; border: none;" class="text-sm text-slate-600">
-                                {!! old('terms_conditions') !!}
-                            </div>
-                        </div>
-                        <!-- Hidden input for Quill -->
-                        <input type="hidden" name="terms_conditions" id="terms_conditions_input" value="{{ old('terms_conditions') }}">
+                        <input id="terms_conditions_input" type="hidden" name="terms_conditions" value="{{ old('terms_conditions') }}">
+                        <trix-editor input="terms_conditions_input" class="trix-content min-h-[250px] bg-white rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition-all text-sm px-6 py-4" placeholder="Tuliskan S&K khusus event ini..."></trix-editor>
                         
                         <p class="text-[10px] text-slate-400 mt-1 italic px-1">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
-                        
-                        <script>
-                            (function() {
-                                function loadAsset(url, type) {
-                                    return new Promise((resolve, reject) => {
-                                        if (type === 'css') {
-                                            if (document.querySelector(`link[href="${url}"]`)) {
-                                                resolve();
-                                                return;
-                                            }
-                                            const link = document.createElement('link');
-                                            link.rel = 'stylesheet';
-                                            link.href = url;
-                                            link.onload = resolve;
-                                            link.onerror = reject;
-                                            document.head.appendChild(link);
-                                        } else if (type === 'js') {
-                                            if (window.Quill) {
-                                                resolve();
-                                                return;
-                                            }
-                                            let script = document.querySelector(`script[src="${url}"]`);
-                                            if (script) {
-                                                if (script.dataset.loaded === 'true') {
-                                                    resolve();
-                                                } else {
-                                                    script.addEventListener('load', resolve);
-                                                    script.addEventListener('error', reject);
-                                                }
-                                                return;
-                                            }
-                                            script = document.createElement('script');
-                                            script.src = url;
-                                            script.dataset.loaded = 'false';
-                                            script.onload = () => {
-                                                script.dataset.loaded = 'true';
-                                                resolve();
-                                            };
-                                            script.onerror = reject;
-                                            document.head.appendChild(script);
-                                        }
-                                    });
-                                }
-
-                                function initEditor() {
-                                    const editorEl = document.getElementById('terms_editor');
-                                    const inputEl = document.getElementById('terms_conditions_input');
-                                    if (!editorEl || !inputEl) {
-                                        setTimeout(initEditor, 50);
-                                        return;
-                                    }
-                                    if (editorEl.dataset.initialized === 'true') {
-                                        return;
-                                    }
-                                    editorEl.dataset.initialized = 'true';
-
-                                    Promise.all([
-                                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css', 'css'),
-                                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js', 'js')
-                                    ]).then(() => {
-                                        if (typeof Quill === 'undefined') return;
-                                        
-                                        var quill = new Quill(editorEl, {
-                                            theme: 'snow',
-                                            modules: {
-                                                toolbar: [
-                                                    ['bold', 'italic', 'underline'],
-                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                    ['link', 'clean']
-                                                ]
-                                            },
-                                            placeholder: 'Tuliskan S&K khusus event ini...'
-                                        });
-
-                                        if (quill.root.innerHTML === '<p><br></p>' && inputEl.value) {
-                                            quill.root.innerHTML = inputEl.value;
-                                        }
-
-                                        quill.on('text-change', function() {
-                                            inputEl.value = quill.root.innerHTML;
-                                        });
-
-                                        const form = inputEl.closest('form');
-                                        if (form) {
-                                            form.addEventListener('submit', function() {
-                                                inputEl.value = quill.root.innerHTML;
-                                            });
-                                        }
-
-                                        // Style toolbar
-                                        setTimeout(() => {
-                                            var toolbar = editorEl.previousElementSibling;
-                                            if (toolbar && toolbar.classList.contains('ql-toolbar')) {
-                                                toolbar.style.border = 'none';
-                                                toolbar.style.borderBottom = '1px solid #f1f5f9';
-                                            }
-                                        }, 50);
-                                    }).catch(err => console.error('Failed to load Quill:', err));
-                                }
-
-                                if (document.readyState === 'loading') {
-                                    document.addEventListener('DOMContentLoaded', initEditor);
-                                } else {
-                                    initEditor();
-                                }
-                            })();
-                        </script>
                     </div>
 
                 </div>
