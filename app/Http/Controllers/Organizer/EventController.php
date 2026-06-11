@@ -166,14 +166,6 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
         ]);
 
-        // DEBUG: Log what terms_conditions was received
-        \Log::info('[DEBUG EventController::update] RAW terms_conditions from request', [
-            'raw_value' => $request->input('terms_conditions'),
-            'raw_length' => strlen($request->input('terms_conditions') ?? ''),
-            'validated_value' => $validated['terms_conditions'] ?? 'NOT_IN_VALIDATED',
-            'event_id' => $event->id,
-        ]);
-
         $validated['is_free'] = $request->boolean('is_free');
         $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
@@ -191,12 +183,6 @@ class EventController extends Controller
             if ($event->background_image) Storage::disk('public')->delete($event->background_image);
             $validated['background_image'] = $request->file('background_image')->store('events/backgrounds', 'public');
         }
-
-        // DEBUG: Log what will be saved
-        \Log::info('[DEBUG EventController::update] About to save', [
-            'terms_conditions_to_save' => $validated['terms_conditions'] ?? 'NOT_SET',
-            'event_id' => $event->id,
-        ]);
 
         $event->update($validated);
 

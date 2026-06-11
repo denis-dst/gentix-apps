@@ -32,33 +32,19 @@ class AuthenticatedSessionController extends Controller
         $user = auth()->user();
         $roles = $user->roles()->pluck('name')->all();
 
-        Log::info('Login authenticated', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'roles' => $roles,
-            'session_id' => $request->session()->getId(),
-            'session_path' => config('session.path'),
-            'session_domain' => config('session.domain'),
-            'session_secure' => config('session.secure'),
-        ]);
-
         if ($user->hasRole('Superadmin')) {
-            Log::info('Login redirecting', ['user_id' => $user->id, 'route' => 'superadmin.dashboard']);
             return redirect()->route('superadmin.dashboard');
         }
         
         if ($user->hasRole('Penyedia Event')) {
-            Log::info('Login redirecting', ['user_id' => $user->id, 'route' => 'organizer.dashboard']);
             return redirect()->route('organizer.dashboard');
         }
 
         if ($user->hasRole('Petugas Loket')) {
-            Log::info('Login redirecting', ['user_id' => $user->id, 'route' => 'organizer.redeem.index']);
             return redirect()->route('organizer.redeem.index');
         }
 
         if ($user->hasRole('Petugas Gate')) {
-            Log::info('Login redirecting', ['user_id' => $user->id, 'route' => 'organizer.gate.index']);
             return redirect()->route('organizer.gate.index');
         }
 

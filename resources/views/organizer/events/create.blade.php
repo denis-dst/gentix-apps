@@ -207,7 +207,6 @@
                                     input.value = editor.editor.getDocument().toString().trim()
                                         ? editor.value
                                         : '';
-                                    console.log('[Trix Sync] ' + inputId + ' = ', input.value.substring(0, 100));
                                 }
                             });
                         });
