@@ -288,7 +288,7 @@
         $venueLabelEn = $venueLabelId;
 
         $descriptionHtml = trim((string) $event->description);
-        $recommendedImageSize = '1600 x 1200 px';
+        $recommendedImageSize = '1200 x 600 px';
     @endphp
 
     <div class="min-h-screen pb-20">
@@ -297,9 +297,9 @@
             <div class="max-w-6xl mx-auto p-4 lg:p-8">
                 <div class="flex flex-col lg:flex-row gap-8 items-start">
                     <div class="w-full lg:w-1/3 shrink-0 relative group">
-                        <img src="{{ $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80' }}" 
-                             onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80'"
-                             class="w-full aspect-[4/3] object-cover rounded-3xl shadow-2xl shadow-purple-200 transition duration-500 group-hover:scale-[1.02]" alt="{{ $event->name }}">
+                            <img src="{{ $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&q=80' }}" 
+                                onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&q=80'"
+                                class="w-full aspect-[2/1] object-contain rounded-3xl shadow-2xl shadow-purple-200 transition duration-500 group-hover:scale-[1.02] bg-slate-100" alt="{{ $event->name }}">
                        
                         
                         <div class="absolute top-4 left-4">

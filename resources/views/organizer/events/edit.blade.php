@@ -41,7 +41,7 @@
                     <div class="p-6 border-b border-gray-50 bg-gray-50/50">
                         <h3 class="font-bold text-gray-800">Event Information</h3>
                     </div>
-                    <form action="{{ route('organizer.events.update', $event) }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                    <form id="event-edit-form" action="{{ route('organizer.events.update', $event) }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                         @csrf
                         @method('PATCH')
 
@@ -260,6 +260,28 @@
                             Save Event Details
                         </button>
                     </form>
+
+                    <script>
+                    (function() {
+                        var form = document.getElementById('event-edit-form');
+                        if (!form) return;
+
+                        form.addEventListener('submit', function(e) {
+                            // Explicitly sync ALL trix editors to their hidden inputs before submission
+                            var editors = form.querySelectorAll('trix-editor');
+                            editors.forEach(function(editor) {
+                                var inputId = editor.getAttribute('input');
+                                var input = inputId ? document.getElementById(inputId) : null;
+                                if (input && editor.editor) {
+                                    input.value = editor.editor.getDocument().toString().trim()
+                                        ? editor.value
+                                        : '';
+                                    console.log('[Trix Sync] ' + inputId + ' = ', input.value.substring(0, 100));
+                                }
+                            });
+                        });
+                    })();
+                    </script>
                 </div>
             </div>
 

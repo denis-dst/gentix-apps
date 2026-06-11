@@ -192,6 +192,27 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                     </button>
                 </div>
+            
+                <script>
+                    (function() {
+                        var form = document.querySelector('form[action="{{ route('organizer.events.store') }}"]');
+                        if (!form) return;
+
+                        form.addEventListener('submit', function(e) {
+                            var editors = form.querySelectorAll('trix-editor');
+                            editors.forEach(function(editor) {
+                                var inputId = editor.getAttribute('input');
+                                var input = inputId ? document.getElementById(inputId) : null;
+                                if (input && editor.editor) {
+                                    input.value = editor.editor.getDocument().toString().trim()
+                                        ? editor.value
+                                        : '';
+                                    console.log('[Trix Sync] ' + inputId + ' = ', input.value.substring(0, 100));
+                                }
+                            });
+                        });
+                    })();
+                </script>
             </form>
         </div>
     </div>
