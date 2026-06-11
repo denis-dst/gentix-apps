@@ -40,7 +40,12 @@
                 <div class="space-y-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Nama Event</label>
-                        <input type="text" name="name" placeholder="Contoh: Konser Musik Bhayangkara" class="w-full rounded-2xl border-slate-200 focus:border-purple-500 focus:ring-purple-500 transition py-4 px-6 text-lg font-bold" required>
+                        <input type="text" name="name" value="{{ old('name') }}" placeholder="Contoh: Konser Musik Bhayangkara" class="w-full rounded-2xl border-slate-200 focus:border-purple-500 focus:ring-purple-500 transition py-4 px-6 text-lg font-bold" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Deskripsi Event</label>
+                        <textarea name="description" rows="5" placeholder="Ceritakan tentang event ini..." class="w-full rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition py-4 px-6 text-sm">{{ old('description') }}</textarea>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,6 +169,128 @@
                                 </div>
                             </label>
                         </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-50 space-y-4">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Syarat & Ketentuan (S&K)</label>
+                        
+                        <!-- Quill Editor Wrapper -->
+                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden focus-within:border-purple-500 transition-all">
+                            <div id="terms_editor" style="height: 250px; border: none;" class="text-sm text-slate-600">
+                                {!! old('terms_conditions') !!}
+                            </div>
+                        </div>
+                        <!-- Hidden input for Quill -->
+                        <input type="hidden" name="terms_conditions" id="terms_conditions_input" value="{{ old('terms_conditions') }}">
+                        
+                        <p class="text-[10px] text-slate-400 mt-1 italic px-1">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
+                        
+                        <script>
+                            (function() {
+                                function loadAsset(url, type) {
+                                    return new Promise((resolve, reject) => {
+                                        if (type === 'css') {
+                                            if (document.querySelector(`link[href="${url}"]`)) {
+                                                resolve();
+                                                return;
+                                            }
+                                            const link = document.createElement('link');
+                                            link.rel = 'stylesheet';
+                                            link.href = url;
+                                            link.onload = resolve;
+                                            link.onerror = reject;
+                                            document.head.appendChild(link);
+                                        } else if (type === 'js') {
+                                            if (window.Quill) {
+                                                resolve();
+                                                return;
+                                            }
+                                            let script = document.querySelector(`script[src="${url}"]`);
+                                            if (script) {
+                                                if (script.dataset.loaded === 'true') {
+                                                    resolve();
+                                                } else {
+                                                    script.addEventListener('load', resolve);
+                                                    script.addEventListener('error', reject);
+                                                }
+                                                return;
+                                            }
+                                            script = document.createElement('script');
+                                            script.src = url;
+                                            script.dataset.loaded = 'false';
+                                            script.onload = () => {
+                                                script.dataset.loaded = 'true';
+                                                resolve();
+                                            };
+                                            script.onerror = reject;
+                                            document.head.appendChild(script);
+                                        }
+                                    });
+                                }
+
+                                function initEditor() {
+                                    const editorEl = document.getElementById('terms_editor');
+                                    const inputEl = document.getElementById('terms_conditions_input');
+                                    if (!editorEl || !inputEl) {
+                                        setTimeout(initEditor, 50);
+                                        return;
+                                    }
+                                    if (editorEl.dataset.initialized === 'true') {
+                                        return;
+                                    }
+                                    editorEl.dataset.initialized = 'true';
+
+                                    Promise.all([
+                                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css', 'css'),
+                                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js', 'js')
+                                    ]).then(() => {
+                                        if (typeof Quill === 'undefined') return;
+                                        
+                                        var quill = new Quill(editorEl, {
+                                            theme: 'snow',
+                                            modules: {
+                                                toolbar: [
+                                                    ['bold', 'italic', 'underline'],
+                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                    ['link', 'clean']
+                                                ]
+                                            },
+                                            placeholder: 'Tuliskan S&K khusus event ini...'
+                                        });
+
+                                        if (quill.root.innerHTML === '<p><br></p>' && inputEl.value) {
+                                            quill.root.innerHTML = inputEl.value;
+                                        }
+
+                                        quill.on('text-change', function() {
+                                            inputEl.value = quill.root.innerHTML;
+                                        });
+
+                                        const form = inputEl.closest('form');
+                                        if (form) {
+                                            form.addEventListener('submit', function() {
+                                                inputEl.value = quill.root.innerHTML;
+                                            });
+                                        }
+
+                                        // Style toolbar
+                                        setTimeout(() => {
+                                            var toolbar = editorEl.previousElementSibling;
+                                            if (toolbar && toolbar.classList.contains('ql-toolbar')) {
+                                                toolbar.style.border = 'none';
+                                                toolbar.style.borderBottom = '1px solid #f1f5f9';
+                                            }
+                                        }, 50);
+                                    }).catch(err => console.error('Failed to load Quill:', err));
+                                }
+
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', initEditor);
+                                } else {
+                                    initEditor();
+                                }
+                            })();
+                        </script>
                     </div>
 
                 </div>

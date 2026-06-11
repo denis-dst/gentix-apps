@@ -10,6 +10,17 @@
         @enderror
     </div>
 
+    <!-- Event Description -->
+    <div class="col-span-1 md:col-span-2">
+        <label for="description" class="block font-medium text-sm text-gray-700 mb-1">Event Description</label>
+        <textarea name="description" id="description" rows="5"
+                  class="w-full border-gray-300 focus:border-purple-500 focus:ring-purple-500 rounded-lg shadow-sm text-gray-900" 
+                  placeholder="Tell us about the event...">{{ old('description', $event->description ?? '') }}</textarea>
+        @error('description')
+            <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+        @enderror
+    </div>
+
     <!-- Organizer (Tenant) -->
     <div>
         <label for="tenant_id" class="block font-medium text-sm text-gray-700 mb-1">Organizer <span class="text-red-500">*</span></label>
@@ -133,6 +144,132 @@
             </div>
         </div>
         @error('banner_image')
+            <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <!-- Syarat & Ketentuan -->
+    <div class="col-span-1 md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+        <label for="terms_conditions" class="block font-medium text-sm text-gray-700 mb-1">Syarat & Ketentuan (S&K)</label>
+        
+        <!-- Quill Editor Wrapper -->
+        <div class="bg-white rounded-lg border border-gray-300 overflow-hidden focus-within:border-purple-500 transition-all">
+            <div id="terms_editor" style="height: 250px; border: none;" class="text-sm text-gray-600">
+                {!! old('terms_conditions', $event->terms_conditions ?? '') !!}
+            </div>
+        </div>
+        <!-- Hidden input for Quill -->
+        <input type="hidden" name="terms_conditions" id="terms_conditions_input" value="{{ old('terms_conditions', $event->terms_conditions ?? '') }}">
+        
+        <p class="mt-1 text-xs text-gray-500 italic">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
+        
+        <script>
+            (function() {
+                function loadAsset(url, type) {
+                    return new Promise((resolve, reject) => {
+                        if (type === 'css') {
+                            if (document.querySelector(`link[href="${url}"]`)) {
+                                resolve();
+                                return;
+                            }
+                            const link = document.createElement('link');
+                            link.rel = 'stylesheet';
+                            link.href = url;
+                            link.onload = resolve;
+                            link.onerror = reject;
+                            document.head.appendChild(link);
+                        } else if (type === 'js') {
+                            if (window.Quill) {
+                                resolve();
+                                return;
+                            }
+                            let script = document.querySelector(`script[src="${url}"]`);
+                            if (script) {
+                                if (script.dataset.loaded === 'true') {
+                                    resolve();
+                                } else {
+                                    script.addEventListener('load', resolve);
+                                    script.addEventListener('error', reject);
+                                }
+                                return;
+                            }
+                            script = document.createElement('script');
+                            script.src = url;
+                            script.dataset.loaded = 'false';
+                            script.onload = () => {
+                                script.dataset.loaded = 'true';
+                                resolve();
+                            };
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        }
+                    });
+                }
+
+                function initEditor() {
+                    const editorEl = document.getElementById('terms_editor');
+                    const inputEl = document.getElementById('terms_conditions_input');
+                    if (!editorEl || !inputEl) {
+                        setTimeout(initEditor, 50);
+                        return;
+                    }
+                    if (editorEl.dataset.initialized === 'true') {
+                        return;
+                    }
+                    editorEl.dataset.initialized = 'true';
+
+                    Promise.all([
+                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css', 'css'),
+                        loadAsset('https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js', 'js')
+                    ]).then(() => {
+                        if (typeof Quill === 'undefined') return;
+                        
+                        var quill = new Quill(editorEl, {
+                            theme: 'snow',
+                            modules: {
+                                toolbar: [
+                                    ['bold', 'italic', 'underline'],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['link', 'clean']
+                                ]
+                            },
+                            placeholder: 'Tuliskan S&K khusus event ini...'
+                        });
+
+                        if (quill.root.innerHTML === '<p><br></p>' && inputEl.value) {
+                            quill.root.innerHTML = inputEl.value;
+                        }
+
+                        quill.on('text-change', function() {
+                            inputEl.value = quill.root.innerHTML;
+                        });
+
+                        const form = inputEl.closest('form');
+                        if (form) {
+                            form.addEventListener('submit', function() {
+                                inputEl.value = quill.root.innerHTML;
+                            });
+                        }
+
+                        // Style toolbar
+                        setTimeout(() => {
+                            var toolbar = editorEl.previousElementSibling;
+                            if (toolbar && toolbar.classList.contains('ql-toolbar')) {
+                                toolbar.style.border = 'none';
+                                toolbar.style.borderBottom = '1px solid #e5e7eb';
+                            }
+                        }, 50);
+                    }).catch(err => console.error('Failed to load Quill:', err));
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initEditor);
+                } else {
+                    initEditor();
+                }
+            })();
+        </script>
+        @error('terms_conditions')
             <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
         @enderror
     </div>

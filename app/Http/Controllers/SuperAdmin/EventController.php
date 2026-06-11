@@ -54,6 +54,7 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:1024',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'terms_conditions' => 'nullable|string',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . rand(1000, 9999);
@@ -108,6 +109,7 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:1024',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'terms_conditions' => 'nullable|string',
         ]);
         $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
         unset(
