@@ -93,4 +93,23 @@
             </form>
         </div>
     </div>
+
+    <script>
+        (function(){
+            var script = document.currentScript;
+            var form = script && script.closest('form') || document.querySelector('form[action="{{ route('organizer.settings.terms.update') }}"]');
+            if (!form) return;
+
+            form.addEventListener('submit', function () {
+                var editors = form.querySelectorAll('trix-editor');
+                editors.forEach(function (editor) {
+                    var inputId = editor.getAttribute('input');
+                    var input = inputId ? document.getElementById(inputId) : null;
+                    if (input && editor.editor) {
+                        input.value = editor.editor.getDocument().toString().trim() ? editor.value : '';
+                    }
+                });
+            });
+        })();
+    </script>
 </x-app-layout>

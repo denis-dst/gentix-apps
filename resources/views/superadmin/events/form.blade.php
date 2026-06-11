@@ -10,6 +10,26 @@
         @enderror
     </div>
 
+    <script>
+        (function(){
+            // Sync Trix editors to their hidden inputs before the surrounding form submits
+            var script = document.currentScript;
+            var form = script && script.closest('form') || document.querySelector('form');
+            if (!form) return;
+
+            form.addEventListener('submit', function () {
+                var editors = form.querySelectorAll('trix-editor');
+                editors.forEach(function (editor) {
+                    var inputId = editor.getAttribute('input');
+                    var input = inputId ? document.getElementById(inputId) : null;
+                    if (input && editor.editor) {
+                        input.value = editor.editor.getDocument().toString().trim() ? editor.value : '';
+                    }
+                });
+            });
+        })();
+    </script>
+
     <!-- Event Description -->
     <!-- Event Description -->
     <div class="col-span-1 md:col-span-2">
