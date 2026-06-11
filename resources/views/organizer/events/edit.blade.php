@@ -255,6 +255,17 @@
                             <p class="text-[10px] text-gray-400 mt-1 italic">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
                         </div>
 
+                        <script>
+                            document.addEventListener('trix-initialize', function(e) {
+                                if (e.target.inputElement && e.target.inputElement.id === 'terms_conditions_input') {
+                                    var existingValue = e.target.inputElement.value;
+                                    if (existingValue) {
+                                        e.target.editor.loadHTML(existingValue);
+                                    }
+                                }
+                            });
+                        </script>
+
                         <button type="submit" class="w-full py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200">
                             Save Event Details
                         </button>

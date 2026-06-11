@@ -75,6 +75,17 @@
                     @enderror
                 </div>
 
+                <script>
+                    document.addEventListener('trix-initialize', function(e) {
+                        if (e.target.inputElement && e.target.inputElement.id === 'terms_conditions_input') {
+                            var existingValue = e.target.inputElement.value;
+                            if (existingValue) {
+                                e.target.editor.loadHTML(existingValue);
+                            }
+                        }
+                    });
+                </script>
+
                 <div class="bg-indigo-50 rounded-2xl p-6 border border-indigo-100 flex gap-4 items-start">
                     <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

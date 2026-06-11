@@ -812,9 +812,12 @@
                 </button>
             </div>
             <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 leading-relaxed terms-content">
-                @if($event->terms_conditions)
+                @php
+                    $modalTerms = $event->terms_conditions ?: ($event->tenant->terms_conditions ?? null);
+                @endphp
+                @if($modalTerms)
                     <div class="space-y-2">
-                        {!! $event->terms_conditions !!}
+                        {!! $modalTerms !!}
                     </div>
                 @else
                     <div class="text-center py-10 space-y-4">

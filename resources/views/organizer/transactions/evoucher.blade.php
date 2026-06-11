@@ -315,13 +315,20 @@
                     </div>
                 </div>
 
+                @php
+                    $termsContent = $transaction->event->terms_conditions 
+                        ?: ($transaction->tenant->terms_conditions ?? null);
+                @endphp
+
                 <!-- Syarat & Ketentuan -->
+                @if($termsContent)
                 <div class="mt-10 border-t border-slate-100 pt-8">
                     <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Syarat & Ketentuan</h4>
                     <div class="text-[11px] text-slate-500 font-medium leading-relaxed prose max-w-none terms-content">
-                        {!! $transaction->event->terms_conditions !!}
+                        {!! $termsContent !!}
                     </div>
                 </div>
+                @endif
 
                 <!-- Sponsor Logo -->
                 @if(isset($transaction->event->meta['sponsors']) && count($transaction->event->meta['sponsors']) > 0)

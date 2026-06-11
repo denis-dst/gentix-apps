@@ -142,7 +142,7 @@ class PublicEventController extends Controller
             ->where('status', 'published')
             ->with(['ticketCategories' => function($query) {
                 $query->where('is_active', true)->orderBy('price', 'asc');
-            }])
+            }, 'tenant'])
             ->firstOrFail();
 
         return view('events.show', compact('event'));
