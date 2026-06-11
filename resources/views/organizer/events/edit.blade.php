@@ -190,6 +190,7 @@
                                 <input type="file" name="wristband_sponsor_logos[]" multiple class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
                                 <p class="mt-2 text-[10px] text-gray-500 italic">Pengaturan ini dipakai untuk semua kategori tiket dalam event ini.</p>
                             </div>
+                        </div>
 
                         <div class="mb-4">
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Informasi E-Voucher Tambahan (Dinamis)</label>
@@ -254,17 +255,6 @@
                             
                             <p class="text-[10px] text-gray-400 mt-1 italic">Kosongkan jika ingin menggunakan S&K Global Tenant. S&K ini akan muncul di e-voucher.</p>
                         </div>
-
-                        <script>
-                            document.addEventListener('trix-initialize', function(e) {
-                                if (e.target.inputElement && e.target.inputElement.id === 'terms_conditions_input') {
-                                    var existingValue = e.target.inputElement.value;
-                                    if (existingValue) {
-                                        e.target.editor.loadHTML(existingValue);
-                                    }
-                                }
-                            });
-                        </script>
 
                         <button type="submit" class="w-full py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200">
                             Save Event Details

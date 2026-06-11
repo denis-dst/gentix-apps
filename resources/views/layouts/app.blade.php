@@ -20,6 +20,46 @@
         .trix-content { min-height: 250px !important; }
         trix-editor { background: white; border-radius: 0.75rem; border-color: #e2e8f0; }
         trix-editor:focus-within { border-color: #a855f7; box-shadow: 0 0 0 1px #a855f7; outline: none; }
+
+        /* Trix Formatting Styles to bypass Tailwind CSS resets */
+        .trix-content h1, trix-editor h1 {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 0.5rem !important;
+            display: block !important;
+        }
+        .trix-content h2, trix-editor h2 {
+            font-size: 1.25rem !important;
+            font-weight: 600 !important;
+            margin-bottom: 0.5rem !important;
+            display: block !important;
+        }
+        .trix-content strong, .trix-content b, trix-editor strong, trix-editor b {
+            font-weight: bold !important;
+        }
+        .trix-content ul, trix-editor ul {
+            list-style-type: disc !important;
+            margin-left: 1.5rem !important;
+            margin-bottom: 1rem !important;
+            padding-left: 0.5rem !important;
+            display: block !important;
+        }
+        .trix-content ol, trix-editor ol {
+            list-style-type: decimal !important;
+            margin-left: 1.5rem !important;
+            margin-bottom: 1rem !important;
+            padding-left: 0.5rem !important;
+            display: block !important;
+        }
+        .trix-content li, trix-editor li {
+            list-style: inherit !important;
+            margin-bottom: 0.25rem !important;
+            display: list-item !important;
+        }
+        .trix-content a, trix-editor a {
+            color: #3b82f6 !important;
+            text-decoration: underline !important;
+        }
     </style>
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
