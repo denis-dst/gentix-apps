@@ -16,6 +16,39 @@
 
         return 'https://wa.me/' . $number;
     };
+
+    $reportTransactionRows = collect($transactionReportRows ?? null);
+
+    if ($reportTransactionRows->isEmpty() && isset($transactions)) {
+        $reportTransactionRows = collect($transactions)->map(function ($transaction) {
+            $proofTicket = $transaction->tickets->first(function ($ticket) {
+                $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+            });
+
+            $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
+
+            return [
+                'reference_no' => $transaction->reference_no,
+                'created_at' => $transaction->created_at,
+                'customer_name' => $transaction->customer_name,
+                'customer_nik' => $transaction->customer_nik,
+                'customer_email' => $transaction->customer_email,
+                'customer_phone' => $transaction->customer_phone,
+                'customer_gender' => $transaction->customer_gender,
+                'customer_umroh_answer' => $transaction->customer_umroh_answer,
+                'event_name' => $transaction->event->name ?? '-',
+                'category_name' => $transaction->category->name ?? 'Mixed',
+                'quantity' => $transaction->quantity,
+                'total_amount' => $transaction->total_amount,
+                'payment_status' => $transaction->payment_status,
+                'payment_method' => $transaction->payment_method,
+                'proof_ig' => $proofData['proof_ig'] ?? null,
+                'proof_review' => $proofData['proof_review'] ?? null,
+            ];
+        })->values();
+    }
 @endphp
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -142,7 +175,7 @@
                 <!-- Export CSV Buttons -->
                 <button type="button" onclick="exportActiveTableToCSV()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Export ke CSV
+                    Export Data
                 </button>
             </div>
         </div>
@@ -186,21 +219,42 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
-                        @forelse($transactionReportRows as $transactionRow)
+                        @php($transactionRow = [])
+                        @if($reportTransactionRows->isEmpty())
+                            <tr class="no-data-tx">
+                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
+                            </tr>
+                        @else
+                            @foreach($reportTransactionRows as $transactionRow)
                             @php
+                                $referenceNo = $transactionRow['reference_no'] ?? '-';
+                                $createdAt = $transactionRow['created_at'] ?? null;
+                                $createdAtText = $createdAt && method_exists($createdAt, 'format') ? $createdAt->format('d M Y H:i') : '-';
+                                $customerName = $transactionRow['customer_name'] ?? '-';
+                                $customerNik = $transactionRow['customer_nik'] ?? '-';
+                                $customerEmail = $transactionRow['customer_email'] ?? '-';
+                                $customerPhone = $transactionRow['customer_phone'] ?? null;
+                                $customerGender = $transactionRow['customer_gender'] ?? null;
+                                $customerUmrohAnswer = $transactionRow['customer_umroh_answer'] ?? '-';
+                                $eventName = $transactionRow['event_name'] ?? '-';
+                                $categoryName = $transactionRow['category_name'] ?? 'Mixed';
+                                $quantity = $transactionRow['quantity'] ?? 0;
+                                $totalAmount = $transactionRow['total_amount'] ?? 0;
+                                $paymentStatus = $transactionRow['payment_status'] ?? 'unknown';
+                                $paymentMethod = $transactionRow['payment_method'] ?? 'Unknown';
                                 $proofIgUrl = !empty($transactionRow['proof_ig']) ? asset('storage/' . $transactionRow['proof_ig']) : null;
                                 $proofReviewUrl = !empty($transactionRow['proof_review']) ? asset('storage/' . $transactionRow['proof_review']) : null;
-                                $waUrl = $formatWaUrl($transactionRow['customer_phone']);
+                                $waUrl = $formatWaUrl($customerPhone);
                             @endphp
                             <tr class="tx-row hover:bg-slate-50/40 transition">
-                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $transactionRow['reference_no'] }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $transactionRow['created_at']->format('d M Y H:i') }}</span></td>
-                                <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $transactionRow['customer_name'] }}</td>
-                                <td class="px-6 py-4 text-xs text-slate-600">{{ $transactionRow['customer_nik'] ?? '-' }}</td>
-                                <td class="px-6 py-4 text-xs text-slate-600">{{ $transactionRow['customer_email'] }}</td>
+                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $referenceNo }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $createdAtText }}</span></td>
+                                <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $customerName }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600">{{ $customerNik }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600">{{ $customerEmail }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">
                                     @if($waUrl)
                                         <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
-                                            {{ $transactionRow['customer_phone'] }}
+                                            {{ $customerPhone }}
                                         </a>
                                     @else
                                         <span class="text-slate-300">-</span>
@@ -208,7 +262,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofIgUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofIgUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $transactionRow['reference_no']))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
+                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $referenceNo))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -219,7 +273,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofReviewUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofReviewUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $transactionRow['reference_no']))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
+                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $referenceNo))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -229,37 +283,34 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-xs">
-                                    @if($transactionRow['customer_gender'])
-                                        <span class="font-black uppercase {{ $transactionRow['customer_gender'] === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
-                                            {{ $transactionRow['customer_gender'] === 'ikhwan' ? 'Ikhwan' : 'Akhwat' }}
+                                    @if($customerGender)
+                                        <span class="font-black uppercase {{ $customerGender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
+                                            {{ $customerGender === 'ikhwan' ? 'Ikhwan' : 'Akhwat' }}
                                         </span>
                                     @else
                                         <span class="text-slate-300">-</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $transactionRow['customer_umroh_answer'] }}">{{ $transactionRow['customer_umroh_answer'] ?? '-' }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $customerUmrohAnswer }}">{{ $customerUmrohAnswer }}</td>
                                 <td class="px-6 py-4 text-xs">
-                                    <span class="font-bold text-slate-700 block">{{ $transactionRow['event_name'] }}</span>
-                                    <span class="text-[10px] text-orange-500 font-black uppercase tracking-wider block mt-0.5">{{ $transactionRow['category_name'] }}</span>
+                                    <span class="font-bold text-slate-700 block">{{ $eventName }}</span>
+                                    <span class="text-[10px] text-orange-500 font-black uppercase tracking-wider block mt-0.5">{{ $categoryName }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ $transactionRow['quantity'] }}</td>
-                                <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($transactionRow['total_amount'], 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ $quantity }}</td>
+                                <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
                                 <td class="px-6 py-4">
-                                    @if($transactionRow['payment_status'] === 'paid')
+                                    @if($paymentStatus === 'paid')
                                         <span class="px-2 py-1 rounded bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider">PAID</span>
-                                    @elseif($transactionRow['payment_status'] === 'refunded')
+                                    @elseif($paymentStatus === 'refunded')
                                         <span class="px-2 py-1 rounded bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider">REFUNDED</span>
                                     @else
-                                        <span class="px-2 py-1 rounded bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider">{{ strtoupper($transactionRow['payment_status']) }}</span>
+                                        <span class="px-2 py-1 rounded bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider">{{ strtoupper($paymentStatus) }}</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-600 uppercase">{{ $transactionRow['payment_method'] ?? 'Unknown' }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 uppercase">{{ $paymentMethod }}</td>
                             </tr>
-                        @empty
-                            <tr class="no-data-tx">
-                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
-                            </tr>
-                        @endforelse
+                            @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>
