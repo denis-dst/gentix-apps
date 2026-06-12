@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Services\TicketNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 use App\Models\PromoCode;
@@ -341,8 +342,6 @@ class PublicEventController extends Controller
             'attendees.*.name'   => 'required|string|max:255',
             'attendees.*.gender' => 'required|in:ikhwan,akhwat',
             'attendees.*.umroh_answer' => 'nullable|string|max:500',
-            'proof_ig'           => 'required|file|mimes:jpg,jpeg,png|max:1024',
-            'proof_review'       => 'required|file|mimes:jpg,jpeg,png|max:1024',
         ]);
 
         if ($validator->fails()) {
@@ -369,8 +368,15 @@ class PublicEventController extends Controller
             return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini sudah ditutup.']);
         }
 
-        $proofIgPath = $request->file('proof_ig')->store('registration-proofs', 'public');
-        $proofReviewPath = $request->file('proof_review')->store('registration-proofs', 'public');
+        $proofIgPath = $this->storeRegistrationProof($request, 'proof_ig', 'bukti follow IG');
+        if ($proofIgPath instanceof \Illuminate\Http\JsonResponse) {
+            return $proofIgPath;
+        }
+
+        $proofReviewPath = $this->storeRegistrationProof($request, 'proof_review', 'bukti Google Review');
+        if ($proofReviewPath instanceof \Illuminate\Http\JsonResponse) {
+            return $proofReviewPath;
+        }
 
         return DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath) {
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
@@ -440,6 +446,95 @@ class PublicEventController extends Controller
                 'ticket_code'  => $firstTicket ? $firstTicket->ticket_code : null,
             ]);
         });
+    }
+
+    private function storeRegistrationProof(Request $request, string $key, string $label): string|\Illuminate\Http\JsonResponse
+    {
+        $file = $request->file($key);
+
+        if (!$file) {
+            return response()->json([
+                'success' => false,
+                'message' => "Upload {$label} wajib diisi.",
+            ], 422);
+        }
+
+        if (!$file->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Upload {$label} gagal diterima server: " . $file->getErrorMessage(),
+            ], 422);
+        }
+
+        if (($file->getSize() ?: 0) > 1024 * 1024) {
+            return response()->json([
+                'success' => false,
+                'message' => "Ukuran {$label} maksimal 1 MB.",
+            ], 422);
+        }
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = strtolower((string) $file->getMimeType());
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+        $allowedMimeTypes = ['image/jpeg', 'image/png'];
+
+        if (!in_array($extension, $allowedExtensions, true) || !in_array($mimeType, $allowedMimeTypes, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Format {$label} harus JPG atau PNG.",
+            ], 422);
+        }
+
+        $sourcePath = $file->getPathname();
+        if (!$sourcePath) {
+            return response()->json([
+                'success' => false,
+                'message' => "Upload {$label} gagal dibaca. Silakan pilih ulang file.",
+            ], 422);
+        }
+
+        $fileName = Str::uuid() . '.' . ($extension === 'jpeg' ? 'jpg' : $extension);
+        $path = 'registration-proofs/' . $fileName;
+
+        try {
+            $stream = fopen($sourcePath, 'r');
+
+            if ($stream === false) {
+                throw new \RuntimeException('Unable to open uploaded file stream.');
+            }
+
+            $stored = Storage::disk('public')->put($path, $stream);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        } catch (\Throwable $e) {
+            if (isset($stream) && is_resource($stream)) {
+                fclose($stream);
+            }
+
+            \Log::error("Failed storing {$label}: " . $e->getMessage(), [
+                'field' => $key,
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime' => $mimeType,
+                'source_path_empty' => $sourcePath === '',
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Upload {$label} gagal disimpan. Silakan coba lagi.",
+            ], 500);
+        }
+
+        if (!$stored) {
+            return response()->json([
+                'success' => false,
+                'message' => "Upload {$label} gagal disimpan. Silakan coba lagi.",
+            ], 500);
+        }
+
+        return $path;
     }
 
     public function success($reference)

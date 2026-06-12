@@ -14,10 +14,21 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         [x-cloak] { display: none !important; }
-        .terms-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-        .terms-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
-        .terms-content li { margin-bottom: 0.25rem; }
+        .terms-content { font-size: 0.95rem; line-height: 1.75; }
+        .terms-content h1 { font-size: 1.4rem; line-height: 1.25; font-weight: 800; color: #0f172a; margin: 0 0 1rem; }
+        .terms-content h2 { font-size: 1.15rem; line-height: 1.35; font-weight: 800; color: #0f172a; margin: 1.25rem 0 0.5rem; }
+        .terms-content p, .terms-content div { margin-bottom: 0.75rem; }
+        .terms-content ul { list-style-type: disc; list-style-position: outside; padding-left: 1.5rem; margin: 0.75rem 0 1rem; }
+        .terms-content ol { list-style-type: decimal; list-style-position: outside; padding-left: 1.5rem; margin: 0.75rem 0 1rem; }
+        .terms-content li { display: list-item; margin-bottom: 0.35rem; padding-left: 0.25rem; }
+        .terms-content li > ul { list-style-type: circle; margin-top: 0.35rem; }
+        .terms-content li > ol { list-style-type: lower-alpha; margin-top: 0.35rem; }
         .terms-content b, .terms-content strong { font-weight: 800; }
+        .terms-content em, .terms-content i { font-style: italic; }
+        .terms-content u { text-decoration: underline; }
+        .terms-content blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; color: #475569; font-style: italic; margin: 1rem 0; }
+        .terms-content a { color: #2563eb; font-weight: 700; text-decoration: underline; }
+        .terms-content *:last-child { margin-bottom: 0; }
         
         button[type="submit"] {
             background-color: #f97316 !important;
@@ -614,7 +625,7 @@
                                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
                                     </div>
 
-                                    <div class="grid md:grid-cols-2 gap-3">
+                                    <div class="space-y-3">
                                         <div>
                                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bukti Follow IG *</label>
                                             <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
@@ -878,12 +889,12 @@
                     <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 leading-relaxed terms-content prose prose-slate max-w-none">
+            <div class="p-8 max-h-[60vh] overflow-y-auto text-slate-600 terms-content">
                 @php
                     $modalTerms = $event->terms_conditions ?: ($event->tenant->terms_conditions ?? null);
                 @endphp
                 @if($modalTerms)
-                    <div class="space-y-2">
+                    <div>
                         {!! $modalTerms !!}
                     </div>
                 @else
