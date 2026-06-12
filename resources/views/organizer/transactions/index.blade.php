@@ -68,6 +68,7 @@
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Tiket</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Promo</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Bayar</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Bukti</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Aksi</th>
                         </tr>
@@ -77,6 +78,11 @@
                             @php
                                 $activeTicketsCount = $tx->tickets->where('status', '!=', 'void')->count();
                                 $voidTicketsCount = $tx->tickets->where('status', 'void')->count();
+                                $proofTicket = $tx->tickets->first(function ($ticket) {
+                                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+                                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                                });
+                                $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
                                 $cancelableTickets = $tx->tickets
                                     ->where('status', '!=', 'void')
                                     ->map(function ($ticket) use ($tx) {
@@ -126,6 +132,20 @@
                                     <div class="text-[9px] font-bold text-slate-400 uppercase">{{ $tx->payment_method ?? 'Unknown' }}</div>
                                 </td>
                                 <td class="px-8 py-5">
+                                    @if(!empty($proofData['proof_ig']) || !empty($proofData['proof_review']))
+                                        <div class="flex flex-col gap-1.5">
+                                            @if(!empty($proofData['proof_ig']))
+                                                <a href="{{ asset('storage/' . $proofData['proof_ig']) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">IG</a>
+                                            @endif
+                                            @if(!empty($proofData['proof_review']))
+                                                <a href="{{ asset('storage/' . $proofData['proof_review']) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition">Review</a>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs font-bold text-slate-300">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-8 py-5">
                                     @if($tx->payment_status === 'paid')
                                         <span class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider">PAID</span>
                                     @elseif($tx->payment_status === 'refunded')
@@ -170,7 +190,7 @@
                             <!-- Collapsible Ticket Detail Row -->
                             <tr id="tickets-{{ $tx->id }}" class="hidden bg-slate-50/50">
                                 <td></td>
-                                <td colspan="7" class="px-8 py-5 border-b border-slate-100">
+                                <td colspan="8" class="px-8 py-5 border-b border-slate-100">
                                     <div class="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
                                         <div class="flex items-center justify-between border-b border-slate-50 pb-3">
                                             <div>
@@ -195,24 +215,42 @@
                                                         <th class="py-2.5">Kode Tiket</th>
                                                         <th class="py-2.5">Pemegang/Pengunjung</th>
                                                         <th class="py-2.5">Kategori</th>
+                                                        <th class="py-2.5">Bukti</th>
                                                         <th class="py-2.5">Status</th>
                                                         <th class="py-2.5 text-right">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-slate-50">
                                                     @foreach($tx->tickets as $ticket)
+                                                        @php
+                                                            $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+                                                        @endphp
                                                         <tr class="hover:bg-slate-50/50 transition">
                                                             <td class="py-3 font-mono font-black text-slate-600">{{ $ticket->ticket_code }}</td>
                                                             <td class="py-3">
                                                                 <div class="font-black text-slate-800 uppercase">
-                                                                    {{ $ticket->visitor_data['name'] ?? $tx->customer_name }}
+                                                                    {{ $visitorData['name'] ?? $tx->customer_name }}
                                                                 </div>
                                                                 <div class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
-                                                                    NIK: {{ $ticket->visitor_data['nik'] ?? $tx->customer_nik ?? '-' }} 
-                                                                    | Gender: {{ $ticket->visitor_data['gender'] ?? $tx->customer_gender ?? '-' }}
+                                                                    NIK: {{ $visitorData['nik'] ?? $tx->customer_nik ?? '-' }}
+                                                                    | Gender: {{ $visitorData['gender'] ?? $tx->customer_gender ?? '-' }}
                                                                 </div>
                                                             </td>
                                                             <td class="py-3 text-slate-500 font-bold">{{ $ticket->category->name ?? '-' }}</td>
+                                                            <td class="py-3">
+                                                                @if(!empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']))
+                                                                    <div class="flex flex-wrap gap-1.5">
+                                                                        @if(!empty($visitorData['proof_ig']))
+                                                                            <a href="{{ asset('storage/' . $visitorData['proof_ig']) }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">IG</a>
+                                                                        @endif
+                                                                        @if(!empty($visitorData['proof_review']))
+                                                                            <a href="{{ asset('storage/' . $visitorData['proof_review']) }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition">Review</a>
+                                                                        @endif
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-[9px] text-slate-300 font-black uppercase">-</span>
+                                                                @endif
+                                                            </td>
                                                             <td class="py-3">
                                                                 @if($ticket->status === 'sold')
                                                                     <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
@@ -246,7 +284,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-8 py-20 text-center">
+                                <td colspan="9" class="px-8 py-20 text-center">
                                     <div class="flex flex-col items-center">
                                         <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
                                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>

@@ -67,6 +67,9 @@
     nik: '',
     phone: '',
     email: '',
+    proofIgFile: null,
+    proofReviewFile: null,
+    maxProofFileSize: 1048576,
     attendees: [],
     currentAttendee: 0,
     paymentMethod: 'qris',
@@ -131,6 +134,31 @@
         }
     },
 
+    handleProofUpload(field, event) {
+        const file = event.target.files[0] || null;
+        if (!file) {
+            this[field] = null;
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/png'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('File bukti wajib JPG atau PNG.');
+            event.target.value = '';
+            this[field] = null;
+            return;
+        }
+
+        if (file.size > this.maxProofFileSize) {
+            alert('Ukuran file bukti maksimal 1 MB per gambar.');
+            event.target.value = '';
+            this[field] = null;
+            return;
+        }
+
+        this[field] = file;
+    },
+
     goToStep2() {
         if (!this.selectedCategory || this.quantity === 0) {
             alert(this.lang === 'id' ? 'Silakan pilih tiket.' : 'Please select ticket.');
@@ -167,23 +195,29 @@
             alert('Silakan lengkapi nama dan gender untuk semua peserta.');
             return;
         }
+        if (!this.proofIgFile || !this.proofReviewFile) {
+            alert('Silakan upload bukti follow IG dan bukti Google Review.');
+            return;
+        }
         this.isSubmitting = true;
         try {
+            const formData = new FormData();
+            formData.append('ticket_category_id', this.selectedCategory.id);
+            formData.append('quantity', this.quantity);
+            formData.append('phone', this.phone);
+            formData.append('email', this.email);
+            formData.append('attendees', JSON.stringify(this.attendees));
+            formData.append('proof_ig', this.proofIgFile);
+            formData.append('proof_review', this.proofReviewFile);
+
             const response = await fetch('{{ route('checkout.process', $event->slug) }}', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({
-                    ticket_category_id: this.selectedCategory.id,
-                    quantity: this.quantity,
-                    phone: this.phone,
-                    email: this.email,
-                    attendees: this.attendees
-                })
+                body: formData
             });
 
             const data = await response.json();
@@ -409,6 +443,22 @@
                                     <button @click="showModalSK = true" class="text-blue-500 text-xs font-bold hover:underline uppercase tracking-wider">S&K</button>
                                 </div>
  
+                                @if($event->is_free)
+                                    <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
+                                        <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
+                                            <li>
+                                                Bukti (Screenshoot) Follow Akun IG
+                                                <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">@batikumrah</a>
+                                            </li>
+                                            <li>
+                                                Bukti (Screenshoot) Mengisi Google Review
+                                                <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">https://bit.ly/googlereviewbatik</a>
+                                            </li>
+                                        </ol>
+                                    </div>
+                                @endif
+
                                 <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
                                     <div>
                                         <div class="text-xl font-black text-slate-900 font-outfit">
@@ -563,6 +613,23 @@
                                         <input type="email" x-model="email" placeholder="nama@email.com" required
                                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
                                     </div>
+
+                                    <div class="grid md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bukti Follow IG *</label>
+                                            <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                   @change="handleProofUpload('proofIgFile', $event)"
+                                                   class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                            <p class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bukti Google Review *</label>
+                                            <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                   @change="handleProofUpload('proofReviewFile', $event)"
+                                                   class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                            <p class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
@@ -664,7 +731,7 @@
 
                                     <button type="submit" 
                                             id="btn-daftar-submit"
-                                            :disabled="isSubmitting || !phone || !email || attendees.some(a => !a.name || !a.gender)"
+                                            :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
                                             class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
                                         <template x-if="isSubmitting">
                                             <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

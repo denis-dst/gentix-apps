@@ -324,6 +324,14 @@ class PublicEventController extends Controller
      */
     private function processFreeCheckout(Request $request, Event $event)
     {
+        if (is_string($request->input('attendees'))) {
+            $attendees = json_decode($request->input('attendees'), true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['attendees' => $attendees]);
+            }
+        }
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
             'quantity'           => 'required|integer|min:1|max:' . ($event->max_tickets_per_transaction ?? 1),
@@ -333,6 +341,8 @@ class PublicEventController extends Controller
             'attendees.*.name'   => 'required|string|max:255',
             'attendees.*.gender' => 'required|in:ikhwan,akhwat',
             'attendees.*.umroh_answer' => 'nullable|string|max:500',
+            'proof_ig'           => 'required|file|mimes:jpg,jpeg,png|max:1024',
+            'proof_review'       => 'required|file|mimes:jpg,jpeg,png|max:1024',
         ]);
 
         if ($validator->fails()) {
@@ -359,7 +369,10 @@ class PublicEventController extends Controller
             return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini sudah ditutup.']);
         }
 
-        return DB::transaction(function () use ($event, $category, $validated) {
+        $proofIgPath = $request->file('proof_ig')->store('registration-proofs', 'public');
+        $proofReviewPath = $request->file('proof_review')->store('registration-proofs', 'public');
+
+        return DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath) {
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $firstAttendee = $validated['attendees'][0];
@@ -402,6 +415,8 @@ class PublicEventController extends Controller
                         'umroh_answer' => $attendee['umroh_answer'] ?? null,
                         'email'        => $validated['email'],
                         'phone'        => $validated['phone'],
+                        'proof_ig'     => $proofIgPath,
+                        'proof_review' => $proofReviewPath,
                     ]
                 ]);
 
