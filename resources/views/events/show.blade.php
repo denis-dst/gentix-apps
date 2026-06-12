@@ -95,6 +95,7 @@
     promoStatus: null,
     isSubmitting: false,
     registrationSuccess: false,
+    formTouched: false,
     
     get total() {
         if (!this.selectedCategory || !this.quantity) return 0;
@@ -200,14 +201,16 @@
     },
 
     async submitFreeRegistration() {
+        this.formTouched = true;
         if (!this.selectedCategory) return;
         const invalid = this.attendees.some((a, i) => !a.name || !a.gender);
         if (invalid) {
-            alert('Silakan lengkapi nama dan gender untuk semua peserta.');
+            // Jump to the first incomplete attendee
+            const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
+            if (firstIdx !== -1) this.currentAttendee = firstIdx;
             return;
         }
-        if (!this.proofIgFile || !this.proofReviewFile) {
-            alert('Silakan upload bukti follow IG dan bukti Google Review.');
+        if (!this.email || !this.proofIgFile || !this.proofReviewFile) {
             return;
         }
         this.isSubmitting = true;
@@ -620,25 +623,40 @@
 
                                     <!-- Email Pemesan -->
                                     <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Alamat Email *</label>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !email ? 'text-rose-500' : 'text-slate-400'">Alamat Email *</label>
                                         <input type="email" x-model="email" placeholder="nama@email.com" required
-                                               class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                               :class="formTouched && !email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                               class="w-full bg-white border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition">
+                                        <p x-show="formTouched && !email" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                            Email wajib diisi
+                                        </p>
                                     </div>
 
                                     <div class="space-y-3">
                                         <div>
-                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bukti Follow IG *</label>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-400'">Bukti Follow IG *</label>
                                             <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
                                                    @change="handleProofUpload('proofIgFile', $event)"
-                                                   class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 focus:ring-2 focus:ring-emerald-400 outline-none transition">
-                                            <p class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
+                                                   :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                   class="w-full bg-white border rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                            <p x-show="formTouched && !proofIgFile" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Upload bukti follow IG wajib
+                                            </p>
+                                            <p x-show="!formTouched || proofIgFile" class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
                                         </div>
                                         <div>
-                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bukti Google Review *</label>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-400'">Bukti Google Review *</label>
                                             <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
                                                    @change="handleProofUpload('proofReviewFile', $event)"
-                                                   class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 focus:ring-2 focus:ring-emerald-400 outline-none transition">
-                                            <p class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
+                                                   :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                   class="w-full bg-white border rounded-xl px-4 py-2.5 text-xs font-bold text-slate-500 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-black file:text-[10px] file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                            <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Upload bukti Google Review wajib
+                                            </p>
+                                            <p x-show="!formTouched || proofReviewFile" class="mt-1 text-[10px] font-semibold text-slate-400">JPG/PNG, maksimal 1 MB.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -650,8 +668,13 @@
                                             <button type="button" 
                                                     @click="currentAttendee = index"
                                                     :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-                                                    class="flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
+                                                    class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
                                                 Peserta <span x-text="index + 1"></span>
+                                                <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
+                                                      class="absolute -top-1 -right-1 flex h-3 w-3">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                                                </span>
                                             </button>
                                         </template>
                                     </div>
@@ -667,17 +690,22 @@
 
                                     <!-- Nama Lengkap -->
                                     <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nama Lengkap</label>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
                                         <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
-                                               class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-400 outline-none transition">
+                                               :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
+                                               class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
+                                        <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                            Nama lengkap wajib diisi
+                                        </p>
                                     </div>
 
                                     <!-- Gender -->
                                     <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Gender</label>
+                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
                                         <div class="grid grid-cols-2 gap-3">
                                             <!-- Ikhwan -->
-                                            <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300'"
+                                            <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
                                                    class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
                                                 <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
                                                 <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
@@ -689,7 +717,7 @@
                                                 </div>
                                             </label>
                                             <!-- Akhwat -->
-                                            <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300'"
+                                            <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
                                                    class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
                                                 <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
                                                 <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
@@ -701,6 +729,10 @@
                                                 </div>
                                             </label>
                                         </div>
+                                        <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                            Pilih gender wajib
+                                        </p>
                                     </div>
 
                                     <!-- Pertanyaan Umroh (conditional) -->
@@ -738,6 +770,31 @@
                                     <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
                                         <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
                                         <span class="text-xl font-black text-emerald-600 font-outfit">GRATIS</span>
+                                    </div>
+
+                                    <!-- Validation Error Summary -->
+                                    <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
+                                         x-cloak
+                                         class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <svg class="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                            <span class="text-[10px] font-black text-rose-700 uppercase tracking-wider">Lengkapi data berikut:</span>
+                                        </div>
+                                        <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
+                                            <li x-show="!email">Alamat Email</li>
+                                            <li x-show="!proofIgFile">Bukti Follow IG</li>
+                                            <li x-show="!proofReviewFile">Bukti Google Review</li>
+                                            <template x-for="(attendee, idx) in attendees" :key="idx">
+                                                <template x-if="!attendee.name || !attendee.gender">
+                                                    <li>
+                                                        <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
+                                                        <span x-show="!attendee.name">Nama</span>
+                                                        <span x-show="!attendee.name && !attendee.gender">, </span>
+                                                        <span x-show="!attendee.gender">Gender</span>
+                                                    </li>
+                                                </template>
+                                            </template>
+                                        </ul>
                                     </div>
 
                                     <button type="submit" 
