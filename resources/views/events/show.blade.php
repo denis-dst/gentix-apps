@@ -636,7 +636,7 @@
                                     <div class="space-y-3">
                                         <div>
                                             <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline"> Klik Disini Untuk Follow Akun IG @batikumrah Lalu Screenshot</a>
-                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-400'">Bukti Follow IG *</label>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-400'">Upload Bukti Follow IG *</label>
                                             <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
                                                    @change="handleProofUpload('proofIgFile', $event)"
                                                    :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
@@ -649,7 +649,7 @@
                                         </div>
                                         <div>
                                             <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">Klik Disini Untuk Mengisi Google Review Lalu Screenshot</a>
-                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-400'">Bukti Google Review *</label>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-400'">Upload Bukti Google Review *</label>
                                             <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
                                                    @change="handleProofUpload('proofReviewFile', $event)"
                                                    :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
