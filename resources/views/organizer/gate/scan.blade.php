@@ -103,6 +103,18 @@
                     <div x-show="inputType === 'camera'" id="reader"
                         class="absolute inset-0 w-full h-full object-cover bg-black"></div>
 
+                    <!-- Camera Error / Retry -->
+                    <div x-show="cameraError" x-cloak class="absolute inset-0 flex items-center justify-center z-40 pointer-events-auto">
+                        <div class="bg-black/80 p-6 rounded-xl border border-white/10 text-center">
+                            <div class="text-sm font-black text-rose-400 uppercase">Kamera tidak tersedia</div>
+                            <p class="text-xs text-slate-300 mt-2">Periksa izin kamera atau pilih kamera lain pada pengaturan browser.</p>
+                            <div class="mt-4 flex gap-2 justify-center">
+                                <button @click="startCamera()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Coba Ulang</button>
+                                <button @click="setInputType('manual')" class="px-4 py-2 bg-white text-black rounded-lg font-bold">Gunakan Manual</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Manual Entry Card -->
                     <div x-show="inputType === 'manual'"
                         class="z-20 w-full max-w-sm p-6 animate-in zoom-in duration-300">
@@ -548,6 +560,16 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
         .animate-scan-line { animation: scan-line 2s ease-in-out infinite; }
         @keyframes scan-line { 0%, 100% { top: 5%; } 50% { top: 95%; } }
+        /* Ensure camera video inside #reader is visible and covers area */
+        #reader video, #reader canvas, #reader .html5-qrcode-video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 0 !important;
+        }
         .shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
     </style>
