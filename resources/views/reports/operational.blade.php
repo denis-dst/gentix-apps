@@ -186,26 +186,21 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
-                        @forelse($transactions as $tx)
+                        @forelse($transactionReportRows as $transactionRow)
                             @php
-                                $proofTicket = $tx->tickets->first(function ($ticket) {
-                                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
-                                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
-                                });
-                                $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
-                                $proofIgUrl = !empty($proofData['proof_ig']) ? asset('storage/' . $proofData['proof_ig']) : null;
-                                $proofReviewUrl = !empty($proofData['proof_review']) ? asset('storage/' . $proofData['proof_review']) : null;
-                                $waUrl = $formatWaUrl($tx->customer_phone);
+                                $proofIgUrl = !empty($transactionRow['proof_ig']) ? asset('storage/' . $transactionRow['proof_ig']) : null;
+                                $proofReviewUrl = !empty($transactionRow['proof_review']) ? asset('storage/' . $transactionRow['proof_review']) : null;
+                                $waUrl = $formatWaUrl($transactionRow['customer_phone']);
                             @endphp
                             <tr class="tx-row hover:bg-slate-50/40 transition">
-                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $tx->reference_no }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $tx->created_at->format('d M Y H:i') }}</span></td>
-                                <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $tx->customer_name }}</td>
-                                <td class="px-6 py-4 text-xs text-slate-600">{{ $tx->customer_nik ?? '-' }}</td>
-                                <td class="px-6 py-4 text-xs text-slate-600">{{ $tx->customer_email }}</td>
+                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $transactionRow['reference_no'] }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $transactionRow['created_at']->format('d M Y H:i') }}</span></td>
+                                <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $transactionRow['customer_name'] }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600">{{ $transactionRow['customer_nik'] ?? '-' }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600">{{ $transactionRow['customer_email'] }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">
                                     @if($waUrl)
                                         <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
-                                            {{ $tx->customer_phone }}
+                                            {{ $transactionRow['customer_phone'] }}
                                         </a>
                                     @else
                                         <span class="text-slate-300">-</span>
@@ -213,7 +208,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofIgUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofIgUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $tx->reference_no))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
+                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $transactionRow['reference_no']))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -224,7 +219,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofReviewUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofReviewUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $tx->reference_no))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
+                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $transactionRow['reference_no']))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -234,31 +229,31 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-xs">
-                                    @if($tx->customer_gender)
-                                        <span class="font-black uppercase {{ $tx->customer_gender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
-                                            {{ $tx->customer_gender === 'ikhwan' ? '🧔 Ikhwan' : '🧕 Akhwat' }}
+                                    @if($transactionRow['customer_gender'])
+                                        <span class="font-black uppercase {{ $transactionRow['customer_gender'] === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
+                                            {{ $transactionRow['customer_gender'] === 'ikhwan' ? 'Ikhwan' : 'Akhwat' }}
                                         </span>
                                     @else
                                         <span class="text-slate-300">-</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $tx->customer_umroh_answer }}">{{ $tx->customer_umroh_answer ?? '-' }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $transactionRow['customer_umroh_answer'] }}">{{ $transactionRow['customer_umroh_answer'] ?? '-' }}</td>
                                 <td class="px-6 py-4 text-xs">
-                                    <span class="font-bold text-slate-700 block">{{ $tx->event->name ?? '-' }}</span>
-                                    <span class="text-[10px] text-orange-500 font-black uppercase tracking-wider block mt-0.5">{{ $tx->category->name ?? 'Mixed' }}</span>
+                                    <span class="font-bold text-slate-700 block">{{ $transactionRow['event_name'] }}</span>
+                                    <span class="text-[10px] text-orange-500 font-black uppercase tracking-wider block mt-0.5">{{ $transactionRow['category_name'] }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ $tx->quantity }}</td>
-                                <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($tx->total_amount, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ $transactionRow['quantity'] }}</td>
+                                <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($transactionRow['total_amount'], 0, ',', '.') }}</td>
                                 <td class="px-6 py-4">
-                                    @if($tx->payment_status === 'paid')
+                                    @if($transactionRow['payment_status'] === 'paid')
                                         <span class="px-2 py-1 rounded bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider">PAID</span>
-                                    @elseif($tx->payment_status === 'refunded')
+                                    @elseif($transactionRow['payment_status'] === 'refunded')
                                         <span class="px-2 py-1 rounded bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider">REFUNDED</span>
                                     @else
-                                        <span class="px-2 py-1 rounded bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider">{{ strtoupper($tx->payment_status) }}</span>
+                                        <span class="px-2 py-1 rounded bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider">{{ strtoupper($transactionRow['payment_status']) }}</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-600 uppercase">{{ $tx->payment_method ?? 'Unknown' }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600 uppercase">{{ $transactionRow['payment_method'] ?? 'Unknown' }}</td>
                             </tr>
                         @empty
                             <tr class="no-data-tx">

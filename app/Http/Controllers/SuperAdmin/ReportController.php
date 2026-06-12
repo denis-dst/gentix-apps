@@ -52,9 +52,44 @@ class ReportController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $transactionReportRows = $this->buildTransactionReportRows($transactions);
         $ticketReportRows = $this->buildTicketReportRows($transactions);
 
-        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'ticketReportRows'));
+        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
+    }
+
+    private function buildTransactionReportRows($transactions)
+    {
+        return $transactions
+            ->map(function ($transaction) {
+                $proofTicket = $transaction->tickets->first(function ($ticket) {
+                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                });
+
+                $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
+
+                return [
+                    'reference_no' => $transaction->reference_no,
+                    'created_at' => $transaction->created_at,
+                    'customer_name' => $transaction->customer_name,
+                    'customer_nik' => $transaction->customer_nik,
+                    'customer_email' => $transaction->customer_email,
+                    'customer_phone' => $transaction->customer_phone,
+                    'customer_gender' => $transaction->customer_gender,
+                    'customer_umroh_answer' => $transaction->customer_umroh_answer,
+                    'event_name' => $transaction->event->name ?? '-',
+                    'category_name' => $transaction->category->name ?? 'Mixed',
+                    'quantity' => $transaction->quantity,
+                    'total_amount' => $transaction->total_amount,
+                    'payment_status' => $transaction->payment_status,
+                    'payment_method' => $transaction->payment_method,
+                    'proof_ig' => $proofData['proof_ig'] ?? null,
+                    'proof_review' => $proofData['proof_review'] ?? null,
+                ];
+            })
+            ->values();
     }
 
     private function buildTicketReportRows($transactions)
