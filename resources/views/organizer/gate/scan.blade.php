@@ -318,8 +318,9 @@
         function gateScanner() {
             return {
                 mode: '{{ session('gate_mode', 'IN') }}',
-                inputType: 'auto',
+                inputType: 'camera',
                 status: 'idle',
+                cameraError: false,
                 scannedCode: '',
                 manualCode: '',
                 lastScannedCode: '',
@@ -336,7 +337,14 @@
                 selectedTicketIds: [],
 
                 init() {
-                    this.$nextTick(() => this.focusInput());
+                    this.$nextTick(() => {
+                        if (this.inputType === 'camera') {
+                            // start camera automatically when opening the page
+                            setTimeout(() => this.startCamera(), 300);
+                        } else {
+                            this.focusInput();
+                        }
+                    });
                     document.addEventListener('click', () => { if (this.inputType === 'auto' && !this.isGroupScan) this.focusInput(); });
                     setInterval(() => { if (this.inputType === 'auto' && this.status === 'idle' && !this.isGroupScan) this.focusInput(); }, 1000);
                 },
@@ -356,21 +364,43 @@
 
                 startCamera() {
                     if (this.html5QrCode) this.stopCamera();
-                    
+
+                    this.cameraError = false;
                     this.html5QrCode = new Html5Qrcode("reader");
-                    const config = { fps: 20, qrbox: { width: 250, height: 250 } };
-                    
-                    this.html5QrCode.start(
-                        { facingMode: "environment" }, 
-                        config, 
-                        (text) => { 
-                            if (this.status !== 'processing' && !this.isGroupScan) {
-                                this.scannedCode = text; 
-                                this.processScan(); 
-                            }
+                    const config = { fps: 20, qrbox: { width: 250, height: 250 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+
+                    // Prefer querying available cameras and select rear/back if possible
+                    Html5Qrcode.getCameras().then(devices => {
+                        if (!devices || devices.length === 0) {
+                            this.cameraError = true;
+                            console.error('No camera devices found');
+                            return;
                         }
-                    ).catch(err => {
-                        console.error("Camera Error:", err);
+
+                        // Choose a back-facing camera when label suggests so
+                        let cameraId = devices[0].id;
+                        const back = devices.find(d => /back|rear|environment/i.test(d.label));
+                        if (back) cameraId = back.id;
+
+                        this.html5QrCode.start(
+                            cameraId,
+                            config,
+                            (text) => {
+                                if (this.status !== 'processing' && !this.isGroupScan) {
+                                    this.scannedCode = text;
+                                    this.processScan();
+                                }
+                            },
+                            (err) => {
+                                // optional per-frame error callback
+                            }
+                        ).catch(err => {
+                            this.cameraError = true;
+                            console.error('Camera Error:', err);
+                        });
+                    }).catch(err => {
+                        this.cameraError = true;
+                        console.error('getCameras Error:', err);
                     });
                 },
 
