@@ -43,7 +43,7 @@ class ReportController extends Controller
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'tickets.category'])
+            ->with(['event', 'category', 'tickets.category'])
             ->orderByDesc('created_at')
             ->get();
 

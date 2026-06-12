@@ -1,6 +1,21 @@
 @php
     $isSuperadminReport = ($scope ?? '') === 'superadmin';
     $reportRoute = $isSuperadminReport ? route('superadmin.reports.index') : route('organizer.reports.index');
+    $formatWaUrl = function ($phone) {
+        $number = preg_replace('/\D+/', '', (string) $phone);
+
+        if ($number === '') {
+            return null;
+        }
+
+        if (str_starts_with($number, '0')) {
+            $number = '62' . substr($number, 1);
+        } elseif (!str_starts_with($number, '62')) {
+            $number = '62' . $number;
+        }
+
+        return 'https://wa.me/' . $number;
+    };
 @endphp
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -159,6 +174,8 @@
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">NIK</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Upload Bukti IG</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Upload Bukti Review</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Umroh</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event & Kategori</th>
@@ -170,12 +187,52 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
                         @forelse($transactions as $tx)
+                            @php
+                                $proofTicket = $tx->tickets->first(function ($ticket) {
+                                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+                                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                                });
+                                $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
+                                $proofIgUrl = !empty($proofData['proof_ig']) ? asset('storage/' . $proofData['proof_ig']) : null;
+                                $proofReviewUrl = !empty($proofData['proof_review']) ? asset('storage/' . $proofData['proof_review']) : null;
+                                $waUrl = $formatWaUrl($tx->customer_phone);
+                            @endphp
                             <tr class="tx-row hover:bg-slate-50/40 transition">
                                 <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $tx->reference_no }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $tx->created_at->format('d M Y H:i') }}</span></td>
                                 <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $tx->customer_name }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">{{ $tx->customer_nik ?? '-' }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">{{ $tx->customer_email }}</td>
-                                <td class="px-6 py-4 text-xs text-slate-600">{{ $tx->customer_phone }}</td>
+                                <td class="px-6 py-4 text-xs text-slate-600">
+                                    @if($waUrl)
+                                        <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
+                                            {{ $tx->customer_phone }}
+                                        </a>
+                                    @else
+                                        <span class="text-slate-300">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofIgUrl ? 'Sudah Upload' : 'Belum Upload' }}">
+                                    @if($proofIgUrl)
+                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $tx->reference_no))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-500" title="Belum Upload">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofReviewUrl ? 'Sudah Upload' : 'Belum Upload' }}">
+                                    @if($proofReviewUrl)
+                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $tx->reference_no))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-500" title="Belum Upload">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-xs">
                                     @if($tx->customer_gender)
                                         <span class="font-black uppercase {{ $tx->customer_gender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
@@ -205,7 +262,7 @@
                             </tr>
                         @empty
                             <tr class="no-data-tx">
-                                <td colspan="12" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
+                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -245,14 +302,26 @@
                         @php($hasTickets = false)
                         @foreach($transactions as $tx)
                             @foreach($tx->tickets as $ticket)
-                                @php($hasTickets = true)
+                                @php
+                                    $hasTickets = true;
+                                    $ticketPhone = $ticket->visitor_data['phone'] ?? $tx->customer_phone;
+                                    $ticketWaUrl = $formatWaUrl($ticketPhone);
+                                @endphp
                                 <tr class="ticket-row hover:bg-slate-50/40 transition">
                                     <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticket->ticket_code }}</td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $tx->reference_no }}</td>
                                     <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $ticket->visitor_data['name'] ?? $tx->customer_name }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-600">{{ $ticket->visitor_data['nik'] ?? $tx->customer_nik ?? '-' }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-600">{{ $ticket->visitor_data['email'] ?? $tx->customer_email }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticket->visitor_data['phone'] ?? $tx->customer_phone }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600">
+                                        @if($ticketWaUrl)
+                                            <a href="{{ $ticketWaUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
+                                                {{ $ticketPhone }}
+                                            </a>
+                                        @else
+                                            <span class="text-slate-300">-</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-xs">
                                         @php($tGender = $ticket->visitor_data['gender'] ?? $tx->customer_gender)
                                         @if($tGender)
@@ -302,6 +371,25 @@
         </div>
     </div>
 </div>
+
+<div id="proof-preview-modal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeProofPreview()"></div>
+    <div class="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between gap-4 border-b border-slate-100 bg-slate-50 px-6 py-4">
+            <h3 id="proof-preview-title" class="text-sm font-black text-slate-800 uppercase tracking-wider">Bukti Upload</h3>
+            <button type="button" onclick="closeProofPreview()" class="rounded-full p-2 text-slate-400 hover:bg-white hover:text-slate-700 transition">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="max-h-[75vh] overflow-auto bg-slate-100 p-4">
+            <img id="proof-preview-image" src="" alt="Bukti upload" class="mx-auto max-h-[70vh] max-w-full rounded-2xl bg-white object-contain shadow-sm">
+        </div>
+        <div class="flex justify-end border-t border-slate-100 bg-white px-6 py-4">
+            <a id="proof-preview-link" href="#" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-orange-600 text-black text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition">Buka File</a>
+        </div>
+    </div>
+</div>
+
 <script>
     // Tab switching state attached to window to ensure global availability
     window.activeTab = 'transactions';
@@ -429,13 +517,15 @@
 
         if (window.activeTab === 'transactions') {
             filename = 'Laporan_Pendaftar_Per_Transaksi.csv';
-            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
+            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Upload Bukti IG', 'Upload Bukti Review', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
             
             // Extract matching rows
             const txRows = document.querySelectorAll('.tx-row[data-matched="true"]');
             txRows.forEach(row => {
                 const cols = row.querySelectorAll('td');
-                let rowData = [
+                let rowData;
+                try {
+                    rowData = [
                     cols[0].firstChild.textContent.trim(), // Invoice No
                     cols[0].querySelector('span').textContent.trim(), // Tanggal
                     cols[1].textContent.trim(), // Nama Pemesan
@@ -450,6 +540,27 @@
                     cols[9].textContent.trim().replace(/[Rp\s\.]/g, ''), // Total
                     cols[10].querySelector('span').textContent.trim(), // Status
                     cols[11].textContent.trim() // Method
+                    ];
+                } catch (error) {
+                    rowData = [];
+                }
+                rowData = [
+                    cols[0].firstChild.textContent.trim(),
+                    cols[0].querySelector('span').textContent.trim(),
+                    cols[1].textContent.trim(),
+                    cols[2].textContent.trim(),
+                    cols[3].textContent.trim(),
+                    cols[4].textContent.trim(),
+                    cols[5].getAttribute('data-export') || cols[5].textContent.trim(),
+                    cols[6].getAttribute('data-export') || cols[6].textContent.trim(),
+                    cols[7].textContent.trim().replace(/[ðŸ§”ðŸ§•]/g, '').trim(),
+                    cols[8].textContent.trim(),
+                    cols[9].querySelector('span:nth-child(1)').textContent.trim(),
+                    cols[9].querySelector('span:nth-child(2)').textContent.trim(),
+                    cols[10].textContent.trim(),
+                    cols[11].textContent.trim().replace(/[Rp\s\.]/g, ''),
+                    cols[12].querySelector('span').textContent.trim(),
+                    cols[13].textContent.trim()
                 ];
                 rows.push(rowData);
             });
@@ -493,6 +604,36 @@
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
+    }
+
+    window.openProofPreview = function(url, title) {
+        const modal = document.getElementById('proof-preview-modal');
+        const image = document.getElementById('proof-preview-image');
+        const link = document.getElementById('proof-preview-link');
+        const titleElement = document.getElementById('proof-preview-title');
+
+        if (!modal || !image || !link || !titleElement) {
+            return;
+        }
+
+        image.src = url;
+        link.href = url;
+        titleElement.textContent = title || 'Bukti Upload';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    window.closeProofPreview = function() {
+        const modal = document.getElementById('proof-preview-modal');
+        const image = document.getElementById('proof-preview-image');
+
+        if (!modal || !image) {
+            return;
+        }
+
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        image.src = '';
     }
 
     // Initialize report tables on page load or on dynamic navigation load
