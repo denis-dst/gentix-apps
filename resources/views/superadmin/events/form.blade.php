@@ -193,7 +193,7 @@
         @enderror
     </div>
 
-    @php($wristbandMeta = $event->meta ?? [])
+    @php $wristbandMeta = $event->meta ?? []; @endphp
     <div class="col-span-1 md:col-span-2 border-t border-gray-100 pt-4 mt-2 space-y-4">
         <h4 class="text-sm font-bold text-gray-800">Wristband Layout</h4>
         <div>

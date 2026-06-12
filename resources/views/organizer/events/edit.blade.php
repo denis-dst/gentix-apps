@@ -148,7 +148,7 @@
                             }
                         </script>
 
-                        @php($wristbandMeta = $event->meta ?? [])
+                        @php $wristbandMeta = $event->meta ?? []; @endphp
                         <div class="pt-4 border-t border-gray-50 space-y-4">
                             <h3 class="text-lg font-bold text-gray-800">Wristband Layout</h3>
                             <div>
@@ -328,7 +328,7 @@
                                         </div>
                                         <div class="flex gap-2">
                                             @if($category->sold_count < $category->quota)
-                                                @php($remaining = $category->quota - $category->sold_count)
+                                                @php $remaining = $category->quota - $category->sold_count; @endphp
                                                 <a href="{{ route('organizer.categories.print-wristbands', $category) }}?generate_offline=1&count={{ $remaining }}" target="_blank" class="p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-500 hover:text-emerald-700 hover:border-emerald-300 transition shadow-sm" title="Generate & Print {{ $remaining }} Stock Wristbands">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                 </a>

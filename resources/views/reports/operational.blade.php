@@ -80,7 +80,7 @@
 
     <div class="space-y-5">
         @forelse($reportRows as $row)
-            @php($event = $row['event'])
+            @php $event = $row['event']; @endphp
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                     <div class="min-w-0">
@@ -219,7 +219,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
-                        @php($transactionRow = [])
+                        @php $transactionRow = []; @endphp
                         @if($reportTransactionRows->isEmpty())
                             <tr class="no-data-tx">
                                 <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
@@ -346,8 +346,8 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
                         @forelse($ticketReportRows as $ticketRow)
-                            @php($ticketPhone = $ticketRow['phone'])
-                            @php($ticketWaUrl = $formatWaUrl($ticketPhone))
+                            @php $ticketPhone = $ticketRow['phone']; @endphp
+                            @php $ticketWaUrl = $formatWaUrl($ticketPhone); @endphp
                                 <tr class="ticket-row hover:bg-slate-50/40 transition">
                                     <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticketRow['ticket_code'] }}</td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $ticketRow['reference_no'] }}</td>
@@ -364,7 +364,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-xs">
-                                        @php($tGender = $ticketRow['gender'])
+                                        @php $tGender = $ticketRow['gender']; @endphp
                                         @if($tGender)
                                             <span class="font-black uppercase {{ $tGender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
                                                 {{ $tGender === 'ikhwan' ? '🧔 Ikhwan' : '🧕 Akhwat' }}
