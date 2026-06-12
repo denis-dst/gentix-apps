@@ -52,7 +52,35 @@ class ReportController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions'));
+        $ticketReportRows = $this->buildTicketReportRows($transactions);
+
+        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'ticketReportRows'));
+    }
+
+    private function buildTicketReportRows($transactions)
+    {
+        return $transactions
+            ->flatMap(function ($transaction) {
+                return $transaction->tickets->map(function ($ticket) use ($transaction) {
+                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                    return [
+                        'ticket_code' => $ticket->ticket_code,
+                        'reference_no' => $transaction->reference_no,
+                        'name' => $visitorData['name'] ?? $transaction->customer_name,
+                        'nik' => $visitorData['nik'] ?? $transaction->customer_nik ?? '-',
+                        'email' => $visitorData['email'] ?? $transaction->customer_email,
+                        'phone' => $visitorData['phone'] ?? $transaction->customer_phone,
+                        'gender' => $visitorData['gender'] ?? $transaction->customer_gender,
+                        'umroh_answer' => $visitorData['umroh_answer'] ?? $transaction->customer_umroh_answer,
+                        'event_name' => $transaction->event->name ?? '-',
+                        'category_name' => $ticket->category->name ?? '-',
+                        'status' => $ticket->status,
+                        'redeemed_at' => $ticket->redeemed_at,
+                    ];
+                });
+            })
+            ->values();
     }
 
     private function buildEventReport(Event $event): array

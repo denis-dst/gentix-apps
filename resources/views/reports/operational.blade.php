@@ -299,20 +299,15 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
-                        @php($hasTickets = false)
-                        @foreach($transactions as $tx)
-                            @foreach($tx->tickets as $ticket)
-                                @php
-                                    $hasTickets = true;
-                                    $ticketPhone = $ticket->visitor_data['phone'] ?? $tx->customer_phone;
-                                    $ticketWaUrl = $formatWaUrl($ticketPhone);
-                                @endphp
+                        @forelse($ticketReportRows as $ticketRow)
+                            @php($ticketPhone = $ticketRow['phone'])
+                            @php($ticketWaUrl = $formatWaUrl($ticketPhone))
                                 <tr class="ticket-row hover:bg-slate-50/40 transition">
-                                    <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticket->ticket_code }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $tx->reference_no }}</td>
-                                    <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $ticket->visitor_data['name'] ?? $tx->customer_name }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticket->visitor_data['nik'] ?? $tx->customer_nik ?? '-' }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticket->visitor_data['email'] ?? $tx->customer_email }}</td>
+                                    <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticketRow['ticket_code'] }}</td>
+                                    <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $ticketRow['reference_no'] }}</td>
+                                    <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $ticketRow['name'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticketRow['nik'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticketRow['email'] }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-600">
                                         @if($ticketWaUrl)
                                             <a href="{{ $ticketWaUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
@@ -323,7 +318,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-xs">
-                                        @php($tGender = $ticket->visitor_data['gender'] ?? $tx->customer_gender)
+                                        @php($tGender = $ticketRow['gender'])
                                         @if($tGender)
                                             <span class="font-black uppercase {{ $tGender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
                                                 {{ $tGender === 'ikhwan' ? '🧔 Ikhwan' : '🧕 Akhwat' }}
@@ -332,31 +327,29 @@
                                             <span class="text-slate-300">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $ticket->visitor_data['umroh_answer'] ?? $tx->customer_umroh_answer }}">{{ $ticket->visitor_data['umroh_answer'] ?? $tx->customer_umroh_answer ?? '-' }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-700 font-bold">{{ $tx->event->name ?? '-' }}</td>
-                                    <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider">{{ $ticket->category->name ?? '-' }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $ticketRow['umroh_answer'] }}">{{ $ticketRow['umroh_answer'] ?? '-' }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-700 font-bold">{{ $ticketRow['event_name'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider">{{ $ticketRow['category_name'] }}</td>
                                     <td class="px-6 py-4">
-                                        @if($ticket->status === 'sold')
+                                        @if($ticketRow['status'] === 'sold')
                                             <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
-                                        @elseif($ticket->status === 'redeemed')
+                                        @elseif($ticketRow['status'] === 'redeemed')
                                             <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold text-[9px] uppercase tracking-wide">REDEEMED</span>
-                                        @elseif($ticket->status === 'void')
+                                        @elseif($ticketRow['status'] === 'void')
                                             <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-bold text-[9px] uppercase tracking-wide">VOID</span>
                                         @else
-                                            <span class="px-2 py-0.5 rounded bg-slate-50 text-slate-500 font-bold text-[9px] uppercase tracking-wide">{{ strtoupper($ticket->status) }}</span>
+                                            <span class="px-2 py-0.5 rounded bg-slate-50 text-slate-500 font-bold text-[9px] uppercase tracking-wide">{{ strtoupper($ticketRow['status']) }}</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-xs text-slate-500">
-                                        {{ $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') . ' WIB' : 'Belum Scan' }}
+                                        {{ $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('d M Y H:i') . ' WIB' : 'Belum Scan' }}
                                     </td>
                                 </tr>
-                            @endforeach
-                        @endforeach
-                        @if(!$hasTickets)
+                        @empty
                             <tr class="no-data-tickets">
                                 <td colspan="12" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada detail tiket peserta.</td>
                             </tr>
-                        @endif
+                        @endforelse
                     </tbody>
                 </table>
             </div>

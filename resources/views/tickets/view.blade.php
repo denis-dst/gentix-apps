@@ -31,6 +31,17 @@
             overflow: hidden;
             position: relative;
         }
+        .terms-content { font-size: 0.78rem; line-height: 1.75; }
+        .terms-content h1 { font-size: 1rem; line-height: 1.3; font-weight: 800; color: #0f172a; margin: 0 0 0.75rem; }
+        .terms-content h2 { font-size: 0.9rem; line-height: 1.35; font-weight: 800; color: #0f172a; margin: 1rem 0 0.4rem; }
+        .terms-content p, .terms-content div { margin-bottom: 0.5rem; }
+        .terms-content ul { list-style-type: disc; list-style-position: outside; padding-left: 1.35rem; margin: 0.5rem 0 0.75rem; }
+        .terms-content ol { list-style-type: decimal; list-style-position: outside; padding-left: 1.35rem; margin: 0.5rem 0 0.75rem; }
+        .terms-content li { display: list-item; margin-bottom: 0.3rem; padding-left: 0.2rem; }
+        .terms-content b, .terms-content strong { font-weight: 800; color: #0f172a; }
+        .terms-content em, .terms-content i { font-style: italic; }
+        .terms-content u { text-decoration: underline; }
+        .terms-content *:last-child { margin-bottom: 0; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen py-4 md:py-10">
@@ -271,28 +282,13 @@
             <!-- T&C Section -->
             <div class="pt-10 border-t-2 border-dashed border-slate-100">
                 <h3 class="text-lg font-black text-slate-900 font-outfit mb-4 uppercase tracking-tight">Syarat & Ketentuan</h3>
-                <div class="text-[11px] text-slate-500 leading-relaxed prose prose-sm max-w-none">
+                <div class="text-slate-500 terms-content">
                     @php
                         $tc = $ticket->event->terms_conditions ?: ($ticket->event->tenant->terms_conditions ?? '');
                     @endphp
 
                     @if($tc)
-                        @if(strip_tags($tc) !== $tc)
-                            <div class="prose-slate">
-                                {!! $tc !!}
-                            </div>
-                        @else
-                            <div class="grid grid-cols-1 gap-1">
-                                @foreach(explode("\n", $tc) as $line)
-                                    @if(trim($line))
-                                        <div class="flex gap-2">
-                                            <span class="shrink-0">{{ $loop->iteration }}.</span>
-                                            <span>{{ trim($line) }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        @endif
+                        @include('components.terms-content', ['terms' => $tc])
                     @else
                         <div class="grid grid-cols-1 gap-1">
                             <div class="flex gap-2"><span>1.</span><span>Wajib mengisi data E-Voucher dengan benar.</span></div>

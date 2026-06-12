@@ -53,23 +53,17 @@
             position: relative;
         }
 
-        .terms-content ul {
-            list-style-type: disc !important;
-            padding-left: 1.5rem !important;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .terms-content ol {
-            list-style-type: decimal !important;
-            padding-left: 1.5rem !important;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .terms-content li {
-            margin-bottom: 0.25rem;
-        }
+        .terms-content { font-size: 0.78rem; line-height: 1.75; }
+        .terms-content h1 { font-size: 1rem; line-height: 1.3; font-weight: 800; color: #0f172a; margin: 0 0 0.75rem; }
+        .terms-content h2 { font-size: 0.9rem; line-height: 1.35; font-weight: 800; color: #0f172a; margin: 1rem 0 0.4rem; }
+        .terms-content p, .terms-content div { margin-bottom: 0.5rem; }
+        .terms-content ul { list-style-type: disc; list-style-position: outside; padding-left: 1.35rem; margin: 0.5rem 0 0.75rem; }
+        .terms-content ol { list-style-type: decimal; list-style-position: outside; padding-left: 1.35rem; margin: 0.5rem 0 0.75rem; }
+        .terms-content li { display: list-item; margin-bottom: 0.3rem; padding-left: 0.2rem; }
+        .terms-content b, .terms-content strong { font-weight: 800; color: #0f172a; }
+        .terms-content em, .terms-content i { font-style: italic; }
+        .terms-content u { text-decoration: underline; }
+        .terms-content *:last-child { margin-bottom: 0; }
 
         .ticket-page {
             page-break-after: always;
@@ -324,8 +318,8 @@
                 @if($termsContent)
                 <div class="mt-10 border-t border-slate-100 pt-8">
                     <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Syarat & Ketentuan</h4>
-                    <div class="text-[11px] text-slate-500 font-medium leading-relaxed prose max-w-none terms-content">
-                        {!! $termsContent !!}
+                    <div class="text-slate-500 font-medium terms-content">
+                        @include('components.terms-content', ['terms' => $termsContent])
                     </div>
                 </div>
                 @endif
