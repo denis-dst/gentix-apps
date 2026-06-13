@@ -19,51 +19,14 @@
             .no-print { display: none !important; }
             body { background-color: white !important; margin: 0; padding: 0; }
             .a4-container {
-                width: auto !important;
-                min-height: auto !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
                 border-radius: 0 !important;
-                overflow: visible !important;
-            }
-            .a4-container .print-body {
-                padding: 6mm !important;
-            }
-            .print-compact-header {
-                padding: 5mm 6mm !important;
-            }
-            .print-compact-header .header-title {
-                font-size: 1.25rem !important;
-            }
-            .print-compact-event {
-                gap: 4mm !important;
-                margin-bottom: 4mm !important;
-            }
-            .print-compact-event img {
-                max-height: 38mm !important;
-            }
-            .print-compact-event h1 {
-                font-size: 1.1rem !important;
-                margin-bottom: 2mm !important;
-            }
-            .print-hide-on-multi {
-                display: none !important;
+                margin: 0 auto !important;
             }
             .group-ticket-card {
                 break-inside: avoid;
                 page-break-inside: avoid;
-            }
-            .terms-print-compact {
-                font-size: 0.62rem !important;
-                line-height: 1.45 !important;
-            }
-            .terms-print-compact h1,
-            .terms-print-compact h2 {
-                font-size: 0.72rem !important;
-                margin-bottom: 0.25rem !important;
             }
         }
 
@@ -200,7 +163,7 @@
 
             <div class="grid grid-cols-3 gap-8 items-stretch {{ $isMultiTicket ? 'gap-4' : '' }}">
                 <!-- Info Section -->
-                <div class="col-span-3 lg:col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
+                <div class="col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
                     <h3 class="text-lg font-black text-slate-900 font-outfit border-b border-slate-200 pb-3">
                         {{ $isFree ? 'Informasi Kontak Pemesan' : 'Informasi Pesanan' }}
                     </h3>
@@ -243,7 +206,7 @@
                 </div>
 
                 <!-- QR Section for Single Ticket (or default view) -->
-                <div class="col-span-3 lg:col-span-1 border-2 {{ $isFree ? 'border-emerald-100' : 'border-slate-100' }} rounded-[2rem] p-8 flex flex-col items-center justify-center text-center space-y-6 bg-white">
+                <div class="col-span-1 border-2 {{ $isFree ? 'border-emerald-100' : 'border-slate-100' }} rounded-[2rem] p-8 flex flex-col items-center justify-center text-center space-y-6 bg-white">
                     <div>
                         <h4 class="font-black text-xl text-slate-900 font-outfit uppercase">{{ $ticket->category->name }}</h4>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
