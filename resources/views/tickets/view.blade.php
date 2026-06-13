@@ -276,27 +276,30 @@
                 
                 <div class="grid {{ $groupGridClass }} gap-3">
                     @foreach($activeGroupTickets as $idx => $t)
-                        <div class="group-ticket-card border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-2xl p-3 flex flex-col items-center text-center gap-2">
-                            <div class="w-full min-w-0">
-                                <div class="flex items-center justify-center gap-2 mb-1">
+                        <div class="group-ticket-card border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-2xl p-4 flex flex-col items-center text-center gap-2">
+                            <div class="w-full min-w-0 flex flex-col items-center justify-center">
+                                <div class="flex items-center justify-center gap-2 mb-2">
                                     <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
                                         {{ $idx + 1 }}
                                     </span>
-                                    <h4 class="font-black text-[11px] text-slate-800 truncate uppercase font-outfit">
+                                    <h4 class="font-black text-xs text-slate-800 truncate uppercase font-outfit">
                                         {{ $t->visitor_data['name'] ?? $ticket->transaction->customer_name }}
                                     </h4>
                                 </div>
-                                <div class="text-[9px] text-slate-500 font-bold space-y-0.5">
-                                    <div class="truncate font-mono text-slate-700">{{ $t->ticket_code }}</div>
-                                    <div class="uppercase text-slate-600">{{ $t->category->name }}</div>
+                                <div class="text-[10px] text-slate-500 font-bold space-y-1.5">
                                     @if(isset($t->visitor_data['gender']))
-                                        <div class="uppercase">{{ $t->visitor_data['gender'] }}</div>
+                                        <div>
+                                            <span class="uppercase text-slate-600 bg-slate-100 rounded-md px-2 py-0.5 inline-block text-[9px] font-black tracking-wider">
+                                                {{ $t->visitor_data['gender'] }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if(isset($t->visitor_data['umroh_answer']) && $t->visitor_data['umroh_answer'])
+                                        <div class="text-[10px] text-slate-600 leading-relaxed font-bold">
+                                            Keberangkatan: <span class="text-slate-800 font-black uppercase block mt-0.5">{{ $t->visitor_data['umroh_answer'] }}</span>
+                                        </div>
                                     @endif
                                 </div>
-                            </div>
-                            
-                            <div class="shrink-0 flex flex-col items-center gap-1 bg-white p-1.5 border border-slate-100 rounded-xl shadow-sm">
-                                {!! QrCode::size($groupQrSize)->generate($t->ticket_code) !!}
                             </div>
                         </div>
                     @endforeach
@@ -312,7 +315,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-black text-amber-800">Cara Check-in di Lokasi</p>
-                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem) — cukup scan langsung salah satu QR Code dari rombongan Anda.</p>
+                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem) — cukup scan langsung QR Code dari rombongan Anda.</p>
                 </div>
             </div>
             @endif
