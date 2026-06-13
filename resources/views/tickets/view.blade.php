@@ -198,7 +198,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-8 items-stretch {{ $isMultiTicket ? 'gap-4 print-hide-on-multi' : '' }}">
+            <div class="grid grid-cols-3 gap-8 items-stretch {{ $isMultiTicket ? 'gap-4' : '' }}">
                 <!-- Info Section -->
                 <div class="col-span-3 lg:col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
                     <h3 class="text-lg font-black text-slate-900 font-outfit border-b border-slate-200 pb-3">
