@@ -18,10 +18,164 @@
             50% { opacity: 0.3; transform: scale(0.85); }
         }
         .animate-blink { animation: customBlink 1.2s infinite ease-in-out; }
+
+        /* Modal animations */
+        @keyframes modalBackdropIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes modalCardIn {
+            from { opacity: 0; transform: scale(0.85) translateY(30px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-backdrop { animation: modalBackdropIn 0.3s ease-out forwards; }
+        .modal-card { animation: modalCardIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both; }
+
+        @keyframes successPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { box-shadow: 0 0 0 16px rgba(16,185,129,0); }
+        }
+        .success-pulse { animation: successPulse 2s infinite; }
+
+        @keyframes copyFlash {
+            0% { background-color: #10b981; }
+            100% { background-color: #059669; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
     @php $isFree = $transaction->payment_method === 'free'; @endphp
+
+    {{-- ============================================================
+         POPUP MODAL — Terima Kasih (hanya untuk free event)
+         Muncul otomatis saat halaman dibuka
+         ============================================================ --}}
+    @if($isFree)
+    <div id="thankYouModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+         style="background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);">
+
+        <div class="modal-card bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden">
+            {{-- Gradient top bar --}}
+            <div class="h-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500"></div>
+
+            <div class="p-8">
+                {{-- Success icon --}}
+                <div class="flex justify-center mb-5">
+                    <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center success-pulse">
+                        <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {{-- Heading --}}
+                <h2 class="text-2xl font-black text-slate-900 text-center mb-2" style="font-family: 'Outfit', sans-serif;">
+                    🎉 Terima Kasih!
+                </h2>
+                <p class="text-center text-slate-500 text-sm font-medium mb-6">
+                    Pendaftaran Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
+                </p>
+
+                {{-- Instruction box --}}
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-5 space-y-3">
+                    <p class="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Petunjuk Penting
+                    </p>
+
+                    <ol class="space-y-2.5">
+                        <li class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</div>
+                            <p class="text-sm text-slate-700 font-medium leading-snug">
+                                <strong>Salin URL E-Voucher</strong> Anda di bawah ini
+                            </p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">2</div>
+                            <p class="text-sm text-slate-700 font-medium leading-snug">
+                                <strong>Buka E-Voucher</strong> dengan menekan tombol di bawah
+                            </p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">3</div>
+                            <p class="text-sm text-slate-700 font-medium leading-snug">
+                                <strong>Screenshot / Simpan sebagai PDF</strong> untuk ditunjukkan kepada panitia di hari H
+                            </p>
+                        </li>
+                    </ol>
+                </div>
+
+                {{-- Evoucher links --}}
+                @forelse($transaction->tickets as $ticket)
+                <div class="mb-3">
+                    {{-- URL display + copy button --}}
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-2">
+                        <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        <span class="flex-1 text-xs font-mono text-slate-600 truncate" id="evoucher-url-{{ $loop->index }}">{{ route('tickets.view', $ticket->ticket_code) }}</span>
+                        <button onclick="copyEvoucherUrl('{{ route('tickets.view', $ticket->ticket_code) }}', 'copy-btn-{{ $loop->index }}')"
+                                id="copy-btn-{{ $loop->index }}"
+                                class="shrink-0 text-[10px] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Salin
+                        </button>
+                    </div>
+
+                    {{-- Open button --}}
+                    <a href="{{ route('tickets.view', $ticket->ticket_code) }}" target="_blank"
+                       class="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black rounded-2xl transition shadow-lg shadow-emerald-500/30 active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                        </svg>
+                        Buka E-Voucher #{{ $loop->iteration }} & Screenshot
+                    </a>
+                </div>
+                @empty
+                <div class="text-center py-3 text-sm text-slate-400 font-medium">E-Voucher sedang diproses...</div>
+                @endforelse
+
+                {{-- Close button --}}
+                <button onclick="document.getElementById('thankYouModal').style.display='none'"
+                        class="w-full mt-2 py-3 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition">
+                    Tutup & Lihat Detail
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyEvoucherUrl(url, btnId) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById(btnId);
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Tersalin!`;
+                btn.classList.add('bg-teal-500');
+                btn.classList.remove('bg-emerald-500');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.classList.remove('bg-teal-500');
+                    btn.classList.add('bg-emerald-500');
+                }, 2500);
+            }).catch(() => {
+                // Fallback
+                const el = document.createElement('textarea');
+                el.value = url;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                alert('URL berhasil disalin!');
+            });
+        }
+    </script>
+    @endif
+    {{-- ============================================================ --}}
 
     <div class="max-w-xl w-full bg-white rounded-[3rem] shadow-2xl shadow-blue-900/10 border border-slate-100 overflow-hidden animate-float-in">
         <!-- Top Accent Bar -->
@@ -159,3 +313,4 @@
     </div>
 </body>
 </html>
+

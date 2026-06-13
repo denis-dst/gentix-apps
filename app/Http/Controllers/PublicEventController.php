@@ -368,14 +368,20 @@ class PublicEventController extends Controller
             return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini sudah ditutup.']);
         }
 
-        $proofIgPath = $this->storeRegistrationProof($request, 'proof_ig', 'bukti follow IG');
-        if ($proofIgPath instanceof \Illuminate\Http\JsonResponse) {
-            return $proofIgPath;
+        $proofIgPath = null;
+        if ($request->hasFile('proof_ig')) {
+            $proofIgPath = $this->storeRegistrationProof($request, 'proof_ig', 'bukti follow IG');
+            if ($proofIgPath instanceof \Illuminate\Http\JsonResponse) {
+                return $proofIgPath;
+            }
         }
 
-        $proofReviewPath = $this->storeRegistrationProof($request, 'proof_review', 'bukti Google Review');
-        if ($proofReviewPath instanceof \Illuminate\Http\JsonResponse) {
-            return $proofReviewPath;
+        $proofReviewPath = null;
+        if ($request->hasFile('proof_review')) {
+            $proofReviewPath = $this->storeRegistrationProof($request, 'proof_review', 'bukti Google Review');
+            if ($proofReviewPath instanceof \Illuminate\Http\JsonResponse) {
+                return $proofReviewPath;
+            }
         }
 
         return DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath) {

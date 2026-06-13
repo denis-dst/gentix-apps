@@ -8,7 +8,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     @if(!$event->is_free)
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+        <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
     @endif
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
@@ -96,9 +96,6 @@
     isSubmitting: false,
     registrationSuccess: false,
     formTouched: false,
-    showEvoucherModal: false,
-    evoucherUrl: '',
-    evoucherCopied: false,
     
     get total() {
         if (!this.selectedCategory || !this.quantity) return 0;
@@ -206,14 +203,12 @@
     async submitFreeRegistration() {
         this.formTouched = true;
         if (!this.selectedCategory) return;
-        const invalid = this.attendees.some((a, i) => !a.name || !a.gender);
+        if (!this.phone) { return; }
+        if (!this.email) { return; }
+        const invalid = this.attendees.some((a) => !a.name || !a.gender);
         if (invalid) {
-            // Jump to the first incomplete attendee
             const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
             if (firstIdx !== -1) this.currentAttendee = firstIdx;
-            return;
-        }
-        if (!this.email || !this.proofIgFile || !this.proofReviewFile) {
             return;
         }
         this.isSubmitting = true;
@@ -224,8 +219,6 @@
             formData.append('phone', this.phone);
             formData.append('email', this.email);
             formData.append('attendees', JSON.stringify(this.attendees));
-            formData.append('proof_ig', this.proofIgFile);
-            formData.append('proof_review', this.proofReviewFile);
 
             const response = await fetch('{{ route('checkout.process', $event->slug) }}', {
                 method: 'POST',
@@ -239,8 +232,8 @@
 
             const data = await response.json();
             if (data.success) {
-                this.evoucherUrl = `{{ url('/evoucher') }}/${data.reference_no}`;
-                this.showEvoucherModal = true;
+                // Redirect ke halaman success dengan popup modal
+                window.location.href = `{{ url('/checkout/success') }}/${data.reference_no}`;
             } else {
                 alert(data.message || 'Gagal memproses pendaftaran.');
             }
@@ -285,13 +278,9 @@
 
             const data = await response.json();
             if (data.success) {
-                const refNo = data.reference_no;
                 window.snap.pay(data.snap_token, {
-                    onSuccess: (result) => {
-                        this.evoucherUrl = `{{ url('/evoucher') }}/${refNo}`;
-                        this.showEvoucherModal = true;
-                    },
-                    onPending: (result) => { window.location.href = `/checkout/success/${refNo}`; },
+                    onSuccess: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
+                    onPending: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
                     onError: (result) => { alert('Pembayaran gagal.'); }
                 });
             } else {
@@ -464,10 +453,10 @@
                                     </div>
                                     <button @click="showModalSK = true" class="text-blue-500 text-xs font-bold hover:underline uppercase tracking-wider">S&K</button>
                                 </div>
- 
+
                                 @if($event->is_free)
                                     <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2"><strong>Harap Diperhatikan Sebelum mendaftar, Peserta Wajib:</strong></p>
+                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
                                         <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
                                             <li>
                                                 Bukti (Screenshoot) Follow Akun IG
@@ -556,392 +545,389 @@
                     <div class="sticky top-8 space-y-4">
                         
                         @if($event->is_free)
-                        {{-- ============================================
-                             FREE EVENT: Step 1 — Pilih Kategori + NIK
-                             ============================================ --}}
-                        <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-6">
-                            <!-- Free badge -->
-                            <div class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
-                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {{-- ============================================
+                                 FREE EVENT: Step 1 — Pilih Kategori + NIK
+                                 ============================================ --}}
+                            <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-6">
+                                <!-- Free badge -->
+                                <div class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-black text-emerald-800 uppercase tracking-wider">Event Gratis</p>
+                                        <p class="text-[10px] text-emerald-600 font-medium">Langsung dapat E-Voucher setelah registrasi</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-xs font-black text-emerald-800 uppercase tracking-wider">Event Gratis</p>
-                                    <p class="text-[10px] text-emerald-600 font-medium">Langsung dapat E-Voucher setelah registrasi</p>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' tiket)' : 'Pilih Kategori'"></div>
+                                    <div class="flex justify-between items-end pt-2 border-t border-slate-100">
+                                        <div class="text-slate-400 text-sm font-bold">Harga</div>
+                                        <div class="text-2xl font-black text-emerald-600 font-outfit">GRATIS</div>
+                                    </div>
                                 </div>
+
+                                <div class="space-y-3 pt-2 border-t border-slate-50">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nomor WhatsApp</label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                            <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                        </div>
+                                        <input type="text" x-model="phone" @input="phone = $event.target.value.replace(/\D/g, '')" id="phone-input" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" placeholder="08xxxxxxxxxx"
+                                               class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:bg-white transition-all outline-none">
+                                    </div>
+                                </div>
+
+                                <button @click="goToStep2" 
+                                        id="btn-lanjut-free"
+                                        :disabled="!selectedCategory || quantity === 0 || !phone"
+                                        class="w-full py-4 bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-2xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all transform active:scale-95">
+                                    Lanjut Isi Data Diri →
+                                </button>
                             </div>
 
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' tiket)' : 'Pilih Kategori'"></div>
-                                <div class="flex justify-between items-end pt-2 border-t border-slate-100">
-                                    <div class="text-slate-400 text-sm font-bold">Harga</div>
-                                    <div class="text-2xl font-black text-emerald-600 font-outfit">GRATIS</div>
+                            {{-- ============================================
+                                 FREE EVENT: Step 2 — Form Data Diri
+                                 ============================================ --}}
+                            <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-5">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
+                                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                    </button>
+                                    <h3 class="font-bold text-slate-900 font-outfit">Data Peserta</h3>
                                 </div>
-                            </div>
 
-                            <div class="space-y-3 pt-2 border-t border-slate-50">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nomor WhatsApp</label>
-                                <div class="relative">
-                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                                    </div>
-                                    <input type="text" x-model="phone" @input="phone = $event.target.value.replace(/\D/g, '')" id="phone-input" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" placeholder="08xxxxxxxxxx"
-                                           class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:bg-white transition-all outline-none">
+                                <!-- Category info strip -->
+                                <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' Tiket)' : ''"></span>
+                                    <span class="text-xs font-black text-emerald-600">GRATIS</span>
                                 </div>
-                            </div>
 
-                            <button @click="goToStep2" 
-                                    id="btn-lanjut-free"
-                                    :disabled="!selectedCategory || quantity === 0 || !phone"
-                                    class="w-full py-4 bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-2xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all transform active:scale-95">
-                                Lanjut Isi Data Diri →
-                            </button>
-                        </div>
+                                <form @submit.prevent="submitFreeRegistration" class="space-y-5">
+                                    <!-- Data Pemesan (WhatsApp & Email) -->
+                                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                                        <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Kontak Pemesan</h4>
 
-                        {{-- ============================================
-                             FREE EVENT: Step 2 — Form Data Diri
-                             ============================================                        <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-5">
-                            <template x-if="step === 2 && attendees.length > 0">
-                                <div class="space-y-5">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <button @click="step = 1" type="button" class="p-2 hover:bg-slate-50 rounded-full transition">
-                                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                                        </button>
-                                        <h3 class="font-bold text-slate-900 font-outfit">Data Peserta</h3>
-                                    </div>
+                                        <!-- Nomor WhatsApp (Readonly from Step 1) -->
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                                            <div class="relative">
+                                                <div class="absolute left-3 top-1/2 -translate-y-1/2">
+                                                    <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                                </div>
+                                                <input type="text" x-model="phone" readonly
+                                                       class="w-full bg-slate-100 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-500 outline-none">
+                                            </div>
+                                        </div>
 
-                                    <!-- Category info strip -->
-                                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
-                                        <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' Tiket)' : ''"></span>
-                                        <span class="text-xs font-black text-emerald-600">GRATIS</span>
-                                    </div>
+                                        <!-- Email Pemesan -->
+                                        <div>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !email ? 'text-rose-500' : 'text-slate-400'">Alamat Email *</label>
+                                            <input type="email" x-model="email" placeholder="nama@email.com" required
+                                                   :class="formTouched && !email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                   class="w-full bg-white border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition">
+                                            <p x-show="formTouched && !email" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Email wajib diisi
+                                            </p>
+                                        </div>
 
-                                    <form @submit.prevent="submitFreeRegistration" class="space-y-5">
-                                        <!-- Data Pemesan (WhatsApp & Email) -->
-                                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                                            <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Kontak Pemesan</h4>
-                                            
-                                            <!-- Nomor WhatsApp (Readonly from Step 1) -->
+                                        <div class="space-y-3">
                                             <div>
-                                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
-                                                <div class="relative">
-                                                    <div class="absolute left-3 top-1/2 -translate-y-1/2">
-                                                        <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                                <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
+                                                <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
+                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                       @change="handleProofUpload('proofIgFile', $event)"
+                                                       :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                       class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                                <p x-show="formTouched && !proofIgFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Bukti follow IG wajib diunggah
+                                                </p>
+                                                <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
+                                            </div>
+                                            <div>
+                                                <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
+                                                <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
+                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                       @change="handleProofUpload('proofReviewFile', $event)"
+                                                       :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                       class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                                <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Bukti Google Review wajib diunggah
+                                                </p>
+                                                <p x-show="!formTouched || proofReviewFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
+                                    <template x-if="quantity > 1">
+                                        <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl">
+                                            <template x-for="(attendee, index) in attendees" :key="index">
+                                                <button type="button" 
+                                                        @click="currentAttendee = index"
+                                                        :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+                                                        class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
+                                                    Peserta <span x-text="index + 1"></span>
+                                                    <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
+                                                          class="absolute -top-1 -right-1 flex h-3 w-3">
+                                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                                                    </span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Attendee Fields Card -->
+                                    <div class="bg-white border-2 border-emerald-500/10 rounded-3xl p-5 space-y-4">
+                                        <div class="flex justify-between items-center pb-2 border-b border-slate-50">
+                                            <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">
+                                                Isi Data Peserta <span x-text="currentAttendee + 1"></span> dari <span x-text="quantity"></span>
+                                            </span>
+                                        </div>
+
+                                        <!-- Nama Lengkap -->
+                                        <div>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
+                                            <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
+                                                   :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
+                                                   class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
+                                            <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Nama lengkap wajib diisi
+                                            </p>
+                                        </div>
+
+                                        <!-- Gender -->
+                                        <div>
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <!-- Ikhwan -->
+                                                <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
+                                                       class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                    <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
+                                                    <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                        <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
                                                     </div>
-                                                    <input type="text" x-model="phone" readonly
-                                                           class="w-full bg-slate-100 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-500 outline-none">
-                                                </div>
-                                            </div>
-
-                                            <!-- Email Pemesan -->
-                                            <div>
-                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !email ? 'text-rose-500' : 'text-slate-400'">Alamat Email *</label>
-                                                <input type="email" x-model="email" placeholder="nama@email.com" required
-                                                       :class="formTouched && !email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                       class="w-full bg-white border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition">
-                                                <p x-show="formTouched && !email" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Email wajib diisi
-                                                </p>
-                                            </div>
-
-                                            <div class="space-y-3">
-                                                <div>
-                                                    <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
-                                                    <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
-                                                    <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
-                                                           @change="handleProofUpload('proofIgFile', $event)"
-                                                           :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                                    <p x-show="formTouched && !proofIgFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                        Bukti follow IG wajib diunggah
-                                                    </p>
-                                                    <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                                </div>
-                                                <div>
-                                                    <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
-                                                    <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
-                                                    <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
-                                                           @change="handleProofUpload('proofReviewFile', $event)"
-                                                           :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                                    <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                        Bukti Google Review wajib diunggah
-                                                    </p>
-                                                    <p x-show="!formTouched || proofReviewFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
-                                        <template x-if="quantity > 1">
-                                            <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl">
-                                                <template x-for="(attendee, index) in attendees" :key="index">
-                                                    <button type="button" 
-                                                            @click="currentAttendee = index"
-                                                            :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-                                                            class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
-                                                        Peserta <span x-text="index + 1"></span>
-                                                        <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
-                                                              class="absolute -top-1 -right-1 flex h-3 w-3">
-                                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                                                        </span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                        </template>
-
-                                        <!-- Attendee Fields Card -->
-                                        <div class="bg-white border-2 border-emerald-500/10 rounded-3xl p-5 space-y-4">
-                                            <div class="flex justify-between items-center pb-2 border-b border-slate-50">
-                                                <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">
-                                                    Isi Data Peserta <span x-text="currentAttendee + 1"></span> dari <span x-text="quantity"></span>
-                                                </span>
-                                            </div>
-
-                                            <!-- Nama Lengkap -->
-                                            <div>
-                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
-                                                <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
-                                                       :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
-                                                       class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
-                                                <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Nama lengkap wajib diisi
-                                                </p>
-                                            </div>
-
-                                            <!-- Gender -->
-                                            <div>
-                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
-                                                <div class="grid grid-cols-2 gap-3">
-                                                    <!-- Ikhwan -->
-                                                    <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
-                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
-                                                        <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                            <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
-                                                        </div>
-                                                        <div>
-                                                            <div class="text-sm font-black">🧔 Ikhwan</div>
-                                                            <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
-                                                        </div>
-                                                    </label>
-                                                    <!-- Akhwat -->
-                                                    <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
-                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
-                                                        <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                            <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
-                                                        </div>
-                                                        <div>
-                                                            <div class="text-sm font-black">🧕 Akhwat</div>
-                                                            <div class="text-[9px] font-medium opacity-60">Perempuan</div>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                                <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Pilih gender wajib
-                                                </p>
-                                            </div>
-
-                                            <!-- Pertanyaan Umroh (conditional) -->
-                                            <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                                                <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                                                    🕌 Alumni Grup Keberangkatan Tanggal Berapa?
+                                                    <div>
+                                                        <div class="text-sm font-black">🧔 Ikhwan</div>
+                                                        <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
+                                                    </div>
                                                 </label>
-                                                <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
-                                                <input type="text" x-model="attendees[currentAttendee].umroh_answer"
-                                                       placeholder="Contoh: 13 Januari 2024"
-                                                       class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
+                                                <!-- Akhwat -->
+                                                <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
+                                                       class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                    <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
+                                                    <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                        <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-black">🧕 Akhwat</div>
+                                                        <div class="text-[9px] font-medium opacity-60">Perempuan</div>
+                                                    </div>
+                                                </label>
                                             </div>
+                                            <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Pilih gender wajib
+                                            </p>
                                         </div>
 
-                                        <!-- Navigation buttons within form -->
-                                        <template x-if="quantity > 1">
-                                            <div class="flex justify-between gap-3">
-                                                <button type="button" 
-                                                        @click="if(currentAttendee > 0) currentAttendee--" 
-                                                        :disabled="currentAttendee === 0"
-                                                        class="flex-1 py-2 px-3 bg-slate-100 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
-                                                    ← Sebelumnya
-                                                </button>
-                                                <button type="button" 
-                                                        @click="if(currentAttendee < quantity - 1) currentAttendee++" 
-                                                        :disabled="currentAttendee === quantity - 1"
-                                                        class="flex-1 py-2 px-3 bg-slate-900 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
-                                                    Berikutnya →
-                                                </button>
-                                            </div>
-                                        </template>
+                                        <!-- Pertanyaan Umroh (conditional) -->
+                                        <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                                            <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                                🕌 Alumni Grup Keberangkatan Tanggal Berapa?
+                                            </label>
+                                            <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
+                                            <input type="text" x-model="attendees[currentAttendee].umroh_answer"
+                                                   placeholder="Contoh: 13 Januari 2024"
+                                                   class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
+                                        </div>
+                                    </div>
 
-                                        <!-- Summary & Submit -->
-                                        <div class="pt-2 border-t border-slate-100">
-                                            <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
-                                                <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
-                                                <span class="text-xl font-black text-emerald-600 font-outfit">GRATIS</span>
-                                            </div>
-
-                                            <!-- Validation Error Summary -->
-                                            <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
-                                                 x-cloak
-                                                 class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    <span class="text-[10px] font-black text-rose-700 uppercase tracking-wider">Lengkapi data berikut:</span>
-                                                </div>
-                                                <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
-                                                    <li x-show="!email">Alamat Email</li>
-                                                    <li x-show="!proofIgFile">Bukti Follow IG</li>
-                                                    <li x-show="!proofReviewFile">Bukti Google Review</li>
-                                                    <template x-for="(attendee, idx) in attendees" :key="idx">
-                                                        <template x-if="!attendee.name || !attendee.gender">
-                                                            <li>
-                                                                <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
-                                                                <span x-show="!attendee.name">Nama</span>
-                                                                <span x-show="!attendee.name && !attendee.gender">, </span>
-                                                                <span x-show="!attendee.gender">Gender</span>
-                                                            </li>
-                                                        </template>
-                                                    </template>
-                                                </ul>
-                                            </div>
-
-                                            <button type="submit" 
-                                                    id="btn-daftar-submit"
-                                                    :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
-                                                    class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
-                                                <template x-if="isSubmitting">
-                                                    <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                </template>
-                                                <span x-text="isSubmitting ? 'Memproses...' : '✅ Daftar & Dapatkan E-Voucher'"></span>
+                                    <!-- Navigation buttons within form -->
+                                    <template x-if="quantity > 1">
+                                        <div class="flex justify-between gap-3">
+                                            <button type="button" 
+                                                    @click="if(currentAttendee > 0) currentAttendee--" 
+                                                    :disabled="currentAttendee === 0"
+                                                    class="flex-1 py-2 px-3 bg-slate-100 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
+                                                ← Sebelumnya
+                                            </button>
+                                            <button type="button" 
+                                                    @click="if(currentAttendee < quantity - 1) currentAttendee++" 
+                                                    :disabled="currentAttendee === quantity - 1"
+                                                    class="flex-1 py-2 px-3 bg-slate-900 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+                                                Berikutnya →
                                             </button>
                                         </div>
-                                    </form>
-                                </div>
-                            </template>
-                        </div>                   </div>
+                                    </template>
 
-                        @else
-                        {{-- ============================================
-                             PAID EVENT: Existing Flow (unchanged)
-                             ============================================ --}}
+                                    <!-- Summary & Submit -->
+                                    <div class="pt-2 border-t border-slate-100">
+                                        <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
+                                            <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
+                                            <span class="text-xl font-black text-emerald-600 font-outfit">GRATIS</span>
+                                        </div>
 
-                        <!-- Step 1: Summary & NIK -->
-                        <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-900/5 border border-slate-50 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <div class="space-y-4">
-                                <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name : 'Pilih Tiket'"></div>
-                                <div class="flex justify-between items-center" x-show="selectedCategory">
-                                    <div class="text-slate-400 text-sm" x-text="selectedCategory ? quantity + ' x ' + Number(selectedCategory.price).toLocaleString('id-ID') : ''"></div>
-                                </div>
-                                
-                                <div class="flex justify-between items-end pt-4 border-t border-slate-100">
-                                    <div class="text-slate-400 text-sm font-bold">Jumlah (<span x-text="quantity">0</span> tiket)</div>
-                                    <div class="text-2xl font-black text-slate-900 font-outfit">
-                                        Rp <span x-text="selectedCategory ? (selectedCategory.price * quantity).toLocaleString('id-ID') : '0'">0</span>
-                                    </div>
-                                </div>
+                                        <!-- Validation Error Summary -->
+                                        <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
+                                             x-cloak
+                                             class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <svg class="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                <span class="text-[10px] font-black text-rose-700 uppercase tracking-wider">Lengkapi data berikut:</span>
+                                            </div>
+                                            <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
+                                                <li x-show="!email">Alamat Email</li>
+                                                <li x-show="!proofIgFile">Bukti Follow IG</li>
+                                                <li x-show="!proofReviewFile">Bukti Google Review</li>
+                                                <template x-for="(attendee, idx) in attendees" :key="idx">
+                                                    <template x-if="!attendee.name || !attendee.gender">
+                                                        <li>
+                                                            <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
+                                                            <span x-show="!attendee.name">Nama</span>
+                                                            <span x-show="!attendee.name && !attendee.gender">, </span>
+                                                            <span x-show="!attendee.gender">Gender</span>
+                                                        </li>
+                                                    </template>
+                                                </template>
+                                            </ul>
+                                        </div>
 
-                                <!-- Promo Code Section -->
-                                <div class="pt-4 border-t border-slate-50 space-y-3" x-show="quantity > 0">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Punya Kode Promo?</label>
-                                    <div class="flex gap-2">
-                                        <input type="text" x-model="promoCode" placeholder="Masukkan kode" 
-                                               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold focus:border-blue-500 outline-none uppercase">
-                                        <button @click="applyPromo" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition">
-                                            Gunakan
+                                        <button type="submit" 
+                                                id="btn-daftar-submit"
+                                                :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
+                                                class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
+                                            <template x-if="isSubmitting">
+                                                <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </template>
+                                            <span x-text="isSubmitting ? 'Memproses...' : '✅ Daftar & Dapatkan E-Voucher'"></span>
                                         </button>
                                     </div>
-                                    <p x-show="promoMessage" :class="promoStatus === 'success' ? 'text-emerald-600' : 'text-rose-600'" class="text-[10px] font-bold" x-text="promoMessage"></p>
-                                    
-                                    <div class="flex justify-between items-center text-emerald-600 font-bold text-sm" x-show="discount > 0">
-                                        <span>Potongan Promo</span>
-                                        <span>- Rp <span x-text="discount.toLocaleString('id-ID')"></span></span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex justify-between items-center pt-4 border-t border-blue-100" x-show="discount > 0">
-                                    <div class="text-blue-600 text-sm font-black uppercase">Total Bayar</div>
-                                    <div class="text-2xl font-black text-blue-600 font-outfit">
-                                        Rp <span x-text="total.toLocaleString('id-ID')">0</span>
-                                    </div>
-                                </div>
+                                </form>
                             </div>
 
-                            <div class="space-y-3 pt-4 border-t border-slate-50">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Pemesan (NIK)</label>
-                                <div class="relative">
-                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"/></svg>
+                        @else
+                            {{-- ============================================
+                                 PAID EVENT: Existing Flow (unchanged)
+                                 ============================================ --}}
+
+                            <!-- Step 1: Summary & NIK -->
+                            <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-900/5 border border-slate-50 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div class="space-y-4">
+                                    <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name : 'Pilih Tiket'"></div>
+                                    <div class="flex justify-between items-center" x-show="selectedCategory">
+                                        <div class="text-slate-400 text-sm" x-text="selectedCategory ? quantity + ' x ' + Number(selectedCategory.price).toLocaleString('id-ID') : ''"></div>
                                     </div>
-                                    <input type="text" x-model="nik" placeholder="Masukkan 16 Digit NIK" maxlength="16"
-                                           class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none">
+
+                                    <div class="flex justify-between items-end pt-4 border-t border-slate-100">
+                                        <div class="text-slate-400 text-sm font-bold">Jumlah (<span x-text="quantity">0</span> tiket)</div>
+                                        <div class="text-2xl font-black text-slate-900 font-outfit">
+                                            Rp <span x-text="selectedCategory ? (selectedCategory.price * quantity).toLocaleString('id-ID') : '0'">0</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Promo Code Section -->
+                                    <div class="pt-4 border-t border-slate-50 space-y-3" x-show="quantity > 0">
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Punya Kode Promo?</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" x-model="promoCode" placeholder="Masukkan kode" 
+                                                   class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold focus:border-blue-500 outline-none uppercase">
+                                            <button @click="applyPromo" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition">
+                                                Gunakan
+                                            </button>
+                                        </div>
+                                        <p x-show="promoMessage" :class="promoStatus === 'success' ? 'text-emerald-600' : 'text-rose-600'" class="text-[10px] font-bold" x-text="promoMessage"></p>
+
+                                        <div class="flex justify-between items-center text-emerald-600 font-bold text-sm" x-show="discount > 0">
+                                            <span>Potongan Promo</span>
+                                            <span>- Rp <span x-text="discount.toLocaleString('id-ID')"></span></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center pt-4 border-t border-blue-100" x-show="discount > 0">
+                                        <div class="text-blue-600 text-sm font-black uppercase">Total Bayar</div>
+                                        <div class="text-2xl font-black text-blue-600 font-outfit">
+                                            Rp <span x-text="total.toLocaleString('id-ID')">0</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <button @click="goToStep2" 
-                                    :disabled="!selectedCategory || quantity === 0"
-                                    class="w-full py-4 bg-blue-500 disabled:bg-blue-200 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all transform active:scale-95">
-                                Lanjut Pembayaran
-                            </button>
-                        </div>
+                                <div class="space-y-3 pt-4 border-t border-slate-50">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Pemesan (NIK)</label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"/></svg>
+                                        </div>
+                                        <input type="text" x-model="nik" placeholder="Masukkan 16 Digit NIK" maxlength="16"
+                                               class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none">
+                                    </div>
+                                </div>
 
-                        <!-- Step 2: Customer Details & Payment -->
-                        <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-900/5 border border-slate-50 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <div class="flex items-center gap-2 mb-4">
-                                <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
-                                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                <button @click="goToStep2" 
+                                        :disabled="!selectedCategory || quantity === 0"
+                                        class="w-full py-4 bg-blue-500 disabled:bg-blue-200 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all transform active:scale-95">
+                                    Lanjut Pembayaran
                                 </button>
-                                <h3 class="font-bold text-slate-900 font-outfit">Detail Pembayaran</h3>
                             </div>
 
-                            <form @submit.prevent="submitBooking" class="space-y-4">
-                                <div class="space-y-3">
-                                    <input type="text" x-model="name" placeholder="Nama Lengkap" required
-                                            class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <input type="text" x-model="phone" placeholder="Nomor HP / WhatsApp" required
-                                            class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <input type="email" x-model="email" placeholder="Alamat Email" required
-                                            class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                </div>
-
-                                <div class="space-y-2 pt-2">
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                        <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
-                                    </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                        <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
-                                    </label>
-                                </div>
-
-                                <div class="pt-4">
-                                    <div class="flex justify-between items-center mb-4 p-4 bg-slate-50 rounded-2xl">
-                                        <span class="text-xs font-bold text-slate-500">Total Pembayaran</span>
-                                        <span class="text-xl font-black text-blue-600 font-outfit">Rp <span x-text="total.toLocaleString('id-ID')"></span></span>
-                                    </div>
-                                    <button type="submit" 
-                                            :disabled="isSubmitting"
-                                            class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95 disabled:bg-slate-300 flex items-center justify-center gap-3">
-                                        <template x-if="isSubmitting">
-                                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </template>
-                                        <span x-text="isSubmitting ? 'Memproses...' : 'Bayar Sekarang'"></span>
+                            <!-- Step 2: Customer Details & Payment -->
+                            <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-900/5 border border-slate-50 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
+                                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                                     </button>
+                                    <h3 class="font-bold text-slate-900 font-outfit">Detail Pembayaran</h3>
                                 </div>
-                            </form>
-                        </div>
+
+                                <form @submit.prevent="submitBooking" class="space-y-4">
+                                    <div class="space-y-3">
+                                        <input type="text" x-model="name" placeholder="Nama Lengkap" required
+                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <input type="text" x-model="phone" placeholder="Nomor HP / WhatsApp" required
+                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <input type="email" x-model="email" placeholder="Alamat Email" required
+                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    </div>
+
+                                    <div class="space-y-2 pt-2">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="pt-4">
+                                        <div class="flex justify-between items-center mb-4 p-4 bg-slate-50 rounded-2xl">
+                                            <span class="text-xs font-bold text-slate-500">Total Pembayaran</span>
+                                            <span class="text-xl font-black text-blue-600 font-outfit">Rp <span x-text="total.toLocaleString('id-ID')"></span></span>
+                                        </div>
+                                        <button type="submit" 
+                                                :disabled="isSubmitting"
+                                                class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95 disabled:bg-slate-300 flex items-center justify-center gap-3">
+                                            <template x-if="isSubmitting">
+                                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </template>
+                                            <span x-text="isSubmitting ? 'Memproses...' : 'Bayar Sekarang'"></span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         @endif
 
                     </div>
@@ -950,150 +936,6 @@
         </div>
     </div>
  
-    <!-- ============================================
-         MODAL: E-Voucher Berhasil Dibuat (Post-Registration)
-         ============================================ -->
-    <div x-show="showEvoucherModal"
-         x-cloak
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[200] flex items-center justify-center p-4"
-         style="background: rgba(10, 15, 30, 0.75); backdrop-filter: blur(8px);">
-
-        <div @click.away="false"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-90 translate-y-8"
-             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-90"
-             class="relative w-full max-w-md overflow-hidden"
-             style="border-radius: 2rem; background: #fff; box-shadow: 0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);">
-
-            <!-- Decorative gradient top bar -->
-            <div style="height: 6px; background: linear-gradient(90deg, #f97316, #fb923c, #fbbf24, #34d399, #3b82f6, #8b5cf6); background-size: 200% 100%; animation: shimmer 3s linear infinite;"></div>
-
-            <!-- Confetti animation area -->
-            <div class="relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); padding: 2.5rem 2rem 2rem;">
-                <!-- Stars decoration -->
-                <div class="absolute inset-0 overflow-hidden" aria-hidden="true">
-                    <div style="position:absolute;top:10%;left:10%;width:3px;height:3px;background:#fbbf24;border-radius:50%;animation:twinkle 2s ease-in-out infinite;"></div>
-                    <div style="position:absolute;top:20%;right:15%;width:2px;height:2px;background:#34d399;border-radius:50%;animation:twinkle 2.5s ease-in-out 0.5s infinite;"></div>
-                    <div style="position:absolute;top:60%;left:20%;width:2px;height:2px;background:#a78bfa;border-radius:50%;animation:twinkle 1.8s ease-in-out 1s infinite;"></div>
-                    <div style="position:absolute;top:40%;right:10%;width:3px;height:3px;background:#f472b6;border-radius:50%;animation:twinkle 2.2s ease-in-out 0.3s infinite;"></div>
-                    <div style="position:absolute;top:75%;right:25%;width:2px;height:2px;background:#fbbf24;border-radius:50%;animation:twinkle 1.6s ease-in-out 0.8s infinite;"></div>
-                </div>
-
-                <!-- Success checkmark -->
-                <div class="flex justify-center mb-4">
-                    <div style="width:80px;height:80px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(16,185,129,0.5), 0 0 0 12px rgba(16,185,129,0.15);animation:pulse-glow 2s ease-in-out infinite;">
-                        <svg style="width:40px;height:40px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="text-center">
-                    <div style="font-size:0.65rem;font-weight:900;letter-spacing:0.2em;color:#34d399;text-transform:uppercase;margin-bottom:0.5rem;">🎉 Pendaftaran Berhasil!</div>
-                    <h2 style="font-size:1.5rem;font-weight:900;color:#fff;font-family:'Outfit',sans-serif;line-height:1.2;margin-bottom:0.5rem;">
-                        Terima Kasih<br><span style="background:linear-gradient(90deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">telah mendaftar!</span>
-                    </h2>
-                    <p style="font-size:0.8rem;color:#94a3b8;font-weight:500;line-height:1.6;">
-                        E-Voucher kamu sudah siap. <strong style="color:#e2e8f0;">Jangan lupa screenshot</strong><br>sebagai bukti pendaftaran kamu ya! 📸
-                    </p>
-                </div>
-            </div>
-
-            <!-- Action area -->
-            <div style="padding: 1.75rem 2rem 2rem; background: #fff;">
-
-                <!-- Step indicator -->
-                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;padding:0.75rem 1rem;background:#f8fafc;border-radius:1rem;border:1px solid #e2e8f0;">
-                    <div style="width:28px;height:28px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <span style="color:#fff;font-size:0.7rem;font-weight:900;">!</span>
-                    </div>
-                    <p style="font-size:0.7rem;color:#475569;font-weight:600;line-height:1.5;margin:0;">
-                        <strong style="color:#0f172a;">Langkah penting:</strong> Salin link, buka E-Voucher, lalu <strong style="color:#f97316;">screenshot halaman E-Vouchermu!</strong>
-                    </p>
-                </div>
-
-                <!-- Evoucher URL Copy Box -->
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;font-size:0.65rem;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">🔗 Link E-Voucher Kamu</label>
-                    <div style="display:flex;gap:0.5rem;align-items:center;">
-                        <div style="flex:1;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:0.875rem;padding:0.625rem 0.875rem;overflow:hidden;">
-                            <span x-text="evoucherUrl" style="font-size:0.7rem;font-weight:700;color:#334155;word-break:break-all;display:block;"></span>
-                        </div>
-                        <button
-                            @click="navigator.clipboard.writeText(evoucherUrl).then(() => { evoucherCopied = true; setTimeout(() => evoucherCopied = false, 2500); })"
-                            style="flex-shrink:0;width:44px;height:44px;border-radius:0.875rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:all 0.2s;"
-                            :style="evoucherCopied ? 'background:linear-gradient(135deg,#10b981,#059669);transform:scale(1.05);' : 'background:linear-gradient(135deg,#f97316,#ea580c);'"
-                            :title="evoucherCopied ? 'Tersalin!' : 'Salin link'">
-                            <template x-if="!evoucherCopied">
-                                <svg style="width:18px;height:18px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                </svg>
-                            </template>
-                            <template x-if="evoucherCopied">
-                                <svg style="width:18px;height:18px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </template>
-                        </button>
-                    </div>
-                    <p x-show="evoucherCopied" x-cloak style="font-size:0.65rem;color:#10b981;font-weight:700;margin-top:0.35rem;display:flex;align-items:center;gap:0.25rem;">✅ Link berhasil disalin ke clipboard!</p>
-                </div>
-
-                <!-- Action Buttons -->
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <!-- Open Evoucher (primary) -->
-                    <a :href="evoucherUrl" target="_blank" rel="noopener noreferrer"
-                       style="display:flex;align-items:center;justify-content:center;gap:0.625rem;width:100%;padding:1rem;background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;border-radius:1rem;font-weight:900;font-size:0.85rem;text-decoration:none;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s;box-shadow:0 4px 20px rgba(15,23,42,0.25);"
-                       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(15,23,42,0.4)';"
-                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.25)';">
-                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-                        </svg>
-                        Buka E-Voucher & Screenshot
-                    </a>
-
-                    <!-- Screenshot reminder & close -->
-                    <div style="display:flex;gap:0.625rem;">
-                        <a :href="evoucherUrl" target="_blank" rel="noopener noreferrer"
-                           style="flex:1;display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem;background:#f0fdf4;border:1.5px solid #bbf7d0;color:#16a34a;border-radius:0.875rem;font-weight:800;font-size:0.75rem;text-decoration:none;transition:all 0.2s;"
-                           onmouseover="this.style.background='#dcfce7';"
-                           onmouseout="this.style.background='#f0fdf4';">
-                            <span>📸</span> Screenshot
-                        </a>
-                        <button
-                            @click="window.location.href = evoucherUrl"
-                            style="flex:1;display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem;background:#fff;border:1.5px solid #e2e8f0;color:#64748b;border-radius:0.875rem;font-weight:700;font-size:0.75rem;cursor:pointer;transition:all 0.2s;"
-                            onmouseover="this.style.background='#f8fafc';"
-                            onmouseout="this.style.background='#fff';">
-                            Lihat Detail →
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Footer note -->
-                <p style="text-align:center;font-size:0.65rem;color:#94a3b8;font-weight:500;margin-top:1rem;line-height:1.6;">
-                    📧 E-Voucher juga sudah dikirim ke email kamu.<br>
-                    <strong style="color:#f97316;">Wajib screenshot</strong> sebagai bukti pendaftaran resmi.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        @keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
-        @keyframes twinkle { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
-        @keyframes pulse-glow { 0%,100%{box-shadow:0 0 40px rgba(16,185,129,0.5),0 0 0 12px rgba(16,185,129,0.15)} 50%{box-shadow:0 0 60px rgba(16,185,129,0.7),0 0 0 18px rgba(16,185,129,0.1)} }
-    </style>
-
     <!-- Modal S&K -->
     <div x-show="showModalSK" 
          x-cloak
