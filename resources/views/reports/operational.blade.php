@@ -427,6 +427,7 @@
 </div>
 
 <script>
+
     // Tab switching state attached to window to ensure global availability
     window.activeTab = 'transactions';
     window.txCurrentPage = 1;
@@ -511,6 +512,7 @@
         if (ticketInfo) {
             ticketInfo.textContent = `Menampilkan ${totalTickets === 0 ? 0 : ticketStartIdx + 1}-${ticketEndIdx} dari ${totalTickets} data`;
         }
+
     }
 
     window.prevReportPage = function(tab) {

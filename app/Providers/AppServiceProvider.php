@@ -20,8 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS in production (required when behind Cloudflare/reverse proxy)
-        if (config('app.env') === 'production') {
+        // Force HTTPS scheme based on APP_URL setting
+        // If APP_URL starts with https://, force HTTPS for all generated URLs
+        // This respects the deployment environment - Laragon uses http://, production uses https://
+        if (str_starts_with(config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 

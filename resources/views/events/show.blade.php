@@ -96,6 +96,9 @@
     isSubmitting: false,
     registrationSuccess: false,
     formTouched: false,
+    showEvoucherModal: false,
+    evoucherUrl: '',
+    evoucherCopied: false,
     
     get total() {
         if (!this.selectedCategory || !this.quantity) return 0;
@@ -236,7 +239,8 @@
 
             const data = await response.json();
             if (data.success) {
-                window.location.href = `{{ url('checkout/success') }}/${data.reference_no}`;
+                this.evoucherUrl = `{{ url('/evoucher') }}/${data.reference_no}`;
+                this.showEvoucherModal = true;
             } else {
                 alert(data.message || 'Gagal memproses pendaftaran.');
             }
@@ -281,9 +285,13 @@
 
             const data = await response.json();
             if (data.success) {
+                const refNo = data.reference_no;
                 window.snap.pay(data.snap_token, {
-                    onSuccess: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
-                    onPending: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
+                    onSuccess: (result) => {
+                        this.evoucherUrl = `{{ url('/evoucher') }}/${refNo}`;
+                        this.showEvoucherModal = true;
+                    },
+                    onPending: (result) => { window.location.href = `/checkout/success/${refNo}`; },
                     onError: (result) => { alert('Pembayaran gagal.'); }
                 });
             } else {
@@ -939,6 +947,150 @@
         </div>
     </div>
  
+    <!-- ============================================
+         MODAL: E-Voucher Berhasil Dibuat (Post-Registration)
+         ============================================ -->
+    <div x-show="showEvoucherModal"
+         x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+         style="background: rgba(10, 15, 30, 0.75); backdrop-filter: blur(8px);">
+
+        <div @click.away="false"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-90 translate-y-8"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-90"
+             class="relative w-full max-w-md overflow-hidden"
+             style="border-radius: 2rem; background: #fff; box-shadow: 0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);">
+
+            <!-- Decorative gradient top bar -->
+            <div style="height: 6px; background: linear-gradient(90deg, #f97316, #fb923c, #fbbf24, #34d399, #3b82f6, #8b5cf6); background-size: 200% 100%; animation: shimmer 3s linear infinite;"></div>
+
+            <!-- Confetti animation area -->
+            <div class="relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); padding: 2.5rem 2rem 2rem;">
+                <!-- Stars decoration -->
+                <div class="absolute inset-0 overflow-hidden" aria-hidden="true">
+                    <div style="position:absolute;top:10%;left:10%;width:3px;height:3px;background:#fbbf24;border-radius:50%;animation:twinkle 2s ease-in-out infinite;"></div>
+                    <div style="position:absolute;top:20%;right:15%;width:2px;height:2px;background:#34d399;border-radius:50%;animation:twinkle 2.5s ease-in-out 0.5s infinite;"></div>
+                    <div style="position:absolute;top:60%;left:20%;width:2px;height:2px;background:#a78bfa;border-radius:50%;animation:twinkle 1.8s ease-in-out 1s infinite;"></div>
+                    <div style="position:absolute;top:40%;right:10%;width:3px;height:3px;background:#f472b6;border-radius:50%;animation:twinkle 2.2s ease-in-out 0.3s infinite;"></div>
+                    <div style="position:absolute;top:75%;right:25%;width:2px;height:2px;background:#fbbf24;border-radius:50%;animation:twinkle 1.6s ease-in-out 0.8s infinite;"></div>
+                </div>
+
+                <!-- Success checkmark -->
+                <div class="flex justify-center mb-4">
+                    <div style="width:80px;height:80px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(16,185,129,0.5), 0 0 0 12px rgba(16,185,129,0.15);animation:pulse-glow 2s ease-in-out infinite;">
+                        <svg style="width:40px;height:40px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <div style="font-size:0.65rem;font-weight:900;letter-spacing:0.2em;color:#34d399;text-transform:uppercase;margin-bottom:0.5rem;">🎉 Pendaftaran Berhasil!</div>
+                    <h2 style="font-size:1.5rem;font-weight:900;color:#fff;font-family:'Outfit',sans-serif;line-height:1.2;margin-bottom:0.5rem;">
+                        Terima Kasih<br><span style="background:linear-gradient(90deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">telah mendaftar!</span>
+                    </h2>
+                    <p style="font-size:0.8rem;color:#94a3b8;font-weight:500;line-height:1.6;">
+                        E-Voucher kamu sudah siap. <strong style="color:#e2e8f0;">Jangan lupa screenshot</strong><br>sebagai bukti pendaftaran kamu ya! 📸
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action area -->
+            <div style="padding: 1.75rem 2rem 2rem; background: #fff;">
+
+                <!-- Step indicator -->
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;padding:0.75rem 1rem;background:#f8fafc;border-radius:1rem;border:1px solid #e2e8f0;">
+                    <div style="width:28px;height:28px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <span style="color:#fff;font-size:0.7rem;font-weight:900;">!</span>
+                    </div>
+                    <p style="font-size:0.7rem;color:#475569;font-weight:600;line-height:1.5;margin:0;">
+                        <strong style="color:#0f172a;">Langkah penting:</strong> Salin link, buka E-Voucher, lalu <strong style="color:#f97316;">screenshot halaman E-Vouchermu!</strong>
+                    </p>
+                </div>
+
+                <!-- Evoucher URL Copy Box -->
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;font-size:0.65rem;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">🔗 Link E-Voucher Kamu</label>
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <div style="flex:1;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:0.875rem;padding:0.625rem 0.875rem;overflow:hidden;">
+                            <span x-text="evoucherUrl" style="font-size:0.7rem;font-weight:700;color:#334155;word-break:break-all;display:block;"></span>
+                        </div>
+                        <button
+                            @click="navigator.clipboard.writeText(evoucherUrl).then(() => { evoucherCopied = true; setTimeout(() => evoucherCopied = false, 2500); })"
+                            style="flex-shrink:0;width:44px;height:44px;border-radius:0.875rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:all 0.2s;"
+                            :style="evoucherCopied ? 'background:linear-gradient(135deg,#10b981,#059669);transform:scale(1.05);' : 'background:linear-gradient(135deg,#f97316,#ea580c);'"
+                            :title="evoucherCopied ? 'Tersalin!' : 'Salin link'">
+                            <template x-if="!evoucherCopied">
+                                <svg style="width:18px;height:18px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </template>
+                            <template x-if="evoucherCopied">
+                                <svg style="width:18px;height:18px;color:#fff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </template>
+                        </button>
+                    </div>
+                    <p x-show="evoucherCopied" x-cloak style="font-size:0.65rem;color:#10b981;font-weight:700;margin-top:0.35rem;display:flex;align-items:center;gap:0.25rem;">✅ Link berhasil disalin ke clipboard!</p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <!-- Open Evoucher (primary) -->
+                    <a :href="evoucherUrl" target="_blank" rel="noopener noreferrer"
+                       style="display:flex;align-items:center;justify-content:center;gap:0.625rem;width:100%;padding:1rem;background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;border-radius:1rem;font-weight:900;font-size:0.85rem;text-decoration:none;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s;box-shadow:0 4px 20px rgba(15,23,42,0.25);"
+                       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(15,23,42,0.4)';"
+                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.25)';">
+                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                        </svg>
+                        Buka E-Voucher & Screenshot
+                    </a>
+
+                    <!-- Screenshot reminder & close -->
+                    <div style="display:flex;gap:0.625rem;">
+                        <a :href="evoucherUrl" target="_blank" rel="noopener noreferrer"
+                           style="flex:1;display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem;background:#f0fdf4;border:1.5px solid #bbf7d0;color:#16a34a;border-radius:0.875rem;font-weight:800;font-size:0.75rem;text-decoration:none;transition:all 0.2s;"
+                           onmouseover="this.style.background='#dcfce7';"
+                           onmouseout="this.style.background='#f0fdf4';">
+                            <span>📸</span> Screenshot
+                        </a>
+                        <button
+                            @click="window.location.href = evoucherUrl"
+                            style="flex:1;display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem;background:#fff;border:1.5px solid #e2e8f0;color:#64748b;border-radius:0.875rem;font-weight:700;font-size:0.75rem;cursor:pointer;transition:all 0.2s;"
+                            onmouseover="this.style.background='#f8fafc';"
+                            onmouseout="this.style.background='#fff';">
+                            Lihat Detail →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Footer note -->
+                <p style="text-align:center;font-size:0.65rem;color:#94a3b8;font-weight:500;margin-top:1rem;line-height:1.6;">
+                    📧 E-Voucher juga sudah dikirim ke email kamu.<br>
+                    <strong style="color:#f97316;">Wajib screenshot</strong> sebagai bukti pendaftaran resmi.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+        @keyframes twinkle { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes pulse-glow { 0%,100%{box-shadow:0 0 40px rgba(16,185,129,0.5),0 0 0 12px rgba(16,185,129,0.15)} 50%{box-shadow:0 0 60px rgba(16,185,129,0.7),0 0 0 18px rgba(16,185,129,0.1)} }
+    </style>
+
     <!-- Modal S&K -->
     <div x-show="showModalSK" 
          x-cloak
