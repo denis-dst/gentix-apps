@@ -9,18 +9,64 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
+
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
         @media print {
             .no-print { display: none !important; }
             body { background-color: white !important; margin: 0; padding: 0; }
-            .a4-container { 
-                width: 210mm; 
-                height: 297mm; 
-                margin: 0 auto; 
-                padding: 10mm;
+            .a4-container {
+                width: auto !important;
+                min-height: auto !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+            }
+            .a4-container .print-body {
+                padding: 6mm !important;
+            }
+            .print-compact-header {
+                padding: 5mm 6mm !important;
+            }
+            .print-compact-header .header-title {
+                font-size: 1.25rem !important;
+            }
+            .print-compact-event {
+                gap: 4mm !important;
+                margin-bottom: 4mm !important;
+            }
+            .print-compact-event img {
+                max-height: 38mm !important;
+            }
+            .print-compact-event h1 {
+                font-size: 1.1rem !important;
+                margin-bottom: 2mm !important;
+            }
+            .print-hide-on-multi {
+                display: none !important;
+            }
+            .group-ticket-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .terms-print-compact {
+                font-size: 0.62rem !important;
+                line-height: 1.45 !important;
+            }
+            .terms-print-compact h1,
+            .terms-print-compact h2 {
+                font-size: 0.72rem !important;
+                margin-bottom: 0.25rem !important;
             }
         }
+
         .a4-container {
             width: 210mm;
             min-height: 297mm;
@@ -46,7 +92,20 @@
 </head>
 <body class="bg-slate-100 min-h-screen py-4 md:py-10">
 
-    @php $isFree = $ticket->transaction->payment_method === 'free'; @endphp
+    @php
+        $isFree = $ticket->transaction->payment_method === 'free';
+        $activeGroupTickets = $ticket->transaction->tickets->where('status', '!=', 'void')->values();
+        $voidGroupTicketsCount = $ticket->transaction->tickets->where('status', 'void')->count();
+        $groupTicketCount = $activeGroupTickets->count();
+        $isMultiTicket = $groupTicketCount > 1;
+        $groupQrSize = match (true) {
+            $groupTicketCount >= 7 => 58,
+            $groupTicketCount >= 5 => 68,
+            $groupTicketCount >= 3 => 78,
+            default => 88,
+        };
+        $groupGridClass = $groupTicketCount >= 5 ? 'grid-cols-3' : 'grid-cols-2';
+    @endphp
 
     @if($isFree)
         <div class="no-print max-w-[210mm] mx-auto mb-6 px-4">
@@ -72,13 +131,13 @@
 
     <div class="a4-container shadow-2xl">
         <!-- Header -->
-        <div class="{{ $isFree ? 'bg-gradient-to-r from-emerald-700 to-teal-600' : 'bg-[#1e3a8a]' }} text-white p-8 flex justify-between items-center relative overflow-hidden">
+        <div class="{{ $isFree ? 'bg-gradient-to-r from-emerald-700 to-teal-600' : 'bg-[#1e3a8a]' }} text-white p-8 flex justify-between items-center relative overflow-hidden print-compact-header">
             <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
             <div class="flex items-center gap-4 relative z-10">
-                <span class="text-4xl font-black tracking-tighter font-outfit">GenTix</span>
+                <span class="text-4xl font-black tracking-tighter font-outfit header-title">GenTix</span>
                 <div class="h-8 w-px bg-white/20"></div>
                 <div>
-                    <span class="text-2xl font-bold opacity-90 tracking-wide">E-Voucher</span>
+                    <span class="text-2xl font-bold opacity-90 tracking-wide header-title">E-Voucher</span>
                     @if($isFree)
                         <div class="text-xs font-black uppercase tracking-widest opacity-70 mt-0.5">Peserta Gratis</div>
                     @endif
@@ -89,7 +148,7 @@
             </button>
         </div>
 
-        <div class="p-10 space-y-10">
+        <div class="p-10 space-y-10 print-body {{ $isMultiTicket ? 'space-y-6' : '' }}">
             @if($ticket->event->evoucher_info)
                 <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-3xl p-6 shadow-md flex items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
@@ -111,8 +170,8 @@
             @endif
 
             <!-- Event Section -->
-            <div class="flex gap-8 items-start">
-                <div class="w-1/3 shrink-0">
+            <div class="flex gap-8 items-start print-compact-event {{ $isMultiTicket ? 'gap-4' : '' }}">
+                <div class="{{ $isMultiTicket ? 'w-1/4' : 'w-1/3' }} shrink-0">
                     <img src="{{ $ticket->event->background_image ? (str_starts_with($ticket->event->background_image, 'http') ? $ticket->event->background_image : asset('storage/' . $ticket->event->background_image)) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80' }}" 
                          class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm border border-slate-100" alt="Banner">
                 </div>
@@ -139,7 +198,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-8 items-stretch">
+            <div class="grid grid-cols-3 gap-8 items-stretch {{ $isMultiTicket ? 'gap-4 print-hide-on-multi' : '' }}">
                 <!-- Info Section -->
                 <div class="col-span-3 lg:col-span-2 bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 space-y-6">
                     <h3 class="text-lg font-black text-slate-900 font-outfit border-b border-slate-200 pb-3">
@@ -206,59 +265,38 @@
             </div>
 
             <!-- Group Tickets Section (if multi-ticket) -->
-            @php
-                $activeGroupTickets = $ticket->transaction->tickets->where('status', '!=', 'void')->values();
-                $voidGroupTicketsCount = $ticket->transaction->tickets->where('status', 'void')->count();
-            @endphp
-
-            @if($activeGroupTickets->count() > 1)
-            <div class="pt-8 border-t-2 border-slate-100 space-y-6">
-                <h3 class="text-lg font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    🎟️ Daftar E-Voucher Peserta (Aktif: {{ $activeGroupTickets->count() }} Peserta)
+            @if($isMultiTicket)
+            <div class="pt-4 border-t-2 border-slate-100 space-y-4">
+                <h3 class="text-base font-black text-slate-900 font-outfit uppercase tracking-tight">
+                    Daftar E-Voucher Peserta ({{ $groupTicketCount }} Peserta)
                 </h3>
                 @if($voidGroupTicketsCount > 0)
                     <p class="text-xs font-black text-rose-500 uppercase tracking-wider">{{ $voidGroupTicketsCount }} tiket dibatalkan dan tidak ditampilkan sebagai e-voucher.</p>
                 @endif
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid {{ $groupGridClass }} gap-3">
                     @foreach($activeGroupTickets as $idx => $t)
-                        <div class="border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-3xl p-6 flex items-center justify-between gap-4">
-                            <div class="space-y-3 min-w-0 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center shrink-0">
+                        <div class="group-ticket-card border-2 {{ $t->id === $ticket->id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-100 bg-slate-50/30' }} rounded-2xl p-3 flex flex-col items-center text-center gap-2">
+                            <div class="w-full min-w-0">
+                                <div class="flex items-center justify-center gap-2 mb-1">
+                                    <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
                                         {{ $idx + 1 }}
                                     </span>
-                                    <h4 class="font-black text-sm text-slate-800 truncate uppercase font-outfit">
+                                    <h4 class="font-black text-[11px] text-slate-800 truncate uppercase font-outfit">
                                         {{ $t->visitor_data['name'] ?? $ticket->transaction->customer_name }}
                                     </h4>
                                 </div>
-                                <div class="text-[10px] text-slate-500 font-bold space-y-1">
-                                    <div class="flex justify-between">
-                                        <span>Kode Tiket:</span>
-                                        <span class="font-mono text-slate-800">{{ $t->ticket_code }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span>Kategori:</span>
-                                        <span class="text-slate-800 uppercase">{{ $t->category->name }}</span>
-                                    </div>
+                                <div class="text-[9px] text-slate-500 font-bold space-y-0.5">
+                                    <div class="truncate font-mono text-slate-700">{{ $t->ticket_code }}</div>
+                                    <div class="uppercase text-slate-600">{{ $t->category->name }}</div>
                                     @if(isset($t->visitor_data['gender']))
-                                    <div class="flex justify-between">
-                                        <span>Gender:</span>
-                                        <span class="text-slate-800 uppercase">{{ $t->visitor_data['gender'] }}</span>
-                                    </div>
-                                    @endif
-                                    @if(isset($t->visitor_data['umroh_answer']) && $t->visitor_data['umroh_answer'])
-                                    <div class="flex justify-between items-start gap-2">
-                                        <span>Umroh:</span>
-                                        <span class="text-slate-800 text-right truncate max-w-[150px]">{{ $t->visitor_data['umroh_answer'] }}</span>
-                                    </div>
+                                        <div class="uppercase">{{ $t->visitor_data['gender'] }}</div>
                                     @endif
                                 </div>
                             </div>
                             
-                            <div class="shrink-0 flex flex-col items-center gap-1.5 bg-white p-2 border border-slate-100 rounded-2xl shadow-sm">
-                                {!! QrCode::size(80)->generate($t->ticket_code) !!}
-                                <span class="text-[8px] font-black font-mono text-slate-400 tracking-wider">{{ $t->ticket_code }}</span>
+                            <div class="shrink-0 flex flex-col items-center gap-1 bg-white p-1.5 border border-slate-100 rounded-xl shadow-sm">
+                                {!! QrCode::size($groupQrSize)->generate($t->ticket_code) !!}
                             </div>
                         </div>
                     @endforeach
@@ -268,7 +306,7 @@
 
             <!-- Check-in instruction for free events -->
             @if($isFree)
-            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4 {{ $isMultiTicket ? 'print-hide-on-multi' : '' }}">
                 <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 text-amber-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
@@ -280,9 +318,9 @@
             @endif
 
             <!-- T&C Section -->
-            <div class="pt-10 border-t-2 border-dashed border-slate-100">
-                <h3 class="text-lg font-black text-slate-900 font-outfit mb-4 uppercase tracking-tight">Syarat & Ketentuan</h3>
-                <div class="text-slate-500 terms-content">
+            <div class="pt-6 border-t-2 border-dashed border-slate-100 {{ $isMultiTicket ? 'pt-4' : 'pt-10' }}">
+                <h3 class="text-lg font-black text-slate-900 font-outfit mb-4 uppercase tracking-tight {{ $isMultiTicket ? 'text-sm mb-2' : '' }}">Syarat & Ketentuan</h3>
+                <div class="text-slate-500 terms-content {{ $isMultiTicket ? 'terms-print-compact' : '' }}">
                     @php
                         $tc = $ticket->event->terms_conditions ?: ($ticket->event->tenant->terms_conditions ?? '');
                     @endphp

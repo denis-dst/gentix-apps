@@ -124,6 +124,10 @@ class ReportController extends Controller
                         'email' => trim((string) ($visitorData['email'] ?? $transaction->customer_email ?? '')),
                     ];
                 });
+        })->filter(function ($row) {
+            return $this->normalizePhone($row['phone'])
+                || $this->normalizeEmail($row['email'])
+                || $this->normalizeName($row['name']);
         });
 
         $phoneCounts = $participants
@@ -162,6 +166,15 @@ class ReportController extends Controller
                     'email' => $first['email'] ?: '-',
                     'registration_count' => $group->count(),
                 ];
+            })
+            ->filter(function ($row) use ($phoneCounts, $emailCounts, $nameCounts) {
+                $phone = $this->normalizePhone($row['phone']);
+                $email = $this->normalizeEmail($row['email']);
+                $name = $this->normalizeName($row['name']);
+
+                return ($phone && ($phoneCounts[$phone] ?? 0) > 1)
+                    || ($email && ($emailCounts[$email] ?? 0) > 1)
+                    || ($name && ($nameCounts[$name] ?? 0) > 1);
             })
             ->sortByDesc('registration_count')
             ->values();

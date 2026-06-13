@@ -58,8 +58,17 @@ class TransactionController extends Controller
 
     public function printEvoucher(Transaction $transaction)
     {
-        $transaction->load(['event', 'tickets.category', 'tenant']);
-        return view('organizer.transactions.evoucher', compact('transaction'));
+        $transaction->load(['event', 'tickets']);
+
+        $this->authorizeTenant($transaction->event);
+
+        $activeTicket = $transaction->tickets->first(fn ($ticket) => $ticket->status !== 'void');
+
+        if (!$activeTicket) {
+            return back()->with('error', 'Tidak ada tiket aktif untuk dicetak.');
+        }
+
+        return redirect()->route('tickets.view', $activeTicket->ticket_code);
     }
 
     public function markAsPaid(Transaction $transaction)
