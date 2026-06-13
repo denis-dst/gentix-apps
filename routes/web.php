@@ -54,6 +54,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::post('transactions/{transaction}/cancel', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTransaction'])->name('transactions.cancel');
     Route::post('transactions/{transaction}/cancel-tickets', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTickets'])->name('transactions.cancel-tickets');
     Route::get('reports', [App\Http\Controllers\SuperAdmin\ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export-excel', [App\Http\Controllers\SuperAdmin\ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
 });
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     
     // Reports & Operations
     Route::get('reports', [App\Http\Controllers\Organizer\ReportController::class, 'index'])->middleware('role:Penyedia Event')->name('reports.index');
+    Route::get('reports/duplicates', [App\Http\Controllers\Organizer\ReportController::class, 'duplicates'])->middleware('role:Penyedia Event')->name('reports.duplicates');
+    Route::get('reports/export-excel', [App\Http\Controllers\Organizer\ReportController::class, 'exportExcel'])->middleware('role:Penyedia Event')->name('reports.export-excel');
     Route::get('checkin', [App\Http\Controllers\Organizer\CheckinController::class, 'index'])->name('checkin.index');
     Route::post('checkin/{id}/redeem', [App\Http\Controllers\Organizer\CheckinController::class, 'redeem'])->name('checkin.redeem');
     

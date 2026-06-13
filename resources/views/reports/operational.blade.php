@@ -1,6 +1,9 @@
 @php
     $isSuperadminReport = ($scope ?? '') === 'superadmin';
     $reportRoute = $isSuperadminReport ? route('superadmin.reports.index') : route('organizer.reports.index');
+    $reportExportExcelRoute = $isSuperadminReport
+        ? route('superadmin.reports.export-excel', request()->only(['tenant_id', 'event_id']))
+        : route('organizer.reports.export-excel', request()->only('event_id'));
     $formatWaUrl = function ($phone) {
         $number = preg_replace('/\D+/', '', (string) $phone);
 
@@ -155,7 +158,7 @@
     </div>
 
     <!-- Detailed Reports Section with Tabs, Search, and Export -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden" x-data="{ activeReportTab: 'transactions', reportSearch: '' }">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden detailed-report-container" id="detail-report-container" x-ignore>
         <div class="px-6 py-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/50">
             <div>
                 <h3 class="text-lg font-black text-slate-800 font-outfit">Laporan Detail Pendaftaran</h3>
@@ -172,10 +175,14 @@
                            class="w-full pl-9 pr-4 py-2 rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 bg-white">
                 </div>
 
-                <!-- Export CSV Buttons -->
+                <!-- Export Buttons -->
+                <a href="{{ $reportExportExcelRoute }}" class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Export Excel
+                </a>
                 <button type="button" onclick="exportActiveTableToCSV()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Export Data
+                    Export CSV
                 </button>
             </div>
         </div>
@@ -183,21 +190,21 @@
         <!-- Tab Buttons (Glassmorphic design) -->
         <div class="px-6 py-3 border-b border-slate-100 flex items-center gap-2 bg-white">
             <button type="button" 
-                    @click="activeReportTab = 'transactions'; window.activeTab = 'transactions'; filterReportTables()" 
-                    :class="activeReportTab === 'transactions' ? 'bg-orange-600 text-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200">
+                    id="tab-btn-transactions"
+                    onclick="switchReportTab('transactions')"
+                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-orange-600 text-black">
                 📂 Per Transaksi (Satuan)
             </button>
             <button type="button" 
-                    @click="activeReportTab = 'tickets'; window.activeTab = 'tickets'; filterReportTables()" 
-                    :class="activeReportTab === 'tickets' ? 'bg-orange-600 text-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200">
+                    id="tab-btn-tickets"
+                    onclick="switchReportTab('tickets')"
+                    class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-200 bg-slate-100 text-slate-500 hover:bg-slate-200">
                 🎫 Per Tiket (Detail Peserta)
             </button>
         </div>
 
         <!-- 1. Laporan Per Transaksi (Satuan) -->
-        <div id="report-tab-transactions" x-show="activeReportTab === 'transactions'">
+        <div id="report-tab-transactions">
             <div class="overflow-x-auto">
                 <table id="table-report-tx" class="w-full text-left border-collapse">
                     <thead>
@@ -256,7 +263,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofIgUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofIgUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofIgUrl), @js('Bukti Follow IG - ' . $referenceNo))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
+                                        <button type="button" data-proof-url="{{ $proofIgUrl }}" data-proof-title="Bukti Follow IG - {{ $referenceNo }}" onclick="openProofPreviewFromButton(this)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -267,7 +274,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofReviewUrl ? 'Sudah Upload' : 'Belum Upload' }}">
                                     @if($proofReviewUrl)
-                                        <button type="button" onclick="openProofPreview(@js($proofReviewUrl), @js('Bukti Google Review - ' . $referenceNo))" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
+                                        <button type="button" data-proof-url="{{ $proofReviewUrl }}" data-proof-title="Bukti Google Review - {{ $referenceNo }}" onclick="openProofPreviewFromButton(this)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     @else
@@ -322,7 +329,7 @@
         </div>
 
         <!-- 2. Laporan Per Tiket (Detail Keseluruhan) -->
-        <div id="report-tab-tickets" x-show="activeReportTab === 'tickets'" x-cloak>
+        <div id="report-tab-tickets" style="display:none">
             <div class="overflow-x-auto">
                 <table id="table-report-tickets" class="w-full text-left border-collapse">
                     <thead>
@@ -427,124 +434,185 @@
 </div>
 
 <script>
-
     // Tab switching state attached to window to ensure global availability
     window.activeTab = 'transactions';
-    window.txCurrentPage = 1;
-    window.ticketsCurrentPage = 1;
     window.itemsPerPage = 15;
+
+    // Helper to get current page of a specific container
+    function getContainerPage(container, key) {
+        if (!container.dataset[key]) {
+            container.dataset[key] = '1';
+        }
+        return parseInt(container.dataset[key], 10);
+    }
+
+    // Helper to set current page of a specific container
+    function setContainerPage(container, key, val) {
+        container.dataset[key] = val.toString();
+    }
 
     window.switchReportTab = function(tab) {
         window.activeTab = tab;
+
+        // Show/hide tab panels inside all containers
+        const containers = document.querySelectorAll('.detailed-report-container');
+        containers.forEach(container => {
+            const txPanel = container.querySelector('#report-tab-transactions');
+            const ticketPanel = container.querySelector('#report-tab-tickets');
+            const txBtn = container.querySelector('#tab-btn-transactions');
+            const ticketBtn = container.querySelector('#tab-btn-tickets');
+
+            if (txPanel && ticketPanel) {
+                if (tab === 'transactions') {
+                    txPanel.style.display = '';
+                    ticketPanel.style.display = 'none';
+                } else {
+                    txPanel.style.display = 'none';
+                    ticketPanel.style.display = '';
+                }
+            }
+
+            // Update button styles
+            if (txBtn && ticketBtn) {
+                if (tab === 'transactions') {
+                    txBtn.className = txBtn.className.replace('bg-slate-100 text-slate-500 hover:bg-slate-200', 'bg-orange-600 text-black');
+                    ticketBtn.className = ticketBtn.className.replace('bg-orange-600 text-black', 'bg-slate-100 text-slate-500 hover:bg-slate-200');
+                } else {
+                    ticketBtn.className = ticketBtn.className.replace('bg-slate-100 text-slate-500 hover:bg-slate-200', 'bg-orange-600 text-black');
+                    txBtn.className = txBtn.className.replace('bg-orange-600 text-black', 'bg-slate-100 text-slate-500 hover:bg-slate-200');
+                }
+            }
+        });
+
         window.filterReportTables(); // Recalculate pagination
     }
 
+    function getReportPerPage() {
+        const perPage = Number(window.itemsPerPage);
+        return perPage > 0 ? perPage : 15;
+    }
+
     window.filterReportTables = function() {
-        const queryInput = document.getElementById('report-search-input');
-        const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
-        
-        // 1. Process Transactions
-        const txRows = document.querySelectorAll('.tx-row');
-        let visibleTx = [];
-        txRows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (query === '' || text.includes(query)) {
-                row.setAttribute('data-matched', 'true');
-                visibleTx.push(row);
-            } else {
-                row.setAttribute('data-matched', 'false');
-                row.style.display = 'none';
+        const perPage = getReportPerPage();
+        const containers = document.querySelectorAll('.detailed-report-container');
+        const targets = containers.length ? containers : [document.body];
+
+        targets.forEach(container => {
+            const queryInput = container.querySelector('#report-search-input');
+            const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
+            
+            // 1. Process Transactions
+            const txRows = container.querySelectorAll('.tx-row');
+            let visibleTx = [];
+            txRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    row.setAttribute('data-matched', 'true');
+                    visibleTx.push(row);
+                } else {
+                    row.setAttribute('data-matched', 'false');
+                    row.style.display = 'none';
+                }
+            });
+
+            // 2. Process Tickets
+            const ticketRows = container.querySelectorAll('.ticket-row');
+            let visibleTickets = [];
+            ticketRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    row.setAttribute('data-matched', 'true');
+                    visibleTickets.push(row);
+                } else {
+                    row.setAttribute('data-matched', 'false');
+                    row.style.display = 'none';
+                }
+            });
+
+            // Handle transaction pagination
+            const totalTx = visibleTx.length;
+            const totalTxPages = Math.max(1, Math.ceil(totalTx / perPage));
+            let txCurrentPage = getContainerPage(container, 'txCurrentPage');
+            if (txCurrentPage > totalTxPages) {
+                txCurrentPage = totalTxPages;
+                setContainerPage(container, 'txCurrentPage', txCurrentPage);
+            }
+            
+            const txStartIdx = (txCurrentPage - 1) * perPage;
+            const txEndIdx = Math.min(txStartIdx + perPage, totalTx);
+
+            visibleTx.forEach((row, idx) => {
+                row.style.display = (idx >= txStartIdx && idx < txEndIdx) ? 'table-row' : 'none';
+            });
+
+            const txInfo = container.querySelector('#tx-pagination-info');
+            if (txInfo) {
+                txInfo.textContent = `Menampilkan ${totalTx === 0 ? 0 : txStartIdx + 1}-${txEndIdx} dari ${totalTx} data`;
+            }
+
+            // Handle ticket pagination
+            const totalTickets = visibleTickets.length;
+            const totalTicketPages = Math.max(1, Math.ceil(totalTickets / perPage));
+            let ticketsCurrentPage = getContainerPage(container, 'ticketsCurrentPage');
+            if (ticketsCurrentPage > totalTicketPages) {
+                ticketsCurrentPage = totalTicketPages;
+                setContainerPage(container, 'ticketsCurrentPage', ticketsCurrentPage);
+            }
+
+            const ticketStartIdx = (ticketsCurrentPage - 1) * perPage;
+            const ticketEndIdx = Math.min(ticketStartIdx + perPage, totalTickets);
+
+            visibleTickets.forEach((row, idx) => {
+                row.style.display = (idx >= ticketStartIdx && idx < ticketEndIdx) ? 'table-row' : 'none';
+            });
+
+            const ticketInfo = container.querySelector('#tickets-pagination-info');
+            if (ticketInfo) {
+                ticketInfo.textContent = `Menampilkan ${totalTickets === 0 ? 0 : ticketStartIdx + 1}-${ticketEndIdx} dari ${totalTickets} data`;
             }
         });
-
-        // 2. Process Tickets
-        const ticketRows = document.querySelectorAll('.ticket-row');
-        let visibleTickets = [];
-        ticketRows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (query === '' || text.includes(query)) {
-                row.setAttribute('data-matched', 'true');
-                visibleTickets.push(row);
-            } else {
-                row.setAttribute('data-matched', 'false');
-                row.style.display = 'none';
-            }
-        });
-
-        // Handle transaction pagination
-        const totalTx = visibleTx.length;
-        const totalTxPages = Math.ceil(totalTx / window.itemsPerPage) || 1;
-        if (window.txCurrentPage > totalTxPages) window.txCurrentPage = totalTxPages;
-        
-        const txStartIdx = (window.txCurrentPage - 1) * window.itemsPerPage;
-        const txEndIdx = Math.min(txStartIdx + window.itemsPerPage, totalTx);
-
-        visibleTx.forEach((row, idx) => {
-            if (idx >= txStartIdx && idx < txEndIdx) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        const txInfo = document.getElementById('tx-pagination-info');
-        if (txInfo) {
-            txInfo.textContent = `Menampilkan ${totalTx === 0 ? 0 : txStartIdx + 1}-${txEndIdx} dari ${totalTx} data`;
-        }
-
-        // Handle ticket pagination
-        const totalTickets = visibleTickets.length;
-        const totalTicketPages = Math.ceil(totalTickets / window.itemsPerPage) || 1;
-        if (window.ticketsCurrentPage > totalTicketPages) window.ticketsCurrentPage = totalTicketPages;
-
-        const ticketStartIdx = (window.ticketsCurrentPage - 1) * window.itemsPerPage;
-        const ticketEndIdx = Math.min(ticketStartIdx + window.itemsPerPage, totalTickets);
-
-        visibleTickets.forEach((row, idx) => {
-            if (idx >= ticketStartIdx && idx < ticketEndIdx) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        const ticketInfo = document.getElementById('tickets-pagination-info');
-        if (ticketInfo) {
-            ticketInfo.textContent = `Menampilkan ${totalTickets === 0 ? 0 : ticketStartIdx + 1}-${ticketEndIdx} dari ${totalTickets} data`;
-        }
-
     }
 
     window.prevReportPage = function(tab) {
-        if (tab === 'transactions') {
-            if (window.txCurrentPage > 1) {
-                window.txCurrentPage--;
-                window.filterReportTables();
+        const containers = document.querySelectorAll('.detailed-report-container');
+        containers.forEach(container => {
+            if (tab === 'transactions') {
+                let txCurrentPage = getContainerPage(container, 'txCurrentPage');
+                if (txCurrentPage > 1) {
+                    setContainerPage(container, 'txCurrentPage', txCurrentPage - 1);
+                }
+            } else {
+                let ticketsCurrentPage = getContainerPage(container, 'ticketsCurrentPage');
+                if (ticketsCurrentPage > 1) {
+                    setContainerPage(container, 'ticketsCurrentPage', ticketsCurrentPage - 1);
+                }
             }
-        } else {
-            if (window.ticketsCurrentPage > 1) {
-                window.ticketsCurrentPage--;
-                window.filterReportTables();
-            }
-        }
+        });
+        window.filterReportTables();
     }
 
     window.nextReportPage = function(tab) {
-        if (tab === 'transactions') {
-            const matchedRows = document.querySelectorAll('.tx-row[data-matched="true"]').length;
-            const totalPages = Math.ceil(matchedRows / window.itemsPerPage);
-            if (window.txCurrentPage < totalPages) {
-                window.txCurrentPage++;
-                window.filterReportTables();
+        const containers = document.querySelectorAll('.detailed-report-container');
+        containers.forEach(container => {
+            if (tab === 'transactions') {
+                const matchedRows = container.querySelectorAll('.tx-row[data-matched="true"]').length;
+                const perPage = getReportPerPage();
+                const totalPages = Math.max(1, Math.ceil(matchedRows / perPage));
+                let txCurrentPage = getContainerPage(container, 'txCurrentPage');
+                if (txCurrentPage < totalPages) {
+                    setContainerPage(container, 'txCurrentPage', txCurrentPage + 1);
+                }
+            } else {
+                const matchedRows = container.querySelectorAll('.ticket-row[data-matched="true"]').length;
+                const perPage = getReportPerPage();
+                const totalPages = Math.max(1, Math.ceil(matchedRows / perPage));
+                let ticketsCurrentPage = getContainerPage(container, 'ticketsCurrentPage');
+                if (ticketsCurrentPage < totalPages) {
+                    setContainerPage(container, 'ticketsCurrentPage', ticketsCurrentPage + 1);
+                }
             }
-        } else {
-            const matchedRows = document.querySelectorAll('.ticket-row[data-matched="true"]').length;
-            const totalPages = Math.ceil(matchedRows / window.itemsPerPage);
-            if (window.ticketsCurrentPage < totalPages) {
-                window.ticketsCurrentPage++;
-                window.filterReportTables();
-            }
-        }
+        });
+        window.filterReportTables();
     }
 
     window.exportActiveTableToCSV = function() {
@@ -553,75 +621,67 @@
         let headers = [];
         let rows = [];
 
+        // Find the active (visible) container
+        const container = Array.from(document.querySelectorAll('.detailed-report-container')).find(c => {
+            return c.getBoundingClientRect().width > 0 || c.offsetWidth > 0 || c.offsetHeight > 0;
+        }) || document.querySelector('.detailed-report-container');
+
+        if (!container) return;
+
         if (window.activeTab === 'transactions') {
             filename = 'Laporan_Pendaftar_Per_Transaksi.csv';
             headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Upload Bukti IG', 'Upload Bukti Review', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
             
-            // Extract matching rows
-            const txRows = document.querySelectorAll('.tx-row[data-matched="true"]');
+            const txRows = container.querySelectorAll('.tx-row[data-matched="true"]');
             txRows.forEach(row => {
                 const cols = row.querySelectorAll('td');
                 let rowData;
                 try {
                     rowData = [
-                    cols[0].firstChild.textContent.trim(), // Invoice No
-                    cols[0].querySelector('span').textContent.trim(), // Tanggal
-                    cols[1].textContent.trim(), // Nama Pemesan
-                    cols[2].textContent.trim(), // NIK
-                    cols[3].textContent.trim(), // Email
-                    cols[4].textContent.trim(), // Phone
-                    cols[5].textContent.trim().replace(/[🧔🧕]/g, '').trim(), // Gender
-                    cols[6].textContent.trim(), // Umroh
-                    cols[7].querySelector('span:nth-child(1)').textContent.trim(), // Event
-                    cols[7].querySelector('span:nth-child(2)').textContent.trim(), // Category
-                    cols[8].textContent.trim(), // Qty
-                    cols[9].textContent.trim().replace(/[Rp\s\.]/g, ''), // Total
-                    cols[10].querySelector('span').textContent.trim(), // Status
-                    cols[11].textContent.trim() // Method
+                        cols[0].firstChild.textContent.trim(),
+                        cols[0].querySelector('span').textContent.trim(),
+                        cols[1].textContent.trim(),
+                        cols[2].textContent.trim(),
+                        cols[3].textContent.trim(),
+                        cols[4].textContent.trim(),
+                        cols[5].getAttribute('data-export') || cols[5].textContent.trim(),
+                        cols[6].getAttribute('data-export') || cols[6].textContent.trim(),
+                        cols[7].textContent.trim().replace(/[🧔🧕]/g, '').trim(),
+                        cols[8].textContent.trim(),
+                        cols[9].querySelector('span:nth-child(1)').textContent.trim(),
+                        cols[9].querySelector('span:nth-child(2)').textContent.trim(),
+                        cols[10].textContent.trim(),
+                        cols[11].textContent.trim().replace(/[Rp\s\.]/g, ''),
+                        cols[12].querySelector('span').textContent.trim(),
+                        cols[13].textContent.trim()
                     ];
                 } catch (error) {
                     rowData = [];
                 }
-                rowData = [
-                    cols[0].firstChild.textContent.trim(),
-                    cols[0].querySelector('span').textContent.trim(),
-                    cols[1].textContent.trim(),
-                    cols[2].textContent.trim(),
-                    cols[3].textContent.trim(),
-                    cols[4].textContent.trim(),
-                    cols[5].getAttribute('data-export') || cols[5].textContent.trim(),
-                    cols[6].getAttribute('data-export') || cols[6].textContent.trim(),
-                    cols[7].textContent.trim().replace(/[ðŸ§”ðŸ§•]/g, '').trim(),
-                    cols[8].textContent.trim(),
-                    cols[9].querySelector('span:nth-child(1)').textContent.trim(),
-                    cols[9].querySelector('span:nth-child(2)').textContent.trim(),
-                    cols[10].textContent.trim(),
-                    cols[11].textContent.trim().replace(/[Rp\s\.]/g, ''),
-                    cols[12].querySelector('span').textContent.trim(),
-                    cols[13].textContent.trim()
-                ];
-                rows.push(rowData);
+                if (rowData.length > 0) {
+                    rows.push(rowData);
+                }
             });
         } else {
             filename = 'Laporan_Pendaftar_Per_Tiket.csv';
             headers = ['Kode Tiket', 'Invoice No', 'Nama Peserta', 'NIK', 'Email', 'WhatsApp', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Status Tiket', 'Scan Checkin'];
             
-            const ticketRows = document.querySelectorAll('.ticket-row[data-matched="true"]');
+            const ticketRows = container.querySelectorAll('.ticket-row[data-matched="true"]');
             ticketRows.forEach(row => {
                 const cols = row.querySelectorAll('td');
                 let rowData = [
-                    cols[0].textContent.trim(), // Kode Tiket
-                    cols[1].textContent.trim(), // Invoice No
-                    cols[2].textContent.trim(), // Nama Peserta
-                    cols[3].textContent.trim(), // NIK
-                    cols[4].textContent.trim(), // Email
-                    cols[5].textContent.trim(), // Phone
-                    cols[6].textContent.trim().replace(/[🧔🧕]/g, '').trim(), // Gender
-                    cols[7].textContent.trim(), // Umroh
-                    cols[8].textContent.trim(), // Event Name
-                    cols[9].textContent.trim(), // Category Name
-                    cols[10].querySelector('span').textContent.trim(), // Status Tiket
-                    cols[11].textContent.trim() // Scan Checkin
+                    cols[0].textContent.trim(),
+                    cols[1].textContent.trim(),
+                    cols[2].textContent.trim(),
+                    cols[3].textContent.trim(),
+                    cols[4].textContent.trim(),
+                    cols[5].textContent.trim(),
+                    cols[6].textContent.trim().replace(/[🧔🧕]/g, '').trim(),
+                    cols[7].textContent.trim(),
+                    cols[8].textContent.trim(),
+                    cols[9].textContent.trim(),
+                    cols[10].querySelector('span').textContent.trim(),
+                    cols[11].textContent.trim()
                 ];
                 rows.push(rowData);
             });
@@ -642,6 +702,14 @@
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
+    }
+
+    window.openProofPreviewFromButton = function(button) {
+        if (!button) {
+            return;
+        }
+
+        window.openProofPreview(button.dataset.proofUrl, button.dataset.proofTitle);
     }
 
     window.openProofPreview = function(url, title) {
@@ -676,6 +744,14 @@
 
     // Initialize report tables on page load or on dynamic navigation load
     function initOperationalReports() {
+        window.activeTab = 'transactions';
+        window.itemsPerPage = 15;
+
+        document.querySelectorAll('.detailed-report-container').forEach(container => {
+            container.dataset.txCurrentPage = '1';
+            container.dataset.ticketsCurrentPage = '1';
+        });
+
         window.filterReportTables();
     }
 

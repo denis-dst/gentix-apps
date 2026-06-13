@@ -58,9 +58,13 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
             <span class="text-sm font-bold">Vouchers</span>
         </a>
-        <a href="{{ route('organizer.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.reports.*') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">
+        <a href="{{ route('organizer.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.reports.index') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6 0h6m-9 4h12a2 2 0 002-2V7a2 2 0 00-2-2h-3.5L14 3h-4L7.5 5H4a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <span class="text-sm font-bold">Laporan</span>
+        </a>
+        <a href="{{ route('organizer.reports.duplicates') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.reports.duplicates') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <span class="text-sm font-bold">Check Pendaftar Ganda</span>
         </a>
         <a href="{{ route('organizer.transactions.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition {{ request()->routeIs('organizer.transactions.*') ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5 hover:text-white' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.625 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.407-2.625-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

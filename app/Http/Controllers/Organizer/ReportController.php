@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Organizer;
 
+use App\Exports\OperationalReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\GateLog;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
@@ -67,6 +71,133 @@ class ReportController extends Controller
         }
 
         return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
+    }
+
+    public function duplicates(Request $request)
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $eventOptions = Event::where('tenant_id', $tenantId)
+            ->orderByDesc('event_start_date')
+            ->get(['id', 'name']);
+
+        $transactions = Transaction::where('tenant_id', $tenantId)
+            ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
+            ->with(['tickets'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $duplicateRows = $this->buildDuplicateRegistrantRows($transactions);
+
+        return view('organizer.reports.duplicates', compact('eventOptions', 'duplicateRows'));
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $transactions = Transaction::where('tenant_id', $tenantId)
+            ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
+            ->with(['event', 'category', 'tickets.category'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $rows = $this->buildTicketReportRows($transactions)
+            ->filter(fn (array $row) => ($row['status'] ?? '') !== 'void');
+
+        $filename = 'Laporan_Pendaftar_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new OperationalReportExport($rows), $filename);
+    }
+
+    private function buildDuplicateRegistrantRows(Collection $transactions): Collection
+    {
+        $participants = $transactions->flatMap(function ($transaction) {
+            return $transaction->tickets
+                ->filter(fn ($ticket) => $ticket->status !== 'void')
+                ->map(function ($ticket) use ($transaction) {
+                    $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                    return [
+                        'name' => trim((string) ($visitorData['name'] ?? $transaction->customer_name ?? '')),
+                        'phone' => trim((string) ($visitorData['phone'] ?? $transaction->customer_phone ?? '')),
+                        'email' => trim((string) ($visitorData['email'] ?? $transaction->customer_email ?? '')),
+                    ];
+                });
+        });
+
+        $phoneCounts = $participants
+            ->map(fn ($row) => $this->normalizePhone($row['phone']))
+            ->filter()
+            ->countBy();
+        $emailCounts = $participants
+            ->map(fn ($row) => $this->normalizeEmail($row['email']))
+            ->filter()
+            ->countBy();
+        $nameCounts = $participants
+            ->map(fn ($row) => $this->normalizeName($row['name']))
+            ->filter()
+            ->countBy();
+
+        $duplicateParticipants = $participants->filter(function ($row) use ($phoneCounts, $emailCounts, $nameCounts) {
+            $phone = $this->normalizePhone($row['phone']);
+            $email = $this->normalizeEmail($row['email']);
+            $name = $this->normalizeName($row['name']);
+
+            return ($phone && ($phoneCounts[$phone] ?? 0) > 1)
+                || ($email && ($emailCounts[$email] ?? 0) > 1)
+                || ($name && ($nameCounts[$name] ?? 0) > 1);
+        });
+
+        return $duplicateParticipants
+            ->groupBy(function ($row) {
+                return $this->normalizeName($row['name']) . '|' . $this->normalizePhone($row['phone']) . '|' . $this->normalizeEmail($row['email']);
+            })
+            ->map(function ($group) {
+                $first = $group->first();
+
+                return [
+                    'name' => $first['name'] ?: '-',
+                    'phone' => $first['phone'] ?: '-',
+                    'email' => $first['email'] ?: '-',
+                    'registration_count' => $group->count(),
+                ];
+            })
+            ->sortByDesc('registration_count')
+            ->values();
+    }
+
+    private function normalizePhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        if (str_starts_with($digits, '0')) {
+            return '62' . substr($digits, 1);
+        }
+
+        if (!str_starts_with($digits, '62')) {
+            return '62' . $digits;
+        }
+
+        return $digits;
+    }
+
+    private function normalizeEmail(string $email): ?string
+    {
+        $normalized = strtolower(trim($email));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    private function normalizeName(string $name): ?string
+    {
+        $normalized = mb_strtolower(trim(preg_replace('/\s+/', ' ', $name) ?? ''));
+
+        return $normalized !== '' ? $normalized : null;
     }
 
     private function buildTransactionReportRows($transactions)

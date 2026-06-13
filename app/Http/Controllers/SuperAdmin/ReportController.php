@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\SuperAdmin;
 
+use App\Exports\OperationalReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\GateLog;
@@ -9,6 +10,8 @@ use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
@@ -56,6 +59,23 @@ class ReportController extends Controller
         $ticketReportRows = $this->buildTicketReportRows($transactions);
 
         return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $transactions = Transaction::query()
+            ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
+            ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
+            ->with(['event', 'tenant', 'category', 'tickets.category'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $rows = $this->buildTicketReportRows($transactions)
+            ->filter(fn (array $row) => ($row['status'] ?? '') !== 'void');
+
+        $filename = 'Laporan_Pendaftar_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new OperationalReportExport($rows), $filename);
     }
 
     private function buildTransactionReportRows($transactions)
