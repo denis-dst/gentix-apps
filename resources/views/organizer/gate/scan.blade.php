@@ -101,17 +101,41 @@
 
                     <!-- Camera Container -->
                     <div x-show="inputType === 'camera'" id="reader"
-                        class="absolute inset-0 w-full h-full object-cover bg-black"></div>
+                        class="absolute inset-0 w-full h-full object-cover bg-black">
+                        <!-- Fallback video if html5-qrcode doesn't inject visible video -->
+                        <video id="fallback-camera" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    </div>
 
                     <!-- Camera Error / Retry -->
                     <div x-show="cameraError" x-cloak class="absolute inset-0 flex items-center justify-center z-40 pointer-events-auto">
-                        <div class="bg-black/80 p-6 rounded-xl border border-white/10 text-center">
+                        <div class="bg-black/90 p-6 rounded-xl border border-white/10 text-center max-w-lg">
                             <div class="text-sm font-black text-rose-400 uppercase">Kamera tidak tersedia</div>
-                            <p class="text-xs text-slate-300 mt-2">Periksa izin kamera atau pilih kamera lain pada pengaturan browser.</p>
+                            <p class="text-xs text-slate-300 mt-2" x-text="cameraErrorMessage || 'Periksa izin kamera atau pilih kamera lain pada pengaturan browser.'"></p>
+
+                            <template x-if="cameraDevices && cameraDevices.length">
+                                <div class="mt-4 text-left">
+                                    <label class="text-xs font-bold text-slate-300">Pilih Kamera</label>
+                                    <select x-model="selectedCameraId" class="w-full mt-2 p-2 rounded bg-white/5 border border-white/10 text-sm">
+                                        <template x-for="dev in cameraDevices" :key="dev.id">
+                                            <option :value="dev.id" x-text="dev.label || dev.id"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </template>
+
                             <div class="mt-4 flex gap-2 justify-center">
                                 <button @click="startCamera()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Coba Ulang</button>
+                                <button @click="startSelectedCamera()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold">Start Selected</button>
                                 <button @click="setInputType('manual')" class="px-4 py-2 bg-white text-black rounded-lg font-bold">Gunakan Manual</button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera debug badge -->
+                    <div class="absolute left-4 bottom-4 z-50 text-xs" x-show="cameraDevices.length || cameraStarted">
+                        <div class="bg-black/60 text-white px-3 py-2 rounded-lg border border-white/10 flex items-center gap-3">
+                            <div class="text-[10px] font-bold">Camera:</div>
+                            <div class="text-[10px] font-medium text-slate-200" x-text="(cameraDevices.find(d => d.id === selectedCameraId)?.label) || (cameraDevices[0]?.label) || (cameraStarted ? 'started' : 'none')"></div>
                         </div>
                     </div>
 
@@ -333,6 +357,13 @@
                 inputType: 'camera',
                 status: 'idle',
                 cameraError: false,
+                cameraErrorMessage: '',
+                cameraDevices: [],
+                selectedCameraId: null,
+                cameraStarted: false,
+                cameraErrorMessage: '',
+                cameraDevices: [],
+                selectedCameraId: null,
                 scannedCode: '',
                 manualCode: '',
                 lastScannedCode: '',
@@ -383,8 +414,10 @@
 
                     // Prefer querying available cameras and select rear/back if possible
                     Html5Qrcode.getCameras().then(devices => {
+                        this.cameraDevices = devices || [];
                         if (!devices || devices.length === 0) {
                             this.cameraError = true;
+                            this.cameraErrorMessage = 'No camera devices found';
                             console.error('No camera devices found');
                             return;
                         }
@@ -393,9 +426,12 @@
                         let cameraId = devices[0].id;
                         const back = devices.find(d => /back|rear|environment/i.test(d.label));
                         if (back) cameraId = back.id;
+                        this.selectedCameraId = cameraId;
 
+                        // prefer passing deviceId constraint to Html5Qrcode
+                        const cameraConstraint = (typeof cameraId === 'string') ? { deviceId: { exact: cameraId } } : cameraId;
                         this.html5QrCode.start(
-                            cameraId,
+                            cameraConstraint,
                             config,
                             (text) => {
                                 if (this.status !== 'processing' && !this.isGroupScan) {
@@ -404,16 +440,66 @@
                                 }
                             },
                             (err) => {
-                                // optional per-frame error callback
+                                // per-frame error callback (ignored)
                             }
-                        ).catch(err => {
+                        ).then(() => {
+                            this.cameraStarted = true;
+                            this.cameraError = false;
+                            // ensure status idle so overlays don't block
+                            this.status = 'idle';
+                        }).catch(err => {
                             this.cameraError = true;
+                            this.cameraErrorMessage = (err && err.message) ? err.message : String(err);
                             console.error('Camera Error:', err);
+                            // fallback: try attaching stream directly to fallback video
+                            try {
+                                navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: cameraId } } }).then(stream => {
+                                    const v = document.getElementById('fallback-camera');
+                                    if (v) {
+                                        v.srcObject = stream;
+                                        v.play().catch(()=>{});
+                                        this.cameraStarted = true;
+                                        this.cameraError = false;
+                                    }
+                                }).catch(e=>console.error('fallback getUserMedia failed', e));
+                            } catch (e) {}
                         });
                     }).catch(err => {
                         this.cameraError = true;
+                        this.cameraErrorMessage = (err && err.message) ? err.message : String(err);
                         console.error('getCameras Error:', err);
                     });
+                },
+
+                startSelectedCamera() {
+                    const camId = this.selectedCameraId;
+                    if (!camId) return this.startCamera();
+                    try {
+                        if (this.html5QrCode) this.stopCamera();
+                        this.cameraError = false;
+                        this.html5QrCode = new Html5Qrcode("reader");
+                        const config = { fps: 20, qrbox: { width: 250, height: 250 } };
+                        const camConstraint = { deviceId: { exact: camId } };
+                        this.html5QrCode.start(camConstraint, config, (text) => {
+                            if (this.status !== 'processing' && !this.isGroupScan) {
+                                this.scannedCode = text;
+                                this.processScan();
+                            }
+                        }).catch(err => {
+                            this.cameraError = true;
+                            this.cameraErrorMessage = err && err.message ? err.message : String(err);
+                            console.error('startSelectedCamera Error:', err);
+                            // fallback attach
+                            navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: camId } } }).then(stream => {
+                                const v = document.getElementById('fallback-camera');
+                                if (v) { v.srcObject = stream; v.play().catch(()=>{}); this.cameraStarted = true; this.cameraError = false; }
+                            }).catch(e => console.error('startSelectedCamera fallback failed', e));
+                        });
+                    } catch (e) {
+                        this.cameraError = true;
+                        this.cameraErrorMessage = e && e.message ? e.message : String(e);
+                        console.error('startSelectedCamera Exception:', e);
+                    }
                 },
 
                 stopCamera() { 
@@ -561,15 +647,26 @@
         .animate-scan-line { animation: scan-line 2s ease-in-out infinite; }
         @keyframes scan-line { 0%, 100% { top: 5%; } 50% { top: 95%; } }
         /* Ensure camera video inside #reader is visible and covers area */
-        #reader video, #reader canvas, #reader .html5-qrcode-video {
+        #reader {
+            background: transparent !important;
+            overflow: hidden !important;
+        }
+        #reader video, #reader canvas, #reader .html5-qrcode-video, #reader .html5-qrcode-camera-stream, #fallback-camera {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
-            z-index: 0 !important;
+            z-index: 1 !important;
+            opacity: 1 !important;
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
+            clip: auto !important;
         }
+        /* Ensure overlays (scan decorative UI) sit above video but are mostly transparent */
+        .absolute.inset-0.flex.items-center.justify-center.pointer-events-none { z-index: 20; }
         .shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
     </style>
