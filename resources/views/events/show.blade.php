@@ -600,231 +600,234 @@
 
                         {{-- ============================================
                              FREE EVENT: Step 2 — Form Data Diri
-                             ============================================ --}}
-                        <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-5">
-                            <div class="flex items-center gap-2 mb-2">
-                                <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
-                                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                                </button>
-                                <h3 class="font-bold text-slate-900 font-outfit">Data Peserta</h3>
-                            </div>
+                             ============================================                        <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-5">
+                            <template x-if="step === 2 && attendees.length > 0">
+                                <div class="space-y-5">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <button @click="step = 1" type="button" class="p-2 hover:bg-slate-50 rounded-full transition">
+                                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                        </button>
+                                        <h3 class="font-bold text-slate-900 font-outfit">Data Peserta</h3>
+                                    </div>
 
-                            <!-- Category info strip -->
-                            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' Tiket)' : ''"></span>
-                                <span class="text-xs font-black text-emerald-600">GRATIS</span>
-                            </div>
+                                    <!-- Category info strip -->
+                                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                        <span class="text-xs font-bold text-emerald-700" x-text="selectedCategory ? selectedCategory.name + ' (' + quantity + ' Tiket)' : ''"></span>
+                                        <span class="text-xs font-black text-emerald-600">GRATIS</span>
+                                    </div>
 
-                            <form @submit.prevent="submitFreeRegistration" class="space-y-5">
-                                <!-- Data Pemesan (WhatsApp & Email) -->
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                                    <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Kontak Pemesan</h4>
-                                    
-                                    <!-- Nomor WhatsApp (Readonly from Step 1) -->
-                                    <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
-                                        <div class="relative">
-                                            <div class="absolute left-3 top-1/2 -translate-y-1/2">
-                                                <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                    <form @submit.prevent="submitFreeRegistration" class="space-y-5">
+                                        <!-- Data Pemesan (WhatsApp & Email) -->
+                                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                                            <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Kontak Pemesan</h4>
+                                            
+                                            <!-- Nomor WhatsApp (Readonly from Step 1) -->
+                                            <div>
+                                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                                                <div class="relative">
+                                                    <div class="absolute left-3 top-1/2 -translate-y-1/2">
+                                                        <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                                    </div>
+                                                    <input type="text" x-model="phone" readonly
+                                                           class="w-full bg-slate-100 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-500 outline-none">
+                                                </div>
                                             </div>
-                                            <input type="text" x-model="phone" readonly
-                                                   class="w-full bg-slate-100 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-500 outline-none">
-                                        </div>
-                                    </div>
 
-                                    <!-- Email Pemesan -->
-                                    <div>
-                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !email ? 'text-rose-500' : 'text-slate-400'">Alamat Email *</label>
-                                        <input type="email" x-model="email" placeholder="nama@email.com" required
-                                               :class="formTouched && !email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                               class="w-full bg-white border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition">
-                                        <p x-show="formTouched && !email" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                            Email wajib diisi
-                                        </p>
-                                    </div>
+                                            <!-- Email Pemesan -->
+                                            <div>
+                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-1" :class="formTouched && !email ? 'text-rose-500' : 'text-slate-400'">Alamat Email *</label>
+                                                <input type="email" x-model="email" placeholder="nama@email.com" required
+                                                       :class="formTouched && !email ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                       class="w-full bg-white border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition">
+                                                <p x-show="formTouched && !email" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Email wajib diisi
+                                                </p>
+                                            </div>
 
-                                    <div class="space-y-3">
-                                        <div>
-                                            <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
-                                            <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
-                                            <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
-                                                   @change="handleProofUpload('proofIgFile', $event)"
-                                                   :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                   class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                            <p x-show="formTouched && !proofIgFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                Bukti follow IG wajib diunggah
-                                            </p>
-                                            <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                        </div>
-                                        <div>
-                                            <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
-                                            <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
-                                            <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
-                                                   @change="handleProofUpload('proofReviewFile', $event)"
-                                                   :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                   class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                            <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                Bukti Google Review wajib diunggah
-                                            </p>
-                                            <p x-show="!formTouched || proofReviewFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
-                                <template x-if="quantity > 1">
-                                    <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl">
-                                        <template x-for="(attendee, index) in attendees" :key="index">
-                                            <button type="button" 
-                                                    @click="currentAttendee = index"
-                                                    :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-                                                    class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
-                                                Peserta <span x-text="index + 1"></span>
-                                                <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
-                                                      class="absolute -top-1 -right-1 flex h-3 w-3">
-                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                                                </span>
-                                            </button>
-                                        </template>
-                                    </div>
-                                </template>
-
-                                <!-- Attendee Fields Card -->
-                                <div class="bg-white border-2 border-emerald-500/10 rounded-3xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center pb-2 border-b border-slate-50">
-                                        <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">
-                                            Isi Data Peserta <span x-text="currentAttendee + 1"></span> dari <span x-text="quantity"></span>
-                                        </span>
-                                    </div>
-
-                                    <!-- Nama Lengkap -->
-                                    <div>
-                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
-                                        <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
-                                               :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
-                                               class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
-                                        <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                            Nama lengkap wajib diisi
-                                        </p>
-                                    </div>
-
-                                    <!-- Gender -->
-                                    <div>
-                                        <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <!-- Ikhwan -->
-                                            <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
-                                                   class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
-                                                <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                    <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
+                                                    <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
+                                                    <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                           @change="handleProofUpload('proofIgFile', $event)"
+                                                           :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                                    <p x-show="formTouched && !proofIgFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
+                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                        Bukti follow IG wajib diunggah
+                                                    </p>
+                                                    <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
                                                 </div>
                                                 <div>
-                                                    <div class="text-sm font-black">🧔 Ikhwan</div>
-                                                    <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
+                                                    <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
+                                                    <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
+                                                    <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                           @change="handleProofUpload('proofReviewFile', $event)"
+                                                           :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                                    <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
+                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                        Bukti Google Review wajib diunggah
+                                                    </p>
+                                                    <p x-show="!formTouched || proofReviewFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
                                                 </div>
-                                            </label>
-                                            <!-- Akhwat -->
-                                            <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
-                                                   class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
-                                                <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                    <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-sm font-black">🧕 Akhwat</div>
-                                                    <div class="text-[9px] font-medium opacity-60">Perempuan</div>
-                                                </div>
-                                            </label>
+                                            </div>
                                         </div>
-                                        <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                            Pilih gender wajib
-                                        </p>
-                                    </div>
 
-                                    <!-- Pertanyaan Umroh (conditional) -->
-                                    <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                                        <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                                            🕌 Alumni Grup Keberangkatan Tanggal Berapa?
-                                        </label>
-                                        <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
-                                        <input type="text" x-model="attendees[currentAttendee].umroh_answer"
-                                               placeholder="Contoh: 13 Januari 2024"
-                                               class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
-                                    </div>
-                                </div>
-
-                                <!-- Navigation buttons within form -->
-                                <template x-if="quantity > 1">
-                                    <div class="flex justify-between gap-3">
-                                        <button type="button" 
-                                                @click="if(currentAttendee > 0) currentAttendee--" 
-                                                :disabled="currentAttendee === 0"
-                                                class="flex-1 py-2 px-3 bg-slate-100 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
-                                            ← Sebelumnya
-                                        </button>
-                                        <button type="button" 
-                                                @click="if(currentAttendee < quantity - 1) currentAttendee++" 
-                                                :disabled="currentAttendee === quantity - 1"
-                                                class="flex-1 py-2 px-3 bg-slate-900 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
-                                            Berikutnya →
-                                        </button>
-                                    </div>
-                                </template>
-
-                                <!-- Summary & Submit -->
-                                <div class="pt-2 border-t border-slate-100">
-                                    <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
-                                        <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
-                                        <span class="text-xl font-black text-emerald-600 font-outfit">GRATIS</span>
-                                    </div>
-
-                                    <!-- Validation Error Summary -->
-                                    <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
-                                         x-cloak
-                                         class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <svg class="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                            <span class="text-[10px] font-black text-rose-700 uppercase tracking-wider">Lengkapi data berikut:</span>
-                                        </div>
-                                        <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
-                                            <li x-show="!email">Alamat Email</li>
-                                            <li x-show="!proofIgFile">Bukti Follow IG</li>
-                                            <li x-show="!proofReviewFile">Bukti Google Review</li>
-                                            <template x-for="(attendee, idx) in attendees" :key="idx">
-                                                <template x-if="!attendee.name || !attendee.gender">
-                                                    <li>
-                                                        <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
-                                                        <span x-show="!attendee.name">Nama</span>
-                                                        <span x-show="!attendee.name && !attendee.gender">, </span>
-                                                        <span x-show="!attendee.gender">Gender</span>
-                                                    </li>
+                                        <!-- Attendee Selector Tabs (Only show if quantity > 1) -->
+                                        <template x-if="quantity > 1">
+                                            <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl">
+                                                <template x-for="(attendee, index) in attendees" :key="index">
+                                                    <button type="button" 
+                                                            @click="currentAttendee = index"
+                                                            :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+                                                            class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
+                                                        Peserta <span x-text="index + 1"></span>
+                                                        <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
+                                                              class="absolute -top-1 -right-1 flex h-3 w-3">
+                                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                                                        </span>
+                                                    </button>
                                                 </template>
-                                            </template>
-                                        </ul>
-                                    </div>
-
-                                    <button type="submit" 
-                                            id="btn-daftar-submit"
-                                            :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
-                                            class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
-                                        <template x-if="isSubmitting">
-                                            <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
+                                            </div>
                                         </template>
-                                        <span x-text="isSubmitting ? 'Memproses...' : '✅ Daftar & Dapatkan E-Voucher'"></span>
-                                    </button>
+
+                                        <!-- Attendee Fields Card -->
+                                        <div class="bg-white border-2 border-emerald-500/10 rounded-3xl p-5 space-y-4">
+                                            <div class="flex justify-between items-center pb-2 border-b border-slate-50">
+                                                <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">
+                                                    Isi Data Peserta <span x-text="currentAttendee + 1"></span> dari <span x-text="quantity"></span>
+                                                </span>
+                                            </div>
+
+                                            <!-- Nama Lengkap -->
+                                            <div>
+                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
+                                                <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
+                                                       :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
+                                                       class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
+                                                <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Nama lengkap wajib diisi
+                                                </p>
+                                            </div>
+
+                                            <!-- Gender -->
+                                            <div>
+                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <!-- Ikhwan -->
+                                                    <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black">🧔 Ikhwan</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
+                                                        </div>
+                                                    </label>
+                                                    <!-- Akhwat -->
+                                                    <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black">🧕 Akhwat</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Perempuan</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Pilih gender wajib
+                                                </p>
+                                            </div>
+
+                                            <!-- Pertanyaan Umroh (conditional) -->
+                                            <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                                                <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                                    🕌 Alumni Grup Keberangkatan Tanggal Berapa?
+                                                </label>
+                                                <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
+                                                <input type="text" x-model="attendees[currentAttendee].umroh_answer"
+                                                       placeholder="Contoh: 13 Januari 2024"
+                                                       class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
+                                            </div>
+                                        </div>
+
+                                        <!-- Navigation buttons within form -->
+                                        <template x-if="quantity > 1">
+                                            <div class="flex justify-between gap-3">
+                                                <button type="button" 
+                                                        @click="if(currentAttendee > 0) currentAttendee--" 
+                                                        :disabled="currentAttendee === 0"
+                                                        class="flex-1 py-2 px-3 bg-slate-100 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
+                                                    ← Sebelumnya
+                                                </button>
+                                                <button type="button" 
+                                                        @click="if(currentAttendee < quantity - 1) currentAttendee++" 
+                                                        :disabled="currentAttendee === quantity - 1"
+                                                        class="flex-1 py-2 px-3 bg-slate-900 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+                                                    Berikutnya →
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <!-- Summary & Submit -->
+                                        <div class="pt-2 border-t border-slate-100">
+                                            <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-4">
+                                                <span class="text-xs font-bold text-emerald-700">Total Biaya Registrasi</span>
+                                                <span class="text-xl font-black text-emerald-600 font-outfit">GRATIS</span>
+                                            </div>
+
+                                            <!-- Validation Error Summary -->
+                                            <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
+                                                 x-cloak
+                                                 class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    <span class="text-[10px] font-black text-rose-700 uppercase tracking-wider">Lengkapi data berikut:</span>
+                                                </div>
+                                                <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
+                                                    <li x-show="!email">Alamat Email</li>
+                                                    <li x-show="!proofIgFile">Bukti Follow IG</li>
+                                                    <li x-show="!proofReviewFile">Bukti Google Review</li>
+                                                    <template x-for="(attendee, idx) in attendees" :key="idx">
+                                                        <template x-if="!attendee.name || !attendee.gender">
+                                                            <li>
+                                                                <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
+                                                                <span x-show="!attendee.name">Nama</span>
+                                                                <span x-show="!attendee.name && !attendee.gender">, </span>
+                                                                <span x-show="!attendee.gender">Gender</span>
+                                                            </li>
+                                                        </template>
+                                                    </template>
+                                                </ul>
+                                            </div>
+
+                                            <button type="submit" 
+                                                    id="btn-daftar-submit"
+                                                    :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
+                                                    class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
+                                                <template x-if="isSubmitting">
+                                                    <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </template>
+                                                <span x-text="isSubmitting ? 'Memproses...' : '✅ Daftar & Dapatkan E-Voucher'"></span>
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                            </form>
-                        </div>
+                            </template>
+                        </div>                   </div>
 
                         @else
                         {{-- ============================================
