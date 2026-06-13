@@ -115,11 +115,10 @@
     $shouldHideNav = isset($hideNav) && trim($hideNav->toHtml()) === '1';
 @endphp
 <body class="h-full bg-slate-50 text-slate-900 antialiased font-sans" x-data="{ sidebarOpen: false }">
-    <!-- Desktop Layout -->
-    <div class="hidden lg:flex h-full overflow-hidden">
+    <div class="flex h-full overflow-hidden">
         @if(!$shouldHideNav)
-        <!-- Persistent Sidebar -->
-        <aside class="w-72 bg-[#0f172a] text-slate-300 flex flex-col shrink-0 border-r border-white/5">
+        <!-- Desktop Sidebar -->
+        <aside class="hidden lg:flex w-72 bg-[#0f172a] text-slate-300 flex-col shrink-0 border-r border-white/5">
             <div class="h-16 flex items-center px-6 bg-[#0a0f1d] shrink-0">
                 <a href="/" class="flex items-center gap-3">
                     @if(isset($global_settings['app_logo']) && $global_settings['app_logo'])
@@ -146,62 +145,9 @@
             
             @include('layouts.partials.sidebar-content')
         </aside>
-        @endif
-
-        <!-- Content Area -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-            @if(!$shouldHideNav && !auth()->user()->hasRole('Petugas Gate'))
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
-                <h1 class="text-lg font-black text-slate-800 font-outfit">{{ $title ?? 'Dashboard' }}</h1>
-                @include('layouts.partials.header-profile')
-            </header>
-            @endif
-            
-            <main class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
-                @include('layouts.partials.page-header')
-                <div class="{{ $shouldHideNav ? 'h-full w-full' : 'p-8 max-w-[1400px] mx-auto w-full' }}">
-                    {{ $slot }}
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Mobile Layout -->
-    <div class="lg:hidden flex flex-col h-full overflow-hidden">
-        @if(!$shouldHideNav && !auth()->user()->hasRole('Petugas Gate'))
-        <!-- Mobile Header -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-30">
-            <button @click="sidebarOpen = true" class="p-2 -ml-2 text-slate-500 hover:text-orange-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
-            <span class="text-lg font-black text-slate-800 font-outfit uppercase tracking-tight">
-                @if(isset($global_settings['app_name']))
-                    @php
-                        $nameParts = explode(' ', $global_settings['app_name']);
-                        $firstPart = $nameParts[0] ?? '';
-                        $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
-                    @endphp
-                    {{ $firstPart }}<span class="text-orange-500">{{ $secondPart }}</span>
-                @else
-                    Gen<span class="text-orange-500">Tix</span>
-                @endif
-            </span>
-            <div class="w-10 h-10 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold">
-                {{ substr(Auth::user()->name, 0, 1) }}
-            </div>
-        </header>
-        @endif
-
-        <!-- Mobile Content Area -->
-        <main class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
-            @include('layouts.partials.page-header')
-            <div class="{{ $shouldHideNav ? 'h-full w-full' : 'p-4 pb-12 w-full' }}">
-                {{ $slot }}
-            </div>
-        </main>
 
         <!-- Mobile Sidebar Overlay -->
-        <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 flex overflow-hidden">
+        <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 flex lg:hidden overflow-hidden">
             <div x-show="sidebarOpen" x-transition:opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="sidebarOpen = false"></div>
             <aside x-show="sidebarOpen" 
                    x-transition:enter="transition-transform duration-300"
@@ -230,6 +176,47 @@
                 </div>
                 @include('layouts.partials.sidebar-content')
             </aside>
+        </div>
+        @endif
+
+        <!-- Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            @if(!$shouldHideNav && !auth()->user()->hasRole('Petugas Gate'))
+                <!-- Desktop Header -->
+                <header class="hidden lg:flex h-16 bg-white border-b border-slate-200 items-center justify-between px-8 shrink-0">
+                    <h1 class="text-lg font-black text-slate-800 font-outfit">{{ $title ?? 'Dashboard' }}</h1>
+                    @include('layouts.partials.header-profile')
+                </header>
+
+                <!-- Mobile Header -->
+                <header class="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-30">
+                    <button @click="sidebarOpen = true" class="p-2 -ml-2 text-slate-500 hover:text-orange-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                    <span class="text-lg font-black text-slate-800 font-outfit uppercase tracking-tight">
+                        @if(isset($global_settings['app_name']))
+                            @php
+                                $nameParts = explode(' ', $global_settings['app_name']);
+                                $firstPart = $nameParts[0] ?? '';
+                                $secondPart = isset($nameParts[1]) ? implode(' ', array_slice($nameParts, 1)) : '';
+                            @endphp
+                            {{ $firstPart }}<span class="text-orange-500">{{ $secondPart }}</span>
+                        @else
+                            Gen<span class="text-orange-500">Tix</span>
+                        @endif
+                    </span>
+                    <div class="w-10 h-10 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold">
+                        {{ substr(Auth::user()->name, 0, 1) }}
+                    </div>
+                </header>
+            @endif
+            
+            <main class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
+                @include('layouts.partials.page-header')
+                <div class="{{ $shouldHideNav ? 'h-full w-full' : 'p-4 lg:p-8 max-w-[1400px] mx-auto w-full pb-12' }}">
+                    {{ $slot }}
+                </div>
+            </main>
         </div>
     </div>
 

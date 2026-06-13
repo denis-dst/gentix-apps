@@ -309,7 +309,6 @@
                             </tr>
                         @endforelse
                     </tbody>
-                    </tbody>
                 </table>
             </div>
             <!-- Pagination Controls for Transactions -->
