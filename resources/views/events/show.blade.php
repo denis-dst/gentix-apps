@@ -205,6 +205,8 @@
         if (!this.selectedCategory) return;
         if (!this.phone) { return; }
         if (!this.email) { return; }
+        if (!this.proofIgFile) { return; }
+        if (!this.proofReviewFile) { return; }
         const invalid = this.attendees.some((a) => !a.name || !a.gender);
         if (invalid) {
             const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
@@ -218,6 +220,8 @@
             formData.append('quantity', this.quantity);
             formData.append('phone', this.phone);
             formData.append('email', this.email);
+            formData.append('proof_ig', this.proofIgFile);
+            formData.append('proof_review', this.proofReviewFile);
             formData.append('attendees', JSON.stringify(this.attendees));
 
             const response = await fetch('{{ route('checkout.process', $event->slug) }}', {

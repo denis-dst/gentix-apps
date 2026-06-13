@@ -338,10 +338,15 @@ class PublicEventController extends Controller
             'quantity'           => 'required|integer|min:1|max:' . ($event->max_tickets_per_transaction ?? 1),
             'phone'              => 'required|string|max:20',
             'email'              => 'required|email|max:255',
+            'proof_ig'           => 'required|file',
+            'proof_review'       => 'required|file',
             'attendees'          => 'required|array|size:' . $request->input('quantity', 1),
             'attendees.*.name'   => 'required|string|max:255',
             'attendees.*.gender' => 'required|in:ikhwan,akhwat',
             'attendees.*.umroh_answer' => 'nullable|string|max:500',
+        ], [
+            'proof_ig.required' => 'Upload bukti follow IG wajib diisi.',
+            'proof_review.required' => 'Upload bukti Google Review wajib diisi.',
         ]);
 
         if ($validator->fails()) {
