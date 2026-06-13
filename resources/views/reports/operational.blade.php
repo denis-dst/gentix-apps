@@ -219,13 +219,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
-                        @php $transactionRow = []; @endphp
-                        @if($reportTransactionRows->isEmpty())
-                            <tr class="no-data-tx">
-                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
-                            </tr>
-                        @else
-                            @foreach($reportTransactionRows as $transactionRow)
+                        @forelse($reportTransactionRows as $transactionRow)
                             @php
                                 $referenceNo = $transactionRow['reference_no'] ?? '-';
                                 $createdAt = $transactionRow['created_at'] ?? null;
@@ -309,8 +303,12 @@
                                 </td>
                                 <td class="px-6 py-4 text-xs text-slate-600 uppercase">{{ $paymentMethod }}</td>
                             </tr>
-                            @endforeach
-                        @endif
+                        @empty
+                            <tr class="no-data-tx">
+                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
                     </tbody>
                 </table>
             </div>

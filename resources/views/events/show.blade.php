@@ -459,7 +459,7 @@
  
                                 @if($event->is_free)
                                     <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
+                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2"><strong>Harap Diperhatikan Sebelum mendaftar, Peserta Wajib:</strong></p>
                                         <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
                                             <li>
                                                 Bukti (Screenshoot) Follow Akun IG
@@ -468,6 +468,9 @@
                                             <li>
                                                 Bukti (Screenshoot) Mengisi Google Review
                                                 <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">https://bit.ly/googlereviewbatik</a>
+                                            </li>
+                                            <li>
+                                                <b>Screenshot E-Voucher setelah melakukan pendaftaran.</b>
                                             </li>
                                         </ol>
                                     </div>

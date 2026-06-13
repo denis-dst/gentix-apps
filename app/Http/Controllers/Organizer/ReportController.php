@@ -8,6 +8,7 @@ use App\Models\GateLog;
 use App\Models\Ticket;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ReportController extends Controller
 {
@@ -49,6 +50,21 @@ class ReportController extends Controller
 
         $transactionReportRows = $this->buildTransactionReportRows($transactions);
         $ticketReportRows = $this->buildTicketReportRows($transactions);
+
+        try {
+            Log::info('organizer.reports.debug', [
+                'user_id' => auth()->id(),
+                'tenant_id' => $tenantId,
+                'events_paginated' => $events->total() ?? 0,
+                'events_in_summary' => $summaryRows->count() ?? 0,
+                'report_rows' => count($reportRows ?? []),
+                'transactions_count' => $transactions->count(),
+                'sample_transaction_ids' => $transactions->take(5)->pluck('id')->values()->all(),
+                'sample_event_ids' => $events->getCollection()->pluck('id')->take(5)->values()->all(),
+            ]);
+        } catch (\Throwable $e) {
+            // swallow logging errors to avoid breaking production
+        }
 
         return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
     }
