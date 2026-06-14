@@ -107,14 +107,16 @@ class PublicEventController extends Controller
     {
         if ($transaction->payment_status === 'paid') return;
 
-        DB::transaction(function() use ($transaction) {
+        // Collect created tickets OUTSIDE the closure so we can notify after commit
+        $createdTickets = [];
+
+        DB::transaction(function() use ($transaction, &$createdTickets) {
             $transaction->update([
                 'payment_status' => 'paid',
                 'paid_at' => now()
             ]);
 
             $category = $transaction->category;
-            $event = $transaction->event;
 
             for ($i = 0; $i < $transaction->quantity; $i++) {
                 $ticket = \App\Models\Ticket::create([
@@ -126,15 +128,24 @@ class PublicEventController extends Controller
                     'status' => 'sold',
                 ]);
 
-                // Send Notification
-                $notificationService = new \App\Services\TicketNotificationService();
-                $notificationService->sendEVoucher($ticket);
+                $createdTickets[] = $ticket;
             }
 
             if ($category) {
                 $category->increment('sold_count', $transaction->quantity);
             }
         });
+
+        // Send notifications AFTER the DB transaction is committed
+        // so SMTP errors/timeouts cannot cause DB rollback or browser fetch failures
+        foreach ($createdTickets as $ticket) {
+            try {
+                $notificationService = new \App\Services\TicketNotificationService();
+                $notificationService->sendEVoucher($ticket);
+            } catch (\Exception $e) {
+                \Log::error('Notification failed after finalizeTransaction for ticket ' . $ticket->ticket_code . ': ' . $e->getMessage());
+            }
+        }
     }
 
     public function show($slug)
@@ -389,7 +400,10 @@ class PublicEventController extends Controller
             }
         }
 
-        return DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath) {
+        $firstTicket = null;
+        $referenceNo  = null;
+
+        DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath, &$firstTicket, &$referenceNo) {
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $firstAttendee = $validated['attendees'][0];
@@ -416,7 +430,6 @@ class PublicEventController extends Controller
             ]);
 
             // Create Tickets immediately
-            $firstTicket = null;
             for ($i = 0; $i < $validated['quantity']; $i++) {
                 $attendee = $validated['attendees'][$i];
                 $ticket = Ticket::create([
@@ -442,21 +455,27 @@ class PublicEventController extends Controller
                 }
             }
 
-            // Send ONE E-Voucher notification (for the transaction)
-            if ($firstTicket) {
-                $notificationService = new \App\Services\TicketNotificationService();
-                $notificationService->sendEVoucher($firstTicket);
-            }
-
             // Increment sold count
             $category->increment('sold_count', $validated['quantity']);
-
-            return response()->json([
-                'success'      => true,
-                'reference_no' => $referenceNo,
-                'ticket_code'  => $firstTicket ? $firstTicket->ticket_code : null,
-            ]);
         });
+
+        // Send notification AFTER the DB transaction is committed.
+        // This prevents SMTP timeouts/errors from causing a DB rollback
+        // or making the browser fetch() fail with "Failed to fetch".
+        if ($firstTicket) {
+            try {
+                $notificationService = new TicketNotificationService();
+                $notificationService->sendEVoucher($firstTicket);
+            } catch (\Exception $e) {
+                \Log::error('Notification failed after free checkout for ticket ' . $firstTicket->ticket_code . ': ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success'      => true,
+            'reference_no' => $referenceNo,
+            'ticket_code'  => $firstTicket ? $firstTicket->ticket_code : null,
+        ]);
     }
 
     private function storeRegistrationProof(Request $request, string $key, string $label): string|\Illuminate\Http\JsonResponse
