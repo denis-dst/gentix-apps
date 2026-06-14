@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gentix-cache-v1';
+const CACHE_NAME = 'gentix-cache-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -7,10 +7,20 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
   );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
@@ -19,8 +29,17 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Network First strategy: try network, fallback to cache
   event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        // Only cache successful responses to prevent caching 404s
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
