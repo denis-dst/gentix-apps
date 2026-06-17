@@ -22,6 +22,7 @@
                 @csrf
 
                 <!-- Notification Settings -->
+                @if($isSuperadmin)
                 <div class="p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl space-y-4">
                     <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">📳 Pengaturan Notifikasi E-Voucher</h3>
                     <p class="text-xs text-slate-400 mt-0.5">Aktifkan atau matikan pengiriman E-Voucher secara otomatis ke email & WhatsApp pembeli/peserta.</p>
@@ -64,6 +65,12 @@
                         </label>
                     </div>
                 </div>
+                @else
+                <div class="p-6 bg-rose-50 border-2 border-rose-100 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-black text-rose-700 uppercase tracking-widest">🔒 Pengaturan Notifikasi E-Voucher</h3>
+                    <p class="text-xs text-rose-600">Hanya Superadmin yang dapat mengelola pengaturan notifikasi e-voucher. Hubungi administrator untuk mengubah konfigurasi.</p>
+                </div>
+                @endif
                 
                 <div class="space-y-4">
                     <label for="terms_conditions" class="block text-sm font-black text-slate-700 uppercase tracking-widest">Konten Syarat & Ketentuan</label>

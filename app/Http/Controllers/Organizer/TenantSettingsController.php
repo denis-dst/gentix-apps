@@ -11,11 +11,17 @@ class TenantSettingsController extends Controller
     public function editTerms()
     {
         $tenant = Tenant::findOrFail(auth()->user()->tenant_id);
-        return view('organizer.settings.terms', compact('tenant'));
+        $isSuperadmin = auth()->user()->hasRole('Superadmin');
+        return view('organizer.settings.terms', compact('tenant', 'isSuperadmin'));
     }
 
     public function updateTerms(Request $request)
     {
+        // Only superadmin can update notification settings
+        if (!auth()->user()->hasRole('Superadmin')) {
+            return redirect()->back()->with('error', 'Hanya Superadmin yang dapat mengelola pengaturan notifikasi.');
+        }
+        
         $request->validate([
             'terms_conditions' => 'nullable|string',
             'email_notifications_enabled' => 'nullable|boolean',
