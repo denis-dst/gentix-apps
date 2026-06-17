@@ -30,7 +30,6 @@ class TicketNotificationService
                 $meta = $tenant->meta ?? [];
                 $emailEnabled = $meta['email_notifications_enabled'] ?? true;
                 if (!$emailEnabled) {
-                    Log::info('Email notifications are disabled for tenant: ' . $tenant->name);
                     return;
                 }
             }
@@ -53,7 +52,6 @@ class TicketNotificationService
                 $meta = $tenant->meta ?? [];
                 $waEnabled = $meta['wa_notifications_enabled'] ?? true;
                 if (!$waEnabled) {
-                    Log::info('WhatsApp notifications are disabled for tenant: ' . $tenant->name);
                     return;
                 }
             }
