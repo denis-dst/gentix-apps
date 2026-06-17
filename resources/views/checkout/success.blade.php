@@ -109,7 +109,7 @@
                 </div>
 
                 {{-- Evoucher links --}}
-                @forelse($transaction->tickets as $ticket)
+                @forelse($transaction->tickets->take(1) as $ticket)
                 <div class="mb-3">
                     {{-- URL display + copy button --}}
                     <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-2">
@@ -133,7 +133,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
                         </svg>
-                        Buka E-Voucher #{{ $loop->iteration }} & Screenshot
+                        Buka E-Voucher & Screenshot
                     </a>
                 </div>
                 @empty
@@ -274,7 +274,7 @@
                     <span><strong>PETUNJUK PENTING:</strong> Silakan klik / buka salah satu E-Voucher di bawah ini, kemudian simpan baik-baik (lakukan <strong>Cetak / Screenshot / Simpan sebagai PDF</strong>) untuk ditunjukkan kepada petugas saat masuk ke lokasi acara.</span>
                 </p>
                 <div class="grid grid-cols-1 gap-4">
-                    @forelse($transaction->tickets as $ticket)
+                    @forelse($transaction->tickets->take(1) as $ticket)
                         <a href="{{ route('tickets.view', $ticket->ticket_code) }}" target="_blank" 
                            class="flex items-center justify-between p-6 bg-white border-2 {{ $isFree ? 'border-emerald-100 hover:border-emerald-500 hover:bg-emerald-50/30' : 'border-slate-100 hover:border-blue-600 hover:bg-blue-50/30' }} rounded-[2rem] transition-all group shadow-sm">
                             <div class="flex items-center gap-4">
@@ -282,7 +282,7 @@
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 </div>
                                 <div class="text-left">
-                                    <p class="text-[10px] font-black text-slate-400 uppercase">{{ $isFree ? 'E-Voucher Peserta' : 'Tiket' }} #{{ $loop->iteration }}</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase">{{ $isFree ? 'E-Voucher Peserta' : 'Tiket' }}</p>
                                     <p class="text-sm font-black text-slate-900 font-outfit">{{ $transaction->event->name }}</p>
                                     <p class="text-[10px] text-slate-400 font-mono mt-0.5">{{ $ticket->ticket_code }}</p>
                                 </div>
