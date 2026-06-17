@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Ticket;
+use App\Models\Setting;
 use App\Mail\EVoucherMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,12 @@ class TicketNotificationService
     protected function sendEmail(Ticket $ticket)
     {
         try {
+            // Check global setting first
+            $globalEmailEnabled = Setting::where('key', 'global_email_notifications_enabled')->value('value');
+            if ($globalEmailEnabled === '0' || $globalEmailEnabled === false) {
+                return;
+            }
+            
             $tenant = $ticket->transaction->tenant;
             if ($tenant) {
                 $meta = $tenant->meta ?? [];
@@ -47,6 +54,12 @@ class TicketNotificationService
     protected function sendWhatsApp(Ticket $ticket)
     {
         try {
+            // Check global setting first
+            $globalWaEnabled = Setting::where('key', 'global_wa_notifications_enabled')->value('value');
+            if ($globalWaEnabled === '0' || $globalWaEnabled === false) {
+                return;
+            }
+            
             $tenant = $ticket->transaction->tenant;
             if ($tenant) {
                 $meta = $tenant->meta ?? [];

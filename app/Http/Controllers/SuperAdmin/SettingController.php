@@ -12,11 +12,25 @@ class SettingController extends Controller
     public function index()
     {
         $settings = Setting::all()->groupBy('group');
-        return view('superadmin.settings.index', compact('settings'));
+        $globalNotifications = [
+            'email_notifications_enabled' => Setting::where('key', 'global_email_notifications_enabled')->value('value') ?? true,
+            'wa_notifications_enabled' => Setting::where('key', 'global_wa_notifications_enabled')->value('value') ?? true,
+        ];
+        return view('superadmin.settings.index', compact('settings', 'globalNotifications'));
     }
 
     public function update(Request $request)
     {
+        // Handle global notification settings
+        Setting::updateOrCreate(
+            ['key' => 'global_email_notifications_enabled'],
+            ['value' => $request->boolean('global_email_notifications_enabled') ? '1' : '0', 'group' => 'notifications']
+        );
+        Setting::updateOrCreate(
+            ['key' => 'global_wa_notifications_enabled'],
+            ['value' => $request->boolean('global_wa_notifications_enabled') ? '1' : '0', 'group' => 'notifications']
+        );
+        
         $fileKeys = ['app_logo', 'app_favicon', 'app_icon', 'wristband_league_logo'];
 
         foreach ($fileKeys as $key) {
@@ -31,7 +45,7 @@ class SettingController extends Controller
             ]);
         }
 
-        foreach ($request->except('_token') as $key => $value) {
+        foreach ($request->except(['_token', 'global_email_notifications_enabled', 'global_wa_notifications_enabled']) as $key => $value) {
             if (!in_array($key, $fileKeys)) {
                 Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => Setting::where('key', $key)->value('group') ?? 'appearance']);
             }

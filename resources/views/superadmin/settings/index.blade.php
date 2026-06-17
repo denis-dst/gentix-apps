@@ -36,7 +36,53 @@
                 <div class="p-8">
                     <!-- General Settings -->
                     <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Global Notification Settings -->
+                        <div class="mb-8 p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl space-y-4">
+                            <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">📳 Pengaturan Notifikasi Global E-Voucher</h3>
+                            <p class="text-xs text-slate-400">Aktifkan atau matikan pengiriman E-Voucher secara otomatis ke semua tenant (organisir/penyedia event).</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                <!-- Email Notification Toggle -->
+                                <label class="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-indigo-400 transition"
+                                       x-data="{ enabled: {{ ($globalNotifications['email_notifications_enabled'] == '1' || $globalNotifications['email_notifications_enabled'] === true) ? 'true' : 'false' }} }">
+                                    <div class="relative shrink-0">
+                                        <input type="checkbox" name="global_email_notifications_enabled" value="1"
+                                               x-model="enabled"
+                                               {{ ($globalNotifications['email_notifications_enabled'] == '1' || $globalNotifications['email_notifications_enabled'] === true) ? 'checked' : '' }}
+                                               class="sr-only">
+                                        <div :class="enabled ? 'bg-indigo-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                            <div :class="enabled ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black text-slate-800">Kirim via Email</p>
+                                        <p class="text-[10px] text-slate-500">Default untuk semua tenant</p>
+                                    </div>
+                                </label>
+
+                                <!-- WhatsApp Notification Toggle -->
+                                <label class="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-emerald-400 transition"
+                                       x-data="{ enabled: {{ ($globalNotifications['wa_notifications_enabled'] == '1' || $globalNotifications['wa_notifications_enabled'] === true) ? 'true' : 'false' }} }">
+                                    <div class="relative shrink-0">
+                                        <input type="checkbox" name="global_wa_notifications_enabled" value="1"
+                                               x-model="enabled"
+                                               {{ ($globalNotifications['wa_notifications_enabled'] == '1' || $globalNotifications['wa_notifications_enabled'] === true) ? 'checked' : '' }}
+                                               class="sr-only">
+                                        <div :class="enabled ? 'bg-emerald-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                            <div :class="enabled ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black text-slate-800">Kirim via WhatsApp</p>
+                                        <p class="text-[10px] text-slate-500">Default untuk semua tenant</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- General Settings Grid -->
+                        <div class="space-y-6">
+                            <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">Pengaturan Umum</h3>
                             @foreach($settings['general'] ?? [] as $item)
                             <div class="space-y-2">
                                 <label class="text-xs font-black uppercase text-slate-500 tracking-wider flex items-center gap-2">
