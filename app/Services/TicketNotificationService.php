@@ -88,9 +88,9 @@ class TicketNotificationService
             $message .= "Sampai jumpa di lokasi!";
 
             // Example of Fonnte integration (placeholder)
-            // $this->sendViaFonnte($phone, $message);
+            $this->sendViaFonnte($phone, $message);
             
-            Log::info("WA Notification (Mock) sent to {$phone}: {$message}");
+            Log::info("WA Notification sent to {$phone}: {$message}");
 
         } catch (\Exception $e) {
             Log::error('Failed to send e-voucher WA for ticket ' . $ticket->ticket_code . ': ' . $e->getMessage());
@@ -100,8 +100,42 @@ class TicketNotificationService
     protected function sendViaFonnte($phone, $message)
     {
         $token = config('services.fonnte.token');
-        
-        // curl call to fonnte
-        // ...
+        $sender = config('services.fonnte.sender');
+
+        if (!$token) {
+            Log::warning('Fonnte API token is not configured.');
+            return;
+        }
+
+        // Format phone number to international format if starting with 0
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        }
+        // Remove non-numeric characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        $payload = [
+            'target' => $phone,
+            'message' => $message,
+            'countryCode' => '62',
+        ];
+
+        if ($sender) {
+            $payload['sender'] = $sender;
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => $token,
+            ])->post('https://api.fonnte.com/send', $payload);
+
+            if ($response->successful()) {
+                Log::info("WA Notification sent successfully via Fonnte to {$phone}");
+            } else {
+                Log::error("Fonnte WA API failed to send to {$phone}. Status: " . $response->status() . ", Response: " . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error("Fonnte WA API exception while sending to {$phone}: " . $e->getMessage());
+        }
     }
 }

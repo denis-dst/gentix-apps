@@ -44,4 +44,9 @@ return [
         'is_3ds' => true,
     ],
 
+    'fonnte' => [
+        'token' => env('FONNTE_TOKEN', 'v4f115WxN2saJKmqQkAg'),
+        'sender' => env('FONNTE_SENDER', '6283878537818'),
+    ],
+
 ];
