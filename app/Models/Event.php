@@ -15,6 +15,7 @@ class Event extends Model
         'background_image', 'banner_image', 'event_start_date', 
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
         'is_free', 'max_tickets_per_transaction', 'umroh_question_enabled', 'evoucher_info',
+        'purchase_flow', 'thermal_paper_width_mm', 'thermal_paper_height_mm',
     ];
 
     protected $casts = [
@@ -26,6 +27,8 @@ class Event extends Model
         'is_free' => 'boolean',
         'max_tickets_per_transaction' => 'integer',
         'umroh_question_enabled' => 'boolean',
+        'thermal_paper_width_mm' => 'integer',
+        'thermal_paper_height_mm' => 'integer',
     ];
 
     public function tenant()

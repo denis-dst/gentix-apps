@@ -67,6 +67,9 @@ class EventController extends Controller
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'evoucher_info' => 'nullable|string',
+            'purchase_flow' => 'required|in:redeem,evoucher,print',
+            'thermal_paper_width_mm' => 'nullable|integer|min:40|max:120',
+            'thermal_paper_height_mm' => 'nullable|integer|min:60|max:300',
             'wristband_league_name' => 'nullable|string|max:255',
             'wristband_league_logo' => 'nullable|image|max:1024',
             'wristband_home_club_logo' => 'nullable|image|max:1024',
@@ -78,6 +81,8 @@ class EventController extends Controller
         $validated['is_free'] = $request->boolean('is_free');
         $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
+        $validated['thermal_paper_width_mm'] = $request->integer('thermal_paper_width_mm', 80);
+        $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
 
         $validated['tenant_id'] = auth()->user()->tenant_id;
@@ -158,6 +163,9 @@ class EventController extends Controller
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'evoucher_info' => 'nullable|string',
+            'purchase_flow' => 'required|in:redeem,evoucher,print',
+            'thermal_paper_width_mm' => 'nullable|integer|min:40|max:120',
+            'thermal_paper_height_mm' => 'nullable|integer|min:60|max:300',
             'wristband_league_name' => 'nullable|string|max:255',
             'wristband_league_logo' => 'nullable|image|max:1024',
             'wristband_home_club_logo' => 'nullable|image|max:1024',
@@ -169,6 +177,8 @@ class EventController extends Controller
         $validated['is_free'] = $request->boolean('is_free');
         $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['umroh_question_enabled'] = $request->boolean('umroh_question_enabled');
+        $validated['thermal_paper_width_mm'] = $request->integer('thermal_paper_width_mm', 80);
+        $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
         unset(

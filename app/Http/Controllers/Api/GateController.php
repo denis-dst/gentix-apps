@@ -112,7 +112,7 @@ class GateController extends Controller
 
         $scanCode = trim($request->wristband_qr);
 
-        $ticket = Ticket::with(['category', 'transaction'])
+        $ticket = Ticket::with(['category', 'transaction', 'event'])
             ->where('wristband_qr', $scanCode)
             ->orWhere('ticket_code', $scanCode)
             ->first();
@@ -127,6 +127,32 @@ class GateController extends Controller
                 'email' => '-',
                 'reference_no' => '-',
             ], 404);
+        }
+
+        if (($ticket->event->purchase_flow ?? 'redeem') === 'redeem' && $ticket->status !== 'redeemed') {
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => 'Tiket belum diredeem menjadi wristband.',
+                'color' => 'pink',
+                'visitor' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-',
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
+        }
+
+        if ($ticket->status === 'void') {
+            return response()->json([
+                'status' => 'REJECT',
+                'message' => 'Tiket sudah dibatalkan.',
+                'color' => 'pink',
+                'visitor' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-',
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'reference_no' => $ticket->transaction->reference_no ?? '-',
+            ], 403);
         }
 
         // Access Control: Check Gate Mapping

@@ -106,6 +106,12 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::resource('crews', App\Http\Controllers\Organizer\CrewController::class);
 
     // Sales Transactions & E-Voucher
+    Route::middleware('role:Penyedia Event|Petugas Loket')->group(function () {
+        Route::get('pos', [App\Http\Controllers\Organizer\POSController::class, 'index'])->name('pos.index');
+        Route::get('pos/events/{event}', [App\Http\Controllers\Organizer\POSController::class, 'create'])->name('pos.create');
+        Route::post('pos/events/{event}', [App\Http\Controllers\Organizer\POSController::class, 'store'])->name('pos.store');
+        Route::get('pos/transactions/{transaction}/print', [App\Http\Controllers\Organizer\POSController::class, 'print'])->name('pos.print');
+    });
     Route::get('transactions', [App\Http\Controllers\Organizer\TransactionController::class, 'index'])->name('transactions.index');
     Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\Organizer\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');

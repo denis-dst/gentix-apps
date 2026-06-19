@@ -117,6 +117,24 @@ class GateController extends Controller
             ], 404);
         }
 
+        if (($event->purchase_flow ?? 'redeem') === 'redeem' && $ticket->status !== 'redeemed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tiket belum diredeem menjadi wristband.',
+                'customer' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-',
+            ], 403);
+        }
+
+        if ($ticket->status === 'void') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tiket sudah dibatalkan.',
+                'customer' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-',
+            ], 403);
+        }
+
         // Access Control: Check if ticket category is allowed for the gate
         $allowedCategories = session('gate_allowed_categories', []);
         if (!empty($allowedCategories) && !in_array($ticket->ticket_category_id, $allowedCategories)) {

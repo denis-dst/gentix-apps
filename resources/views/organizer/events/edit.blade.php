@@ -198,6 +198,43 @@
                             <p class="text-[10px] text-gray-400 mt-1 italic">Informasi ini akan ditampilkan di bagian paling atas halaman E-Voucher peserta. Link URL akan otomatis menjadi link klik.</p>
                         </div>
 
+                        <div class="pt-4 border-t border-gray-100 space-y-4"
+                             x-data="{ flow: '{{ old('purchase_flow', $event->purchase_flow ?? 'redeem') }}' }">
+                            <div>
+                                <h3 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">Flow Setelah Pembelian</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Mengatur output transaksi langsung dari petugas tenant.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'redeem' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                                    <input type="radio" name="purchase_flow" value="redeem" x-model="flow" class="sr-only">
+                                    <span class="block text-sm font-black text-slate-800">Perlu Redeem</span>
+                                    <span class="block text-xs text-slate-500 mt-1">Gunakan tiket gelang/wristband.</span>
+                                </label>
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'evoucher' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                                    <input type="radio" name="purchase_flow" value="evoucher" x-model="flow" class="sr-only">
+                                    <span class="block text-sm font-black text-slate-800">E-Voucher</span>
+                                    <span class="block text-xs text-slate-500 mt-1">QR langsung bisa discan gate.</span>
+                                </label>
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'print' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                                    <input type="radio" name="purchase_flow" value="print" x-model="flow" class="sr-only">
+                                    <span class="block text-sm font-black text-slate-800">Cetak Ticket</span>
+                                    <span class="block text-xs text-slate-500 mt-1">Output print termal tenant.</span>
+                                </label>
+                            </div>
+
+                            <div x-show="flow === 'print'" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Lebar Kertas (mm)</label>
+                                    <input type="number" name="thermal_paper_width_mm" value="{{ old('thermal_paper_width_mm', $event->thermal_paper_width_mm ?? 80) }}" min="40" max="120" class="w-full rounded-xl border-slate-200 focus:border-orange-500 focus:ring-orange-500 py-2.5 px-4 font-bold">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Panjang Kertas (mm)</label>
+                                    <input type="number" name="thermal_paper_height_mm" value="{{ old('thermal_paper_height_mm', $event->thermal_paper_height_mm ?? 160) }}" min="60" max="300" class="w-full rounded-xl border-slate-200 focus:border-orange-500 focus:ring-orange-500 py-2.5 px-4 font-bold">
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- ============================================================
                              FREE EVENT OPTIONS
                              ============================================================ --}}
