@@ -29,6 +29,15 @@ class POSController extends Controller
             'customer_nik' => 'required',
         ]);
 
+        // Normalize phone number to Fonnte format (starts with 62)
+        $phone = preg_replace('/[^0-9]/', '', $request->customer_phone);
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        } elseif (str_starts_with($phone, '8')) {
+            $phone = '62' . $phone;
+        }
+        $request->merge(['customer_phone' => $phone]);
+
         $category = TicketCategory::find($request->ticket_category_id);
 
         // Quota Check

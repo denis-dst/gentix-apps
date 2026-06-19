@@ -50,6 +50,15 @@ class POSController extends Controller
             'payment_method' => 'required|string|max:50',
         ]);
 
+        // Normalize phone number to Fonnte format (starts with 62)
+        $phone = preg_replace('/[^0-9]/', '', $validated['customer_phone']);
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        } elseif (str_starts_with($phone, '8')) {
+            $phone = '62' . $phone;
+        }
+        $validated['customer_phone'] = $phone;
+
         $category = TicketCategory::where('event_id', $event->id)
             ->where('tenant_id', $event->tenant_id)
             ->where('is_active', true)

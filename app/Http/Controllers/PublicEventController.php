@@ -199,6 +199,17 @@ class PublicEventController extends Controller
 
         $validated = $validator->validated();
 
+        // Normalize phone number to Fonnte format (starts with 62)
+        if (isset($validated['phone'])) {
+            $phone = preg_replace('/[^0-9]/', '', $validated['phone']);
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            } elseif (str_starts_with($phone, '8')) {
+                $phone = '62' . $phone;
+            }
+            $validated['phone'] = $phone;
+        }
+
         $category = TicketCategory::findOrFail($validated['ticket_category_id']);
         
         // Final Promo Validation (Backend)
@@ -368,6 +379,18 @@ class PublicEventController extends Controller
         }
 
         $validated = $validator->validated();
+
+        // Normalize phone number to Fonnte format (starts with 62)
+        if (isset($validated['phone'])) {
+            $phone = preg_replace('/[^0-9]/', '', $validated['phone']);
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            } elseif (str_starts_with($phone, '8')) {
+                $phone = '62' . $phone;
+            }
+            $validated['phone'] = $phone;
+        }
+
         $category = TicketCategory::findOrFail($validated['ticket_category_id']);
 
         // Quota Check
