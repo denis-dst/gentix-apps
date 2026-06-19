@@ -11,11 +11,7 @@
     @endphp
     <style>
         @page {
-            size:
-                {{ $paperWidth }}
-                mm
-                {{ $paperHeight }}
-                mm;
+            size: {{ $paperWidth . 'mm' }} {{ $paperHeight . 'mm' }};
             margin: 0;
         }
 
@@ -63,12 +59,8 @@
         }
 
         .sheet {
-            width:
-                {{ $paperWidth }}
-                mm;
-            min-height:
-                {{ $paperHeight }}
-                mm;
+            width: {{ $paperWidth . 'mm' }};
+            min-height: {{ $paperHeight . 'mm' }};
             margin: 16px auto;
             background: #fff;
             padding: 5mm;
