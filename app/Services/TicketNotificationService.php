@@ -31,15 +31,6 @@ class TicketNotificationService
             if ($globalEmailEnabled === '0' || $globalEmailEnabled === false) {
                 return;
             }
-            
-            $tenant = $ticket->transaction->tenant;
-            if ($tenant) {
-                $meta = $tenant->meta ?? [];
-                $emailEnabled = $meta['email_notifications_enabled'] ?? true;
-                if (!$emailEnabled) {
-                    return;
-                }
-            }
 
             $email = $ticket->visitor_data['email'] ?? $ticket->transaction->customer_email ?? null;
             
@@ -58,15 +49,6 @@ class TicketNotificationService
             $globalWaEnabled = Setting::where('key', 'global_wa_notifications_enabled')->value('value');
             if ($globalWaEnabled === '0' || $globalWaEnabled === false) {
                 return;
-            }
-            
-            $tenant = $ticket->transaction->tenant;
-            if ($tenant) {
-                $meta = $tenant->meta ?? [];
-                $waEnabled = $meta['wa_notifications_enabled'] ?? true;
-                if (!$waEnabled) {
-                    return;
-                }
             }
 
             $phone = $ticket->visitor_data['phone'] ?? $ticket->transaction->customer_phone ?? null;
