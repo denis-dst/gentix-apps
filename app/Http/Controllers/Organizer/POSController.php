@@ -111,13 +111,11 @@ class POSController extends Controller
             $category->increment('sold_count', $validated['quantity']);
         });
 
-        if (($event->purchase_flow ?? 'redeem') === 'evoucher') {
-            foreach ($tickets as $ticket) {
-                try {
-                    app(TicketNotificationService::class)->sendEVoucher($ticket);
-                } catch (\Throwable $e) {
-                    report($e);
-                }
+        foreach ($tickets as $ticket) {
+            try {
+                app(TicketNotificationService::class)->sendEVoucher($ticket);
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
 

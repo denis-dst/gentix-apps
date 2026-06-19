@@ -107,12 +107,13 @@ class TicketNotificationService
             return;
         }
 
+        // Remove non-numeric characters first
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
         // Format phone number to international format if starting with 0
         if (str_starts_with($phone, '0')) {
             $phone = '62' . substr($phone, 1);
         }
-        // Remove non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
 
         $payload = [
             'target' => $phone,
