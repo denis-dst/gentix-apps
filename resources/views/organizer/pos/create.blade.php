@@ -30,13 +30,22 @@
                     <div class="flex flex-col md:flex-row gap-2 md:items-center">
                         <input type="text" readonly value="{{ session('active_evoucher_url') }}" class="flex-1 rounded-lg border-emerald-200 bg-white text-xs font-bold text-slate-600">
                         <a href="{{ session('active_evoucher_url') }}" target="_blank" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-emerald-700 transition text-center">Buka QR</a>
-                        @if(session('active_whatsapp_url'))
-                            <a href="{{ session('active_whatsapp_url') }}" target="_blank" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-emerald-600 transition text-center flex items-center justify-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.458L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436.002 9.859-4.42 9.863-9.864.002-2.637-1.023-5.115-2.887-6.979C16.584 1.898 14.1 8.75 11.466 8.75 6.03 8.748 1.608 13.17 1.605 18.613c-.001 1.666.452 3.284 1.312 4.708L1.875 22.25l4.772-1.258a10.06 10.06 0 004.825 1.451zm9.957-6.808c-.27-.135-1.597-.788-1.845-.878-.247-.09-.427-.135-.607.135-.18.27-.697.878-.855 1.058-.158.18-.315.202-.585.067-.27-.135-1.14-.42-2.172-1.34-.803-.715-1.345-1.6-1.503-1.871-.158-.27-.017-.416.118-.551.121-.122.27-.315.405-.472.135-.158.18-.27.27-.45.09-.18.045-.337-.023-.472-.068-.135-.607-1.463-.832-2.003-.22-.529-.44-.457-.607-.466-.157-.008-.337-.01-.517-.01-.18 0-.472.067-.72.337-.248.27-.945.923-.945 2.25 0 1.328.968 2.61 1.103 2.79.135.18 1.905 2.91 4.613 4.078.644.278 1.147.444 1.54.569.647.206 1.236.177 1.701.108.519-.078 1.598-.653 1.823-1.283.225-.63.225-1.17.157-1.283-.067-.113-.247-.18-.517-.315z"/>
-                                </svg>
-                                Kirim WA
-                            </a>
+                        @if(($global_settings['global_wa_notifications_enabled'] ?? '1') !== '0')
+                            @if(session('active_transaction_id'))
+                                <button type="button" id="btn-send-wa" data-action="{{ route('organizer.transactions.send-whatsapp', session('active_transaction_id')) }}" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-emerald-600 transition text-center flex items-center justify-center gap-1.5 focus:outline-none">
+                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.458L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436.002 9.859-4.42 9.863-9.864.002-2.637-1.023-5.115-2.887-6.979C16.584 1.898 14.1 8.75 11.466 8.75 6.03 8.748 1.608 13.17 1.605 18.613c-.001 1.666.452 3.284 1.312 4.708L1.875 22.25l4.772-1.258a10.06 10.06 0 004.825 1.451zm9.957-6.808c-.27-.135-1.597-.788-1.845-.878-.247-.09-.427-.135-.607.135-.18.27-.697.878-.855 1.058-.158.18-.315.202-.585.067-.27-.135-1.14-.42-2.172-1.34-.803-.715-1.345-1.6-1.503-1.871-.158-.27-.017-.416.118-.551.121-.122.27-.315.405-.472.135-.158.18-.27.27-.45.09-.18.045-.337-.023-.472-.068-.135-.607-1.463-.832-2.003-.22-.529-.44-.457-.607-.466-.157-.008-.337-.01-.517-.01-.18 0-.472.067-.72.337-.248.27-.945.923-.945 2.25 0 1.328.968 2.61 1.103 2.79.135.18 1.905 2.91 4.613 4.078.644.278 1.147.444 1.54.569.647.206 1.236.177 1.701.108.519-.078 1.598-.653 1.823-1.283.225-.63.225-1.17.157-1.283-.067-.113-.247-.18-.517-.315z"/>
+                                    </svg>
+                                    <span id="wa-btn-text">Kirim WA</span>
+                                </button>
+                            @elseif(session('active_whatsapp_url'))
+                                <a href="{{ session('active_whatsapp_url') }}" target="_blank" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-emerald-600 transition text-center flex items-center justify-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.458L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436.002 9.859-4.42 9.863-9.864.002-2.637-1.023-5.115-2.887-6.979C16.584 1.898 14.1 8.75 11.466 8.75 6.03 8.748 1.608 13.17 1.605 18.613c-.001 1.666.452 3.284 1.312 4.708L1.875 22.25l4.772-1.258a10.06 10.06 0 004.825 1.451zm9.957-6.808c-.27-.135-1.597-.788-1.845-.878-.247-.09-.427-.135-.607.135-.18.27-.697.878-.855 1.058-.158.18-.315.202-.585.067-.27-.135-1.14-.42-2.172-1.34-.803-.715-1.345-1.6-1.503-1.871-.158-.27-.017-.416.118-.551.121-.122.27-.315.405-.472.135-.158.18-.27.27-.45.09-.18.045-.337-.023-.472-.068-.135-.607-1.463-.832-2.003-.22-.529-.44-.457-.607-.466-.157-.008-.337-.01-.517-.01-.18 0-.472.067-.72.337-.248.27-.945.923-.945 2.25 0 1.328.968 2.61 1.103 2.79.135.18 1.905 2.91 4.613 4.078.644.278 1.147.444 1.54.569.647.206 1.236.177 1.701.108.519-.078 1.598-.653 1.823-1.283.225-.63.225-1.17.157-1.283-.067-.113-.247-.18-.517-.315z"/>
+                                    </svg>
+                                    Kirim WA
+                                </a>
+                            @endif
                         @endif
                     </div>
                 @endif
@@ -143,4 +152,54 @@
             </aside>
         </div>
     </div>
+
+    @if(session('active_transaction_id'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const btnSendWa = document.getElementById('btn-send-wa');
+                const waBtnText = document.getElementById('wa-btn-text');
+                
+                if (btnSendWa) {
+                    btnSendWa.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        
+                        btnSendWa.disabled = true;
+                        btnSendWa.classList.add('opacity-50', 'cursor-not-allowed');
+                        waBtnText.textContent = 'Mengirim...';
+                        
+                        fetch(btnSendWa.dataset.action, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        })
+                        .then(response => {
+                            return response.json().then(data => ({
+                                status: response.status,
+                                body: data
+                            }));
+                        })
+                        .then(res => {
+                            if (res.status === 200 && res.body.success) {
+                                waBtnText.textContent = 'WA Terkirim!';
+                                btnSendWa.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+                                btnSendWa.classList.add('bg-blue-600');
+                                alert(res.body.message || 'WhatsApp berhasil dikirim!');
+                            } else {
+                                throw new Error(res.body.message || 'Gagal mengirim WhatsApp.');
+                            }
+                        })
+                        .catch(err => {
+                            alert(err.message || 'Terjadi kesalahan saat mengirim WhatsApp.');
+                            btnSendWa.disabled = false;
+                            btnSendWa.classList.remove('opacity-50', 'cursor-not-allowed');
+                            waBtnText.textContent = 'Kirim WA';
+                        });
+                    });
+                }
+            });
+        </script>
+    @endif
 </x-app-layout>

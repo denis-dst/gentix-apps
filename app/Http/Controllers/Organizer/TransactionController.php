@@ -282,6 +282,51 @@ class TransactionController extends Controller
         return $redirect;
     }
 
+    public function sendWhatsApp(Transaction $transaction)
+    {
+        $this->authorizeTenant($transaction->event);
+        $transaction->load(['event', 'tickets.category']);
+
+        $ticket = $transaction->tickets->first(fn ($t) => $t->status !== 'void');
+
+        if (!$ticket) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada tiket aktif untuk mengirim WhatsApp.',
+                ], 404);
+            }
+            return back()->with('error', 'Tidak ada tiket aktif untuk mengirim WhatsApp.');
+        }
+
+        try {
+            $notificationService = new \App\Services\TicketNotificationService();
+            $notificationService->sendWhatsApp($ticket, true, true);
+        } catch (\Exception $e) {
+            \Log::error('sendWhatsApp failed for transaction #' . $transaction->reference_no . ': ' . $e->getMessage(), [
+                'userId' => auth()->id(),
+            ]);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengirim WhatsApp: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->with('error', 'Gagal mengirim WhatsApp. Detail: ' . $e->getMessage());
+        }
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'E-Voucher berhasil dikirim via WhatsApp Fonnte.',
+            ]);
+        }
+
+        return back()->with('success', 'E-Voucher berhasil dikirim via WhatsApp Fonnte.');
+    }
+
     private function authorizeTenant(Event $event)
     {
         if ($event->tenant_id !== auth()->user()->tenant_id && !auth()->user()->hasRole('Superadmin')) {

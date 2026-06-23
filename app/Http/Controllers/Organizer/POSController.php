@@ -166,6 +166,7 @@ class POSController extends Controller
         return redirect()
             ->route('organizer.pos.create', $event)
             ->with('success', $message)
+            ->with('active_transaction_id', $transaction->id)
             ->with('active_evoucher_url', $activeTicket ? route('tickets.view', $activeTicket->ticket_code) : null)
             ->with('active_whatsapp_url', $waUrl);
     }

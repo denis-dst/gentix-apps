@@ -33,7 +33,7 @@ class TicketNotificationService
             }
 
             $email = $ticket->visitor_data['email'] ?? $ticket->transaction->customer_email ?? null;
-            
+
             if ($email) {
                 Mail::to($email)->send(new EVoucherMail($ticket->transaction));
             }
@@ -42,50 +42,60 @@ class TicketNotificationService
         }
     }
 
-    protected function sendWhatsApp(Ticket $ticket)
+    public function sendWhatsApp(Ticket $ticket, bool $force = false, bool $throwExceptions = false)
     {
-        try {
+        if (!$force) {
             // Check global setting first
             $globalWaEnabled = Setting::where('key', 'global_wa_notifications_enabled')->value('value');
             if ($globalWaEnabled === '0' || $globalWaEnabled === false) {
                 return;
             }
+        }
 
-            $phone = $ticket->visitor_data['phone'] ?? $ticket->transaction->customer_phone ?? null;
-            
-            if (!$phone) return;
+        $phone = $ticket->visitor_data['phone'] ?? $ticket->transaction->customer_phone ?? null;
 
-            $eventName = $ticket->event->name;
-            $ticketCode = $ticket->ticket_code;
-            $categoryName = $ticket->category->name;
-            $url = config('app.url') . "/tickets/view/{$ticketCode}";
+        if (!$phone) {
+            if ($throwExceptions) {
+                throw new \Exception('Nomor WhatsApp pelanggan tidak ditemukan.');
+            }
+            return;
+        }
 
-            $message = "*E-Voucher {$eventName}*\n\n";
-            $message .= "Halo, terima kasih telah melakukan pembelian tiket.\n\n";
-            $message .= "Detail Tiket:\n";
-            $message .= "Kategori: {$categoryName}\n";
-            $message .= "Kode Tiket: {$ticketCode}\n\n";
-            $message .= "Silakan tunjukkan QR Code pada link berikut saat penukaran gelang (redemption):\n";
-            $message .= "{$url}\n\n";
-            $message .= "Sampai jumpa di lokasi!";
+        $eventName = $ticket->event->name;
+        $ticketCode = $ticket->ticket_code;
+        $categoryName = $ticket->category->name;
+        $url = config('app.url') . "/tickets/view/{$ticketCode}";
 
-            // Example of Fonnte integration (placeholder)
-            $this->sendViaFonnte($phone, $message);
-            
+        $message = "*E-Voucher {$eventName}*\n\n";
+        $message .= "Halo, terima kasih telah melakukan pembelian tiket.\n\n";
+        $message .= "Detail Tiket:\n";
+        $message .= "Kategori: {$categoryName}\n";
+        $message .= "Kode Tiket: {$ticketCode}\n\n";
+        $message .= "Silakan tunjukkan QR Code pada link berikut saat Registrasi di hari H:\n";
+        $message .= "{$url}\n\n";
+        $message .= "Sampai jumpa di lokasi!";
+
+        try {
+            $this->sendViaFonnte($phone, $message, $throwExceptions);
             Log::info("WA Notification sent to {$phone}: {$message}");
-
         } catch (\Exception $e) {
             Log::error('Failed to send e-voucher WA for ticket ' . $ticket->ticket_code . ': ' . $e->getMessage());
+            if ($throwExceptions) {
+                throw $e;
+            }
         }
     }
 
-    protected function sendViaFonnte($phone, $message)
+    protected function sendViaFonnte($phone, $message, bool $throwExceptions = false)
     {
         $token = config('services.fonnte.token');
         $sender = config('services.fonnte.sender');
 
         if (!$token) {
             Log::warning('Fonnte API token is not configured.');
+            if ($throwExceptions) {
+                throw new \Exception('Token Fonnte belum dikonfigurasi di server.');
+            }
             return;
         }
 
@@ -113,12 +123,27 @@ class TicketNotificationService
             ])->post('https://api.fonnte.com/send', $payload);
 
             if ($response->successful()) {
-                Log::info("WA Notification sent successfully via Fonnte to {$phone}");
+                $data = $response->json();
+                if (isset($data['status']) && $data['status'] === false) {
+                    $reason = $data['reason'] ?? 'Unknown error';
+                    Log::error("Fonnte WA API returned error status for {$phone}: {$reason}");
+                    if ($throwExceptions) {
+                        throw new \Exception("Fonnte API: " . $reason);
+                    }
+                } else {
+                    Log::info("WA Notification sent successfully via Fonnte to {$phone}");
+                }
             } else {
                 Log::error("Fonnte WA API failed to send to {$phone}. Status: " . $response->status() . ", Response: " . $response->body());
+                if ($throwExceptions) {
+                    throw new \Exception("Koneksi Fonnte gagal (Status: " . $response->status() . ")");
+                }
             }
         } catch (\Exception $e) {
             Log::error("Fonnte WA API exception while sending to {$phone}: " . $e->getMessage());
+            if ($throwExceptions) {
+                throw $e;
+            }
         }
     }
 }
