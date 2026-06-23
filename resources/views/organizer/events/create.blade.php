@@ -236,6 +236,32 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Verification Options (shown if is_free) -->
+                        <div x-show="isFree" x-cloak class="p-5 bg-blue-50 border border-blue-200 rounded-2xl space-y-4">
+                            <h4 class="text-xs font-black text-blue-800 uppercase tracking-widest font-outfit">⚡ Bukti Registrasi Wajib</h4>
+                            <p class="text-xs text-blue-600">Pilih bukti upload wajib bagi pendaftar event gratis ini:</p>
+                            
+                            <div class="space-y-3">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="proof_ig_required" id="proof_ig_required" value="1"
+                                           {{ old('proof_ig_required', 1) ? 'checked' : '' }}
+                                           class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
+                                    <div>
+                                        <span class="text-sm font-bold text-blue-900">Wajib Upload Bukti Follow Instagram</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="proof_review_required" id="proof_review_required" value="1"
+                                           {{ old('proof_review_required', 1) ? 'checked' : '' }}
+                                           class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
+                                    <div>
+                                        <span class="text-sm font-bold text-blue-900">Wajib Upload Bukti Google Review</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="pt-6 border-t border-slate-50 space-y-4">

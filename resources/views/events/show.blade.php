@@ -72,6 +72,8 @@
 <body class="text-slate-800" x-data="{
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},
     umrohQuestionEnabled: {{ $event->umroh_question_enabled ? 'true' : 'false' }},
+    proofIgRequired: {{ ($event->meta['proof_ig_required'] ?? true) ? 'true' : 'false' }},
+    proofReviewRequired: {{ ($event->meta['proof_review_required'] ?? true) ? 'true' : 'false' }},
     step: 1,
     selectedCategory: null,
     quantity: 0,
@@ -205,8 +207,8 @@
         if (!this.selectedCategory) return;
         if (!this.phone) { return; }
         if (!this.email) { return; }
-        if (!this.proofIgFile) { return; }
-        if (!this.proofReviewFile) { return; }
+        if (this.proofIgRequired && !this.proofIgFile) { return; }
+        if (this.proofReviewRequired && !this.proofReviewFile) { return; }
         const invalid = this.attendees.some((a) => !a.name || !a.gender);
         if (invalid) {
             const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
@@ -637,11 +639,11 @@
                                             </p>
                                         </div>
 
-                                        <div class="space-y-3">
-                                            <div>
+                                        <div class="space-y-3" x-show="proofIgRequired || proofReviewRequired" x-cloak>
+                                            <div x-show="proofIgRequired">
                                                 <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
                                                 <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
-                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" :required="proofIgRequired"
                                                        @change="handleProofUpload('proofIgFile', $event)"
                                                        :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
                                                        class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
@@ -651,10 +653,10 @@
                                                 </p>
                                                 <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
                                             </div>
-                                            <div>
+                                            <div x-show="proofReviewRequired">
                                                 <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
                                                 <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
-                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required
+                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" :required="proofReviewRequired"
                                                        @change="handleProofUpload('proofReviewFile', $event)"
                                                        :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
                                                        class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
@@ -794,7 +796,7 @@
                                         </div>
 
                                         <!-- Validation Error Summary -->
-                                        <div x-show="formTouched && (!email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender))" 
+                                        <div x-show="formTouched && (!email || (proofIgRequired && !proofIgFile) || (proofReviewRequired && !proofReviewFile) || attendees.some(a => !a.name || !a.gender))" 
                                              x-cloak
                                              class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
                                             <div class="flex items-center gap-2 mb-1">
@@ -803,8 +805,8 @@
                                             </div>
                                             <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
                                                 <li x-show="!email">Alamat Email</li>
-                                                <li x-show="!proofIgFile">Bukti Follow IG</li>
-                                                <li x-show="!proofReviewFile">Bukti Google Review</li>
+                                                <li x-show="proofIgRequired && !proofIgFile">Bukti Follow IG</li>
+                                                <li x-show="proofReviewRequired && !proofReviewFile">Bukti Google Review</li>
                                                 <template x-for="(attendee, idx) in attendees" :key="idx">
                                                     <template x-if="!attendee.name || !attendee.gender">
                                                         <li>
@@ -820,7 +822,7 @@
 
                                         <button type="submit" 
                                                 id="btn-daftar-submit"
-                                                :disabled="isSubmitting || !phone || !email || !proofIgFile || !proofReviewFile || attendees.some(a => !a.name || !a.gender)"
+                                                :disabled="isSubmitting || !phone || !email || (proofIgRequired && !proofIgFile) || (proofReviewRequired && !proofReviewFile) || attendees.some(a => !a.name || !a.gender)"
                                                 class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
                                             <template x-if="isSubmitting">
                                                 <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

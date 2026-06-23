@@ -79,6 +79,8 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:1024',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'proof_ig_required' => 'nullable|boolean',
+            'proof_review_required' => 'nullable|boolean',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -93,6 +95,8 @@ class EventController extends Controller
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
         
         $meta = $this->buildWristbandMeta($request);
+        $meta['proof_ig_required'] = $request->has('is_free') ? $request->boolean('proof_ig_required') : true;
+        $meta['proof_review_required'] = $request->has('is_free') ? $request->boolean('proof_review_required') : true;
         if ($validated['umroh_question_enabled']) {
             $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
             $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
@@ -112,7 +116,9 @@ class EventController extends Controller
             $validated['wristband_league_logo'],
             $validated['wristband_home_club_logo'],
             $validated['wristband_away_club_logo'],
-            $validated['wristband_sponsor_logos']
+            $validated['wristband_sponsor_logos'],
+            $validated['proof_ig_required'],
+            $validated['proof_review_required']
         );
         
         if (empty($validated['security_code'])) {
@@ -193,6 +199,8 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:1024',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'proof_ig_required' => 'nullable|boolean',
+            'proof_review_required' => 'nullable|boolean',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -202,6 +210,8 @@ class EventController extends Controller
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $meta = $this->buildWristbandMeta($request, $event->meta ?? []);
+        $meta['proof_ig_required'] = $request->has('is_free') ? $request->boolean('proof_ig_required') : true;
+        $meta['proof_review_required'] = $request->has('is_free') ? $request->boolean('proof_review_required') : true;
         if ($validated['umroh_question_enabled']) {
             $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
             $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
