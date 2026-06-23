@@ -267,7 +267,7 @@
                             @endif
                             @if(isset($ticket->visitor_data['umroh_answer']) && $ticket->visitor_data['umroh_answer'])
                             <div class="flex justify-between items-center text-xs">
-                                <span class="text-slate-400 font-medium">Umroh Batik Travel</span>
+                                <span class="text-slate-400 font-medium">{{ $transaction->event->meta['custom_question_text'] ?? 'Umroh Batik Travel' }}</span>
                                 <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['umroh_answer'] }}</span>
                             </div>
                             @endif

@@ -26,6 +26,7 @@
                         'redeem' => 'Perlu Redeem',
                         'evoucher' => 'E-Voucher',
                         'print' => 'Cetak Ticket',
+                        'both' => 'Evoucher & Cetak',
                     ];
                 @endphp
                 <a href="{{ route('organizer.pos.create', $event) }}" class="block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:border-orange-200 hover:shadow-lg hover:shadow-orange-100 transition">

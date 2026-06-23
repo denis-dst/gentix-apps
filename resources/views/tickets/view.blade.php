@@ -259,7 +259,7 @@
                                     @endif
                                     @if(isset($t->visitor_data['umroh_answer']) && $t->visitor_data['umroh_answer'])
                                         <div class="text-[10px] text-slate-600 leading-relaxed font-bold">
-                                            Keberangkatan: <span class="text-slate-800 font-black uppercase block mt-0.5">{{ $t->visitor_data['umroh_answer'] }}</span>
+                                            {{ $ticket->event->meta['custom_question_text'] ?? 'Keberangkatan' }}: <span class="text-slate-800 font-black uppercase block mt-0.5">{{ $t->visitor_data['umroh_answer'] }}</span>
                                         </div>
                                     @endif
                                 </div>

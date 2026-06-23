@@ -66,8 +66,11 @@ class EventController extends Controller
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
+            'custom_question_text' => 'nullable|string|max:255',
+            'custom_question_type' => 'nullable|in:text,select',
+            'custom_question_options' => 'nullable|string',
             'evoucher_info' => 'nullable|string',
-            'purchase_flow' => 'required|in:redeem,evoucher,print',
+            'purchase_flow' => 'required|in:redeem,evoucher,print,both',
             'thermal_paper_width_mm' => 'nullable|integer|min:40|max:120',
             'thermal_paper_height_mm' => 'nullable|integer|min:60|max:300',
             'wristband_league_name' => 'nullable|string|max:255',
@@ -88,7 +91,22 @@ class EventController extends Controller
         $validated['tenant_id'] = auth()->user()->tenant_id;
         $validated['status'] = 'draft';
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
-        $validated['meta'] = $this->buildWristbandMeta($request);
+        
+        $meta = $this->buildWristbandMeta($request);
+        if ($validated['umroh_question_enabled']) {
+            $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
+            $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
+            if ($meta['custom_question_type'] === 'select') {
+                $optionsStr = $request->input('custom_question_options', '');
+                $optionsArray = collect(explode("\n", $optionsStr))
+                    ->map(fn($o) => trim($o))
+                    ->filter()
+                    ->values()
+                    ->all();
+                $meta['custom_question_options'] = $optionsArray;
+            }
+        }
+        $validated['meta'] = $meta;
         unset(
             $validated['wristband_league_name'],
             $validated['wristband_league_logo'],
@@ -162,8 +180,11 @@ class EventController extends Controller
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
+            'custom_question_text' => 'nullable|string|max:255',
+            'custom_question_type' => 'nullable|in:text,select',
+            'custom_question_options' => 'nullable|string',
             'evoucher_info' => 'nullable|string',
-            'purchase_flow' => 'required|in:redeem,evoucher,print',
+            'purchase_flow' => 'required|in:redeem,evoucher,print,both',
             'thermal_paper_width_mm' => 'nullable|integer|min:40|max:120',
             'thermal_paper_height_mm' => 'nullable|integer|min:60|max:300',
             'wristband_league_name' => 'nullable|string|max:255',
@@ -180,7 +201,25 @@ class EventController extends Controller
         $validated['thermal_paper_width_mm'] = $request->integer('thermal_paper_width_mm', 80);
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
-        $validated['meta'] = $this->buildWristbandMeta($request, $event->meta ?? []);
+        $meta = $this->buildWristbandMeta($request, $event->meta ?? []);
+        if ($validated['umroh_question_enabled']) {
+            $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
+            $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
+            if ($meta['custom_question_type'] === 'select') {
+                $optionsStr = $request->input('custom_question_options', '');
+                $optionsArray = collect(explode("\n", $optionsStr))
+                    ->map(fn($o) => trim($o))
+                    ->filter()
+                    ->values()
+                    ->all();
+                $meta['custom_question_options'] = $optionsArray;
+            } else {
+                unset($meta['custom_question_options']);
+            }
+        } else {
+            unset($meta['custom_question_text'], $meta['custom_question_type'], $meta['custom_question_options']);
+        }
+        $validated['meta'] = $meta;
         unset(
             $validated['wristband_league_name'],
             $validated['wristband_league_logo'],

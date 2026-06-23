@@ -743,13 +743,28 @@
 
                                         <!-- Pertanyaan Umroh (conditional) -->
                                         <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                                            <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                                                🕌 Alumni Grup Keberangkatan Tanggal Berapa?
+                                            @php
+                                                $qText = $event->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?';
+                                                $qType = $event->meta['custom_question_type'] ?? 'text';
+                                                $qOptions = $event->meta['custom_question_options'] ?? [];
+                                            @endphp
+                                            <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest text-left">
+                                                🕌 {{ $qText }}
                                             </label>
-                                            <p class="text-[10px] text-amber-600">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
-                                            <input type="text" x-model="attendees[currentAttendee].umroh_answer"
-                                                   placeholder="Contoh: 13 Januari 2024"
-                                                   class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition">
+                                            @if($qType === 'select')
+                                                <select x-model="attendees[currentAttendee].umroh_answer"
+                                                        class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                                    <option value="">Pilih salah satu...</option>
+                                                    @foreach($qOptions as $opt)
+                                                        <option value="{{ $opt }}">{{ $opt }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @else
+                                                <p class="text-[10px] text-amber-600 text-left">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
+                                                <input type="text" x-model="attendees[currentAttendee].umroh_answer"
+                                                       placeholder="Contoh: 13 Januari 2024"
+                                                       class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                            @endif
                                         </div>
                                     </div>
 

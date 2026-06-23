@@ -205,21 +205,26 @@
                                 <p class="text-xs text-slate-400 mt-0.5">Mengatur output transaksi langsung dari petugas tenant.</p>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'redeem' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition animate-all duration-200" :class="flow === 'redeem' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
                                     <input type="radio" name="purchase_flow" value="redeem" x-model="flow" class="sr-only">
                                     <span class="block text-sm font-black text-slate-800">Perlu Redeem</span>
                                     <span class="block text-xs text-slate-500 mt-1">Gunakan tiket gelang/wristband.</span>
                                 </label>
-                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'evoucher' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition animate-all duration-200" :class="flow === 'evoucher' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
                                     <input type="radio" name="purchase_flow" value="evoucher" x-model="flow" class="sr-only">
                                     <span class="block text-sm font-black text-slate-800">E-Voucher</span>
                                     <span class="block text-xs text-slate-500 mt-1">QR langsung bisa discan gate.</span>
                                 </label>
-                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition" :class="flow === 'print' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-slate-50'">
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition animate-all duration-200" :class="flow === 'print' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
                                     <input type="radio" name="purchase_flow" value="print" x-model="flow" class="sr-only">
                                     <span class="block text-sm font-black text-slate-800">Cetak Ticket</span>
                                     <span class="block text-xs text-slate-500 mt-1">Output print termal tenant.</span>
+                                </label>
+                                <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition animate-all duration-200" :class="flow === 'both' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
+                                    <input type="radio" name="purchase_flow" value="both" x-model="flow" class="sr-only">
+                                    <span class="block text-sm font-black text-slate-800">Evoucher + Cetak</span>
+                                    <span class="block text-xs text-slate-500 mt-1">Kirim E-Voucher via WA & Cetak.</span>
                                 </label>
                             </div>
 
@@ -235,11 +240,8 @@
                             </div>
                         </div>
 
-                        {{-- ============================================================
-                             FREE EVENT OPTIONS
-                             ============================================================ --}}
                         <div class="pt-4 border-t-2 border-dashed border-emerald-100 space-y-4"
-                             x-data="{ isFree: {{ $event->is_free ? 'true' : 'false' }} }">
+                             x-data="{ isFree: {{ $event->is_free ? 'true' : 'false' }}, questionEnabled: {{ old('umroh_question_enabled', $event->umroh_question_enabled ?? 0) ? 'true' : 'false' }}, questionType: '{{ old('custom_question_type', $event->meta['custom_question_type'] ?? 'text') }}' }">
                             <div>
                                 <h3 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">⚡ Mode Event</h3>
                                 <p class="text-xs text-slate-400 mt-0.5">Pilih apakah event ini berbayar atau gratis</p>
@@ -271,16 +273,35 @@
                             </div>
 
                             <!-- Umroh Question Option (shown if is_free) -->
-                            <div x-show="isFree" x-cloak class="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                            <div x-show="isFree" x-cloak class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-4">
                                 <label class="flex items-start gap-4 cursor-pointer">
                                     <input type="checkbox" name="umroh_question_enabled" id="umroh_question_enabled_edit" value="1"
+                                           x-model="questionEnabled"
                                            {{ $event->umroh_question_enabled ? 'checked' : '' }}
                                            class="w-5 h-5 mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
                                     <div>
-                                        <p class="text-sm font-black text-amber-800">🕌 Aktifkan Pertanyaan Umroh</p>
-                                        <p class="text-xs text-amber-600 mt-0.5">Tambahkan pertanyaan: "Pernah Ikut Umroh Bersama Batik Travel Kapan?"</p>
+                                         <p class="text-sm font-black text-amber-800">🕌 Aktifkan Pertanyaan Custom (Alumni Umroh / Lainnya)</p>
+                                         <p class="text-xs text-amber-600 mt-0.5">Tambahkan pertanyaan tambahan dinamis untuk diisi peserta saat mendaftar.</p>
                                     </div>
                                 </label>
+
+                                <div x-show="questionEnabled" x-cloak class="pt-4 border-t border-amber-200/50 space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-amber-800 uppercase tracking-widest mb-1.5 font-outfit">Teks Pertanyaan</label>
+                                        <input type="text" name="custom_question_text" value="{{ old('custom_question_text', $event->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?') }}" class="w-full rounded-xl border-slate-200 focus:border-amber-500 focus:ring-amber-500 py-2.5 px-4 font-bold text-sm text-slate-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-amber-800 uppercase tracking-widest mb-1.5 font-outfit">Tipe Jawaban</label>
+                                        <select name="custom_question_type" x-model="questionType" class="w-full rounded-xl border-slate-200 focus:border-amber-500 focus:ring-amber-500 text-sm font-bold py-2.5 px-4 text-slate-700">
+                                            <option value="text">Teks Bebas (Text Input)</option>
+                                            <option value="select">Pilihan List (Dropdown)</option>
+                                        </select>
+                                    </div>
+                                    <div x-show="questionType === 'select'" x-cloak>
+                                        <label class="block text-xs font-bold text-amber-800 uppercase tracking-widest mb-1.5 font-outfit">Pilihan List (Satu per baris)</label>
+                                        <textarea name="custom_question_options" rows="3" placeholder="Contoh:&#10;Keberangkatan Januari 2026&#10;Keberangkatan Februari 2026&#10;Belum Pernah Umroh" class="w-full rounded-xl border-slate-200 focus:border-amber-500 focus:ring-amber-500 py-2.5 px-4 font-bold text-sm text-slate-700">{{ old('custom_question_options', isset($event->meta['custom_question_options']) ? implode("\n", $event->meta['custom_question_options']) : '') }}</textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

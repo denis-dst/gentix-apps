@@ -128,18 +128,46 @@ class POSController extends Controller
             }
         }
 
-        if (($event->purchase_flow ?? 'redeem') === 'print') {
+        $flow = $event->purchase_flow ?? 'redeem';
+
+        if ($flow === 'print') {
             return redirect()->route('organizer.pos.print', $transaction);
         }
 
-        $message = ($event->purchase_flow ?? 'redeem') === 'evoucher'
-            ? 'Transaksi berhasil. E-Voucher telah dibuat dan QR dapat discan di gate.'
-            : 'Transaksi berhasil. Lanjutkan proses redeem untuk pemasangan wristband.';
+        if ($flow === 'both') {
+            $message = 'Transaksi berhasil. E-Voucher telah dibuat dan siap dikirim via WhatsApp.';
+        } elseif ($flow === 'evoucher') {
+            $message = 'Transaksi berhasil. E-Voucher telah dibuat dan QR dapat discan di gate.';
+        } else {
+            $message = 'Transaksi berhasil. Lanjutkan proses redeem untuk pemasangan wristband.';
+        }
+
+        $activeTicket = $tickets->first();
+        $waUrl = null;
+        if ($activeTicket && ($flow === 'both' || $flow === 'evoucher')) {
+            $ticketCode = $activeTicket->ticket_code;
+            $categoryName = $category->name;
+            $eventName = $event->name;
+            $url = route('tickets.view', $ticketCode);
+            $phone = $validated['customer_phone'];
+            
+            $waMessage = "*E-Voucher {$eventName}*\n\n"
+                . "Halo, terima kasih telah melakukan pembelian tiket.\n\n"
+                . "Detail Tiket:\n"
+                . "Kategori: {$categoryName}\n"
+                . "Kode Tiket: {$ticketCode}\n\n"
+                . "Silakan tunjukkan QR Code pada link berikut:\n"
+                . "{$url}\n\n"
+                . "Sampai jumpa di lokasi!";
+            
+            $waUrl = "https://api.whatsapp.com/send?phone=" . urlencode($phone) . "&text=" . urlencode($waMessage);
+        }
 
         return redirect()
             ->route('organizer.pos.create', $event)
             ->with('success', $message)
-            ->with('active_evoucher_url', $tickets->first() ? route('tickets.view', $tickets->first()->ticket_code) : null);
+            ->with('active_evoucher_url', $activeTicket ? route('tickets.view', $activeTicket->ticket_code) : null)
+            ->with('active_whatsapp_url', $waUrl);
     }
 
     public function print(Transaction $transaction)
