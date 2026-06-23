@@ -465,22 +465,32 @@
                                 </div>
 
                                 @if($event->is_free)
-                                    <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                                        <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
-                                        <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
-                                            <li>
-                                                Bukti (Screenshoot) Follow Akun IG
-                                                <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">@batikumrah</a>
-                                            </li>
-                                            <li>
-                                                Bukti (Screenshoot) Mengisi Google Review
-                                                <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">https://bit.ly/googlereviewbatik</a>
-                                            </li>
-                                            <li>
-                                                <b>Screenshot E-Voucher setelah melakukan pendaftaran.</b>
-                                            </li>
-                                        </ol>
-                                    </div>
+                                    @php
+                                        $igRequired = $event->meta['proof_ig_required'] ?? true;
+                                        $reviewRequired = $event->meta['proof_review_required'] ?? true;
+                                    @endphp
+                                    @if($igRequired || $reviewRequired)
+                                        <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                                            <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
+                                            <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
+                                                @if($igRequired)
+                                                    <li>
+                                                        Bukti (Screenshoot) Follow Akun IG
+                                                        <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">@batikumrah</a>
+                                                    </li>
+                                                @endif
+                                                @if($reviewRequired)
+                                                    <li>
+                                                        Bukti (Screenshoot) Mengisi Google Review
+                                                        <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">https://bit.ly/googlereviewbatik</a>
+                                                    </li>
+                                                @endif
+                                                <li>
+                                                    <b>Screenshot E-Voucher setelah melakukan pendaftaran.</b>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                    @endif
                                 @endif
 
                                 <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
