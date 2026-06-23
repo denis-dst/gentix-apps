@@ -222,8 +222,12 @@
             formData.append('quantity', this.quantity);
             formData.append('phone', this.phone);
             formData.append('email', this.email);
-            formData.append('proof_ig', this.proofIgFile);
-            formData.append('proof_review', this.proofReviewFile);
+            if (this.proofIgFile) {
+                formData.append('proof_ig', this.proofIgFile);
+            }
+            if (this.proofReviewFile) {
+                formData.append('proof_review', this.proofReviewFile);
+            }
             formData.append('attendees', JSON.stringify(this.attendees));
 
             const response = await fetch('{{ route('checkout.process', $event->slug) }}', {
