@@ -63,4 +63,35 @@ class Event extends Model
         $out = GateLog::where('event_id', $this->id)->where('type', 'OUT')->count();
         return $in - $out;
     }
+
+    /**
+     * Get the dynamic upload tasks/proofs required for registration.
+     */
+    public function getRegistrationProofs(): array
+    {
+        if (isset($this->meta['registration_proofs']) && is_array($this->meta['registration_proofs'])) {
+            return $this->meta['registration_proofs'];
+        }
+
+        $proofs = [];
+        if ($this->meta['proof_ig_required'] ?? true) {
+            $proofs[] = [
+                'id' => 'proof_ig',
+                'label' => 'Bukti follow IG',
+                'instruction' => 'Klik untuk follow @batikumrah dan ambil screenshot',
+                'link' => 'https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==',
+                'is_required' => true,
+            ];
+        }
+        if ($this->meta['proof_review_required'] ?? true) {
+            $proofs[] = [
+                'id' => 'proof_review',
+                'label' => 'Bukti Google Review',
+                'instruction' => 'Isi Google Review lalu ambil screenshot',
+                'link' => 'https://bit.ly/googlereviewbatik',
+                'is_required' => true,
+            ];
+        }
+        return $proofs;
+    }
 }

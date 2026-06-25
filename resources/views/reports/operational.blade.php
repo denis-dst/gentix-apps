@@ -27,7 +27,7 @@
             $proofTicket = $transaction->tickets->first(function ($ticket) {
                 $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
 
-                return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']) || !empty($visitorData['proofs']);
             });
 
             $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
@@ -49,6 +49,7 @@
                 'payment_method' => $transaction->payment_method,
                 'proof_ig' => $proofData['proof_ig'] ?? null,
                 'proof_review' => $proofData['proof_review'] ?? null,
+                'proofs' => $proofData['proofs'] ?? [],
             ];
         })->values();
     }
@@ -214,8 +215,7 @@
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">NIK</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Upload Bukti IG</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Upload Bukti Review</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Bukti Upload</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Umroh</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event & Kategori</th>
@@ -261,22 +261,31 @@
                                         <span class="text-slate-300">-</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofIgUrl ? 'Sudah Upload' : 'Belum Upload' }}">
-                                    @if($proofIgUrl)
-                                        <button type="button" data-proof-url="{{ $proofIgUrl }}" data-proof-title="Bukti Follow IG - {{ $referenceNo }}" onclick="openProofPreviewFromButton(this)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Follow IG">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                                        </button>
-                                    @else
-                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-500" title="Belum Upload">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-center proof-status" data-export="{{ $proofReviewUrl ? 'Sudah Upload' : 'Belum Upload' }}">
-                                    @if($proofReviewUrl)
-                                        <button type="button" data-proof-url="{{ $proofReviewUrl }}" data-proof-title="Bukti Google Review - {{ $referenceNo }}" onclick="openProofPreviewFromButton(this)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti Google Review">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                                        </button>
+                                <td class="px-6 py-4 text-center proof-status" data-export="{{ (!empty($transactionRow['proofs']) || $proofIgUrl || $proofReviewUrl) ? 'Sudah Upload' : 'Belum Upload' }}">
+                                    @php
+                                        $visitorProofs = $transactionRow['proofs'] ?? [];
+                                        if (empty($visitorProofs)) {
+                                            if ($proofIgUrl) $visitorProofs['proof_ig'] = $transactionRow['proof_ig'];
+                                            if ($proofReviewUrl) $visitorProofs['proof_review'] = $transactionRow['proof_review'];
+                                        }
+                                    @endphp
+                                    @if(!empty($visitorProofs))
+                                        <div class="flex items-center justify-center gap-1.5">
+                                            @foreach($visitorProofs as $proofId => $path)
+                                                @php
+                                                    $proofUrl = asset('storage/' . $path);
+                                                    $proofLabel = 'Proof';
+                                                    if ($proofId === 'proof_ig') $proofLabel = 'IG';
+                                                    elseif ($proofId === 'proof_review') $proofLabel = 'Review';
+                                                    else {
+                                                        $proofLabel = 'File';
+                                                    }
+                                                @endphp
+                                                <button type="button" data-proof-url="{{ $proofUrl }}" data-proof-title="Bukti {{ $proofLabel }} - {{ $referenceNo }}" onclick="openProofPreviewFromButton(this)" class="inline-flex items-center justify-center px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition" title="Lihat Bukti {{ $proofLabel }}">
+                                                    {{ $proofLabel }}
+                                                </button>
+                                            @endforeach
+                                        </div>
                                     @else
                                         <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-500" title="Belum Upload">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -312,7 +321,7 @@
                             </tr>
                         @empty
                             <tr class="no-data-tx">
-                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
+                                <td colspan="13" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -630,7 +639,7 @@
 
         if (window.activeTab === 'transactions') {
             filename = 'Laporan_Pendaftar_Per_Transaksi.csv';
-            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Upload Bukti IG', 'Upload Bukti Review', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
+            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Bukti Upload', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
             
             const txRows = container.querySelectorAll('.tx-row[data-matched="true"]');
             txRows.forEach(row => {
@@ -644,16 +653,15 @@
                         cols[2].textContent.trim(),
                         cols[3].textContent.trim(),
                         cols[4].textContent.trim(),
-                        cols[5].getAttribute('data-export') || cols[5].textContent.trim(),
-                        cols[6].getAttribute('data-export') || cols[6].textContent.trim(),
-                        cols[7].textContent.trim().replace(/[🧔🧕]/g, '').trim(),
-                        cols[8].textContent.trim(),
-                        cols[9].querySelector('span:nth-child(1)').textContent.trim(),
-                        cols[9].querySelector('span:nth-child(2)').textContent.trim(),
-                        cols[10].textContent.trim(),
-                        cols[11].textContent.trim().replace(/[Rp\s\.]/g, ''),
-                        cols[12].querySelector('span').textContent.trim(),
-                        cols[13].textContent.trim()
+                        Array.from(cols[5].querySelectorAll('button')).map(btn => btn.textContent.trim()).join('; ') || 'Belum Upload',
+                        cols[6].textContent.trim().replace(/[🧔🧕]/g, '').trim(),
+                        cols[7].textContent.trim(),
+                        cols[8].querySelector('span:nth-child(1)').textContent.trim(),
+                        cols[8].querySelector('span:nth-child(2)').textContent.trim(),
+                        cols[9].textContent.trim(),
+                        cols[10].textContent.trim().replace(/[Rp\s\.]/g, ''),
+                        cols[11].querySelector('span').textContent.trim(),
+                        cols[12].textContent.trim()
                     ];
                 } catch (error) {
                     rowData = [];

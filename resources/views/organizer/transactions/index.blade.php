@@ -80,7 +80,7 @@
                                 $voidTicketsCount = $tx->tickets->where('status', 'void')->count();
                                 $proofTicket = $tx->tickets->first(function ($ticket) {
                                     $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
-                                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']) || !empty($visitorData['proofs']);
                                 });
                                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
                                 $cancelableTickets = $tx->tickets
@@ -132,14 +132,31 @@
                                     <div class="text-[9px] font-bold text-slate-400 uppercase">{{ $tx->payment_method ?? 'Unknown' }}</div>
                                 </td>
                                 <td class="px-8 py-5">
-                                    @if(!empty($proofData['proof_ig']) || !empty($proofData['proof_review']))
+                                    @php
+                                        $visitorProofs = $proofData['proofs'] ?? [];
+                                        if (empty($visitorProofs)) {
+                                            if (!empty($proofData['proof_ig'])) $visitorProofs['proof_ig'] = $proofData['proof_ig'];
+                                            if (!empty($proofData['proof_review'])) $visitorProofs['proof_review'] = $proofData['proof_review'];
+                                        }
+                                    @endphp
+                                    @if(!empty($visitorProofs))
                                         <div class="flex flex-col gap-1.5">
-                                            @if(!empty($proofData['proof_ig']))
-                                                <a href="{{ asset('storage/' . $proofData['proof_ig']) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">IG</a>
-                                            @endif
-                                            @if(!empty($proofData['proof_review']))
-                                                <a href="{{ asset('storage/' . $proofData['proof_review']) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition">Review</a>
-                                            @endif
+                                            @foreach($visitorProofs as $proofId => $path)
+                                                @php
+                                                    $proofLabel = 'Proof';
+                                                    if ($proofId === 'proof_ig') $proofLabel = 'IG';
+                                                    elseif ($proofId === 'proof_review') $proofLabel = 'Review';
+                                                    else {
+                                                        $eventProofs = $tx->event->getRegistrationProofs();
+                                                        $matchedProof = collect($eventProofs)->firstWhere('id', $proofId);
+                                                        $proofLabel = $matchedProof['label'] ?? 'Proof';
+                                                        if (strlen($proofLabel) > 10) {
+                                                            $proofLabel = substr($proofLabel, 0, 8) . '..';
+                                                        }
+                                                    }
+                                                @endphp
+                                                <a href="{{ asset('storage/' . $path) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">{{ $proofLabel }}</a>
+                                            @endforeach
                                         </div>
                                     @else
                                         <span class="text-xs font-bold text-slate-300">-</span>
@@ -254,14 +271,31 @@
                                                             </td>
                                                             <td class="py-3 text-slate-500 font-bold">{{ $ticket->category->name ?? '-' }}</td>
                                                             <td class="py-3">
-                                                                @if(!empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']))
+                                                                @php
+                                                                    $tProofs = $visitorData['proofs'] ?? [];
+                                                                    if (empty($tProofs)) {
+                                                                        if (!empty($visitorData['proof_ig'])) $tProofs['proof_ig'] = $visitorData['proof_ig'];
+                                                                        if (!empty($visitorData['proof_review'])) $tProofs['proof_review'] = $visitorData['proof_review'];
+                                                                    }
+                                                                @endphp
+                                                                @if(!empty($tProofs))
                                                                     <div class="flex flex-wrap gap-1.5">
-                                                                        @if(!empty($visitorData['proof_ig']))
-                                                                            <a href="{{ asset('storage/' . $visitorData['proof_ig']) }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">IG</a>
-                                                                        @endif
-                                                                        @if(!empty($visitorData['proof_review']))
-                                                                            <a href="{{ asset('storage/' . $visitorData['proof_review']) }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition">Review</a>
-                                                                        @endif
+                                                                        @foreach($tProofs as $proofId => $path)
+                                                                            @php
+                                                                                $proofLabel = 'Proof';
+                                                                                if ($proofId === 'proof_ig') $proofLabel = 'IG';
+                                                                                elseif ($proofId === 'proof_review') $proofLabel = 'Review';
+                                                                                else {
+                                                                                    $eventProofs = $tx->event->getRegistrationProofs();
+                                                                                    $matchedProof = collect($eventProofs)->firstWhere('id', $proofId);
+                                                                                    $proofLabel = $matchedProof['label'] ?? 'Proof';
+                                                                                    if (strlen($proofLabel) > 10) {
+                                                                                        $proofLabel = substr($proofLabel, 0, 8) . '..';
+                                                                                    }
+                                                                                }
+                                                                            @endphp
+                                                                            <a href="{{ asset('storage/' . $path) }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition">{{ $proofLabel }}</a>
+                                                                        @endforeach
                                                                     </div>
                                                                 @else
                                                                     <span class="text-[9px] text-slate-300 font-black uppercase">-</span>

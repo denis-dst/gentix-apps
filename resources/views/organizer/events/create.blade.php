@@ -238,28 +238,74 @@
                         </div>
 
                         <!-- Verification Options (shown if is_free) -->
-                        <div x-show="isFree" x-cloak class="p-5 bg-blue-50 border border-blue-200 rounded-2xl space-y-4">
-                            <h4 class="text-xs font-black text-blue-800 uppercase tracking-widest font-outfit">⚡ Bukti Registrasi Wajib</h4>
-                            <p class="text-xs text-blue-600">Pilih bukti upload wajib bagi pendaftar event gratis ini:</p>
+                        <div x-show="isFree" x-cloak class="p-5 bg-blue-50 border border-blue-200 rounded-2xl space-y-4"
+                             x-data="{ 
+                                proofs: [
+                                    {
+                                        id: 'proof_ig',
+                                        label: 'Bukti follow IG',
+                                        instruction: 'Klik untuk follow @batikumrah dan ambil screenshot',
+                                        link: 'https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==',
+                                        is_required: true
+                                    },
+                                    {
+                                        id: 'proof_review',
+                                        label: 'Bukti Google Review',
+                                        instruction: 'Isi Google Review lalu ambil screenshot',
+                                        link: 'https://bit.ly/googlereviewbatik',
+                                        is_required: true
+                                    }
+                                ]
+                             }">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-black text-blue-800 uppercase tracking-widest font-outfit">⚡ Bukti Registrasi Wajib</h4>
+                                    <p class="text-xs text-blue-600">Atur bukti upload wajib bagi pendaftar event gratis ini:</p>
+                                </div>
+                                <button type="button" @click="proofs.push({ id: 'proof_' + Math.random().toString(36).substr(2, 9), label: '', instruction: '', link: '', is_required: true })" 
+                                        class="px-3 py-1.5 bg-blue-600 text-black rounded-lg text-[10px] font-black uppercase hover:bg-blue-700 transition">
+                                    + Tambah Bukti
+                                </button>
+                            </div>
                             
-                            <div class="space-y-3">
-                                <label class="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" name="proof_ig_required" id="proof_ig_required" value="1"
-                                           {{ old('proof_ig_required', 1) ? 'checked' : '' }}
-                                           class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
-                                    <div>
-                                        <span class="text-sm font-bold text-blue-900">Wajib Upload Bukti Follow Instagram</span>
+                            <input type="hidden" name="registration_proofs_json" :value="JSON.stringify(proofs)">
+                            
+                            <div class="space-y-4">
+                                <template x-for="(proof, index) in proofs" :key="proof.id">
+                                    <div class="p-4 bg-white border border-blue-100 rounded-xl space-y-3 relative group">
+                                        <!-- Remove button -->
+                                        <button type="button" @click="proofs.splice(index, 1)" class="absolute top-3 right-3 text-slate-300 hover:text-rose-600 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nama Bukti (Label Input)</label>
+                                                <input type="text" x-model="proof.label" placeholder="Contoh: Bukti Follow Instagram" class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-500 focus:ring-blue-500 font-bold py-1.5 px-3">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Link URL Tindakan (Opsional)</label>
+                                                <input type="url" x-model="proof.link" placeholder="Contoh: https://instagram.com/username" class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-500 focus:ring-blue-500 font-bold py-1.5 px-3">
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Instruksi Tindakan</label>
+                                            <input type="text" x-model="proof.instruction" placeholder="Contoh: Klik link untuk follow @username dan ambil screenshot" class="w-full text-xs rounded-lg border-slate-200 focus:border-blue-500 focus:ring-blue-500 font-bold py-1.5 px-3">
+                                        </div>
+                                        
+                                        <label class="flex items-center gap-2 cursor-pointer pt-1">
+                                            <input type="checkbox" x-model="proof.is_required" class="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            <span class="text-[10px] font-black text-slate-600 uppercase">Wajib Diupload</span>
+                                        </label>
                                     </div>
-                                </label>
-
-                                <label class="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" name="proof_review_required" id="proof_review_required" value="1"
-                                           {{ old('proof_review_required', 1) ? 'checked' : '' }}
-                                           class="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
-                                    <div>
-                                        <span class="text-sm font-bold text-blue-900">Wajib Upload Bukti Google Review</span>
+                                </template>
+                                
+                                <template x-if="proofs.length === 0">
+                                    <div class="text-center py-4 bg-white/50 border border-dashed border-blue-200 rounded-xl">
+                                        <p class="text-xs text-blue-500 font-bold">Tidak ada bukti registrasi wajib. Pendaftar dapat langsung mendaftar tanpa upload.</p>
                                     </div>
-                                </label>
+                                </template>
                             </div>
                         </div>
                     </div>

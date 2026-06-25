@@ -85,7 +85,7 @@ class ReportController extends Controller
                 $proofTicket = $transaction->tickets->first(function ($ticket) {
                     $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
 
-                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']);
+                    return !empty($visitorData['proof_ig']) || !empty($visitorData['proof_review']) || !empty($visitorData['proofs']);
                 });
 
                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
@@ -107,6 +107,7 @@ class ReportController extends Controller
                     'payment_method' => $transaction->payment_method,
                     'proof_ig' => $proofData['proof_ig'] ?? null,
                     'proof_review' => $proofData['proof_review'] ?? null,
+                    'proofs' => $proofData['proofs'] ?? [],
                 ];
             })
             ->values();

@@ -72,16 +72,14 @@
 <body class="text-slate-800" x-data="{
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},
     umrohQuestionEnabled: {{ $event->umroh_question_enabled ? 'true' : 'false' }},
-    proofIgRequired: {{ ($event->meta['proof_ig_required'] ?? true) ? 'true' : 'false' }},
-    proofReviewRequired: {{ ($event->meta['proof_review_required'] ?? true) ? 'true' : 'false' }},
+    proofs: @js($event->getRegistrationProofs()),
     step: 1,
     selectedCategory: null,
     quantity: 0,
     nik: '',
     phone: '',
     email: '',
-    proofIgFile: null,
-    proofReviewFile: null,
+    uploadedProofs: {},
     maxProofFileSize: 1048576,
     attendees: [],
     currentAttendee: 0,
@@ -148,10 +146,10 @@
         }
     },
 
-    handleProofUpload(field, event) {
+    handleProofUpload(proofId, event) {
         const file = event.target.files[0] || null;
         if (!file) {
-            this[field] = null;
+            delete this.uploadedProofs[proofId];
             return;
         }
 
@@ -159,18 +157,18 @@
         if (!allowedTypes.includes(file.type)) {
             alert('File bukti wajib JPG atau PNG.');
             event.target.value = '';
-            this[field] = null;
+            delete this.uploadedProofs[proofId];
             return;
         }
 
         if (file.size > this.maxProofFileSize) {
             alert('Ukuran file bukti maksimal 1 MB per gambar.');
             event.target.value = '';
-            this[field] = null;
+            delete this.uploadedProofs[proofId];
             return;
         }
 
-        this[field] = file;
+        this.uploadedProofs[proofId] = file;
     },
 
     goToStep2() {
@@ -207,8 +205,8 @@
         if (!this.selectedCategory) return;
         if (!this.phone) { return; }
         if (!this.email) { return; }
-        if (this.proofIgRequired && !this.proofIgFile) { return; }
-        if (this.proofReviewRequired && !this.proofReviewFile) { return; }
+        const missingProof = this.proofs.some(p => p.is_required && !this.uploadedProofs[p.id]);
+        if (missingProof) { return; }
         const invalid = this.attendees.some((a) => !a.name || !a.gender);
         if (invalid) {
             const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
@@ -222,11 +220,8 @@
             formData.append('quantity', this.quantity);
             formData.append('phone', this.phone);
             formData.append('email', this.email);
-            if (this.proofIgFile) {
-                formData.append('proof_ig', this.proofIgFile);
-            }
-            if (this.proofReviewFile) {
-                formData.append('proof_review', this.proofReviewFile);
+            for (const [proofId, file] of Object.entries(this.uploadedProofs)) {
+                formData.append('proofs[' + proofId + ']', file);
             }
             formData.append('attendees', JSON.stringify(this.attendees));
 
@@ -466,25 +461,21 @@
 
                                 @if($event->is_free)
                                     @php
-                                        $igRequired = $event->meta['proof_ig_required'] ?? true;
-                                        $reviewRequired = $event->meta['proof_review_required'] ?? true;
+                                        $eventProofs = $event->getRegistrationProofs();
+                                        $requiredProofs = collect($eventProofs)->filter(fn($p) => !empty($p['is_required']));
                                     @endphp
-                                    @if($igRequired || $reviewRequired)
+                                    @if($requiredProofs->isNotEmpty())
                                         <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
                                             <p class="font-black uppercase tracking-wider text-[11px] mb-2">Sebelum mendaftar, Peserta Wajib Menyiapkan:</p>
                                             <ol class="list-decimal pl-5 space-y-1 text-xs font-semibold leading-relaxed">
-                                                @if($igRequired)
+                                                @foreach($requiredProofs as $proof)
                                                     <li>
-                                                        Bukti (Screenshoot) Follow Akun IG
-                                                        <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">@batikumrah</a>
+                                                        {{ $proof['instruction'] }}
+                                                        @if(!empty($proof['link']))
+                                                            <a href="{{ $proof['link'] }}" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">Link</a>
+                                                        @endif
                                                     </li>
-                                                @endif
-                                                @if($reviewRequired)
-                                                    <li>
-                                                        Bukti (Screenshoot) Mengisi Google Review
-                                                        <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="font-black text-blue-600 hover:underline">https://bit.ly/googlereviewbatik</a>
-                                                    </li>
-                                                @endif
+                                                @endforeach
                                                 <li>
                                                     <b>Screenshot E-Voucher setelah melakukan pendaftaran.</b>
                                                 </li>
@@ -653,33 +644,37 @@
                                             </p>
                                         </div>
 
-                                        <div class="space-y-3" x-show="proofIgRequired || proofReviewRequired" x-cloak>
-                                            <div x-show="proofIgRequired">
-                                                <a href="https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Klik untuk follow @batikumrah dan ambil screenshot</a>
-                                                <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofIgFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti follow IG <span class="text-rose-500">*</span></label>
-                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" :required="proofIgRequired"
-                                                       @change="handleProofUpload('proofIgFile', $event)"
-                                                       :class="formTouched && !proofIgFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                       class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                                <p x-show="formTouched && !proofIgFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Bukti follow IG wajib diunggah
-                                                </p>
-                                                <p x-show="!formTouched || proofIgFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                            </div>
-                                            <div x-show="proofReviewRequired">
-                                                <a href="https://bit.ly/googlereviewbatik" target="_blank" rel="noopener noreferrer" class="inline-block text-sm font-bold text-blue-600 hover:underline break-words">Isi Google Review lalu ambil screenshot</a>
-                                                <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" :class="formTouched && !proofReviewFile ? 'text-rose-500' : 'text-slate-500'">Upload bukti Google Review <span class="text-rose-500">*</span></label>
-                                                <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" :required="proofReviewRequired"
-                                                       @change="handleProofUpload('proofReviewFile', $event)"
-                                                       :class="formTouched && !proofReviewFile ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
-                                                       class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
-                                                <p x-show="formTouched && !proofReviewFile" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Bukti Google Review wajib diunggah
-                                                </p>
-                                                <p x-show="!formTouched || proofReviewFile" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
-                                            </div>
+                                        <div class="space-y-4" x-show="proofs.length > 0" x-cloak>
+                                            <template x-for="proof in proofs" :key="proof.id">
+                                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                                                    <!-- Link/instruction -->
+                                                    <template x-if="proof.link">
+                                                        <a :href="proof.link" target="_blank" rel="noopener noreferrer" 
+                                                           class="inline-block text-sm font-bold text-blue-600 hover:underline break-words" 
+                                                           x-text="proof.instruction || 'Klik disini'"></a>
+                                                    </template>
+                                                    <template x-if="!proof.link">
+                                                        <span class="inline-block text-sm font-bold text-slate-600 break-words" 
+                                                              x-text="proof.instruction"></span>
+                                                    </template>
+                                                    
+                                                    <label class="block text-xs font-semibold uppercase tracking-wide mt-2 mb-1" 
+                                                           :class="formTouched && proof.is_required && !uploadedProofs[proof.id] ? 'text-rose-500' : 'text-slate-500'">
+                                                        <span x-text="proof.label"></span> <span x-show="proof.is_required" class="text-rose-500">*</span>
+                                                    </label>
+                                                    
+                                                    <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" :required="proof.is_required"
+                                                           @change="handleProofUpload(proof.id, $event)"
+                                                           :class="formTouched && proof.is_required && !uploadedProofs[proof.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-emerald-400'"
+                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium text-slate-700 file:mr-3 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold file:text-xs file:rounded-lg file:px-3 file:py-1.5 outline-none transition">
+                                                            
+                                                     <p x-show="formTouched && proof.is_required && !uploadedProofs[proof.id]" x-cloak class="mt-2 text-xs font-bold text-rose-500 flex items-center gap-2">
+                                                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                         <span x-text="proof.label + ' wajib diunggah'"></span>
+                                                     </p>
+                                                     <p x-show="!formTouched || uploadedProofs[proof.id]" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
+                                                </div>
+                                            </template>
                                         </div>
                                     </div>
 

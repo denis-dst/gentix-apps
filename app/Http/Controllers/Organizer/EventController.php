@@ -81,6 +81,7 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
+            'registration_proofs_json' => 'nullable|string',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -95,8 +96,10 @@ class EventController extends Controller
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
         
         $meta = $this->buildWristbandMeta($request);
-        $meta['proof_ig_required'] = $request->has('is_free') ? $request->boolean('proof_ig_required') : true;
-        $meta['proof_review_required'] = $request->has('is_free') ? $request->boolean('proof_review_required') : true;
+        $proofs = $this->parseRegistrationProofs($request);
+        $meta['registration_proofs'] = $proofs;
+        $meta['proof_ig_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_ig')['is_required'] ?? false;
+        $meta['proof_review_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_review')['is_required'] ?? false;
         if ($validated['umroh_question_enabled']) {
             $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
             $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
@@ -201,6 +204,7 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
+            'registration_proofs_json' => 'nullable|string',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -210,8 +214,10 @@ class EventController extends Controller
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $meta = $this->buildWristbandMeta($request, $event->meta ?? []);
-        $meta['proof_ig_required'] = $request->has('is_free') ? $request->boolean('proof_ig_required') : true;
-        $meta['proof_review_required'] = $request->has('is_free') ? $request->boolean('proof_review_required') : true;
+        $proofs = $this->parseRegistrationProofs($request);
+        $meta['registration_proofs'] = $proofs;
+        $meta['proof_ig_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_ig')['is_required'] ?? false;
+        $meta['proof_review_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_review')['is_required'] ?? false;
         if ($validated['umroh_question_enabled']) {
             $meta['custom_question_text'] = $request->input('custom_question_text', 'Alumni Grup Keberangkatan Tanggal Berapa?');
             $meta['custom_question_type'] = $request->input('custom_question_type', 'text');
@@ -286,5 +292,53 @@ class EventController extends Controller
         }
 
         return array_filter($meta, fn ($value) => filled($value));
+    }
+
+    /**
+     * Parse custom or legacy registration proofs from the request.
+     */
+    private function parseRegistrationProofs(Request $request): array
+    {
+        $proofs = [];
+        if ($request->filled('registration_proofs_json')) {
+            $decoded = json_decode($request->input('registration_proofs_json'), true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $proof) {
+                    if (empty($proof['label'])) {
+                        continue;
+                    }
+                    $proofs[] = [
+                        'id' => !empty($proof['id']) ? $proof['id'] : ('proof_' . \Illuminate\Support\Str::random(8)),
+                        'label' => $proof['label'],
+                        'instruction' => $proof['instruction'] ?? '',
+                        'link' => $proof['link'] ?? null,
+                        'is_required' => isset($proof['is_required']) ? filter_var($proof['is_required'], FILTER_VALIDATE_BOOLEAN) : false,
+                    ];
+                }
+            }
+        } else {
+            // Fallback for compatibility/default form submissions
+            if ($request->has('proof_ig_required') || $request->has('proof_review_required')) {
+                if ($request->boolean('proof_ig_required')) {
+                    $proofs[] = [
+                        'id' => 'proof_ig',
+                        'label' => 'Bukti follow IG',
+                        'instruction' => 'Klik untuk follow @batikumrah dan ambil screenshot',
+                        'link' => 'https://www.instagram.com/batikumrah?igsh=MTFibTFtOHF3dGp4MQ==',
+                        'is_required' => true,
+                    ];
+                }
+                if ($request->boolean('proof_review_required')) {
+                    $proofs[] = [
+                        'id' => 'proof_review',
+                        'label' => 'Bukti Google Review',
+                        'instruction' => 'Isi Google Review lalu ambil screenshot',
+                        'link' => 'https://bit.ly/googlereviewbatik',
+                        'is_required' => true,
+                    ];
+                }
+            }
+        }
+        return $proofs;
     }
 }

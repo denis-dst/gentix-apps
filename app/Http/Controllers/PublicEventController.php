@@ -355,21 +355,29 @@ class PublicEventController extends Controller
             }
         }
 
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $proofs = $event->getRegistrationProofs();
+
+        $rules = [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
             'quantity'           => 'required|integer|min:1|max:' . ($event->max_tickets_per_transaction ?? 1),
             'phone'              => 'required|string|max:20',
             'email'              => 'required|email|max:255',
-            'proof_ig'           => (($event->meta['proof_ig_required'] ?? true) ? 'required|' : 'nullable|') . 'file',
-            'proof_review'       => (($event->meta['proof_review_required'] ?? true) ? 'required|' : 'nullable|') . 'file',
             'attendees'          => 'required|array|size:' . $request->input('quantity', 1),
             'attendees.*.name'   => 'required|string|max:255',
             'attendees.*.gender' => 'required|in:ikhwan,akhwat',
             'attendees.*.umroh_answer' => 'nullable|string|max:500',
-        ], [
-            'proof_ig.required' => 'Upload bukti follow IG wajib diisi.',
-            'proof_review.required' => 'Upload bukti Google Review wajib diisi.',
-        ]);
+        ];
+
+        $messages = [];
+        foreach ($proofs as $proof) {
+            $key = 'proofs.' . $proof['id'];
+            $rules[$key] = ($proof['is_required'] ? 'required|' : 'nullable|') . 'file|max:1024|mimes:jpeg,jpg,png';
+            $messages[$key . '.required'] = "Upload " . $proof['label'] . " wajib diisi.";
+            $messages[$key . '.max'] = "Ukuran " . $proof['label'] . " maksimal 1 MB.";
+            $messages[$key . '.mimes'] = "Format " . $proof['label'] . " harus JPG atau PNG.";
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return response()->json([
@@ -407,21 +415,28 @@ class PublicEventController extends Controller
             return response()->json(['success' => false, 'message' => 'Pendaftaran untuk kategori ini sudah ditutup.']);
         }
 
-        $proofIgPath = null;
-        if ($request->hasFile('proof_ig')) {
-            $proofIgPath = $this->storeRegistrationProof($request, 'proof_ig', 'bukti follow IG');
-            if ($proofIgPath instanceof \Illuminate\Http\JsonResponse) {
-                return $proofIgPath;
+        $uploadedProofs = [];
+        foreach ($proofs as $proof) {
+            $key = $proof['id'];
+            $fileKey = "proofs.{$key}";
+            $hasFile = $request->hasFile($fileKey);
+            if (!$hasFile && str_contains($fileKey, '.')) {
+                $parts = explode('.', $fileKey);
+                $files = $request->file($parts[0]);
+                $hasFile = isset($files[$parts[1]]);
+            }
+
+            if ($hasFile) {
+                $path = $this->storeRegistrationProof($request, $fileKey, $proof['label']);
+                if ($path instanceof \Illuminate\Http\JsonResponse) {
+                    return $path;
+                }
+                $uploadedProofs[$key] = $path;
             }
         }
 
-        $proofReviewPath = null;
-        if ($request->hasFile('proof_review')) {
-            $proofReviewPath = $this->storeRegistrationProof($request, 'proof_review', 'bukti Google Review');
-            if ($proofReviewPath instanceof \Illuminate\Http\JsonResponse) {
-                return $proofReviewPath;
-            }
-        }
+        $proofIgPath = $uploadedProofs['proof_ig'] ?? null;
+        $proofReviewPath = $uploadedProofs['proof_review'] ?? null;
 
         $firstTicket = null;
         $referenceNo  = null;
@@ -470,6 +485,7 @@ class PublicEventController extends Controller
                         'phone'        => $validated['phone'],
                         'proof_ig'     => $proofIgPath,
                         'proof_review' => $proofReviewPath,
+                        'proofs'       => $uploadedProofs,
                     ]
                 ]);
 
@@ -504,6 +520,12 @@ class PublicEventController extends Controller
     private function storeRegistrationProof(Request $request, string $key, string $label): string|\Illuminate\Http\JsonResponse
     {
         $file = $request->file($key);
+
+        if (!$file && str_contains($key, '.')) {
+            $parts = explode('.', $key);
+            $files = $request->file($parts[0]);
+            $file = $files[$parts[1]] ?? null;
+        }
 
         if (!$file) {
             return response()->json([
