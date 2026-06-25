@@ -805,7 +805,7 @@
                                         </div>
 
                                         <!-- Validation Error Summary -->
-                                        <div x-show="formTouched && (!email || (proofIgRequired && !proofIgFile) || (proofReviewRequired && !proofReviewFile) || attendees.some(a => !a.name || !a.gender))" 
+                                        <div x-show="formTouched && (!email || proofs.some(p => p.is_required && !uploadedProofs[p.id]) || attendees.some(a => !a.name || !a.gender))" 
                                              x-cloak
                                              class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
                                             <div class="flex items-center gap-2 mb-1">
@@ -814,8 +814,9 @@
                                             </div>
                                             <ul class="text-[10px] font-bold text-rose-600 space-y-0.5 pl-6 list-disc">
                                                 <li x-show="!email">Alamat Email</li>
-                                                <li x-show="proofIgRequired && !proofIgFile">Bukti Follow IG</li>
-                                                <li x-show="proofReviewRequired && !proofReviewFile">Bukti Google Review</li>
+                                                <template x-for="proof in proofs.filter(p => p.is_required && !uploadedProofs[p.id])" :key="proof.id">
+                                                    <li x-text="proof.label"></li>
+                                                </template>
                                                 <template x-for="(attendee, idx) in attendees" :key="idx">
                                                     <template x-if="!attendee.name || !attendee.gender">
                                                         <li>
@@ -831,7 +832,7 @@
 
                                         <button type="submit" 
                                                 id="btn-daftar-submit"
-                                                :disabled="isSubmitting || !phone || !email || (proofIgRequired && !proofIgFile) || (proofReviewRequired && !proofReviewFile) || attendees.some(a => !a.name || !a.gender)"
+                                                :disabled="isSubmitting"
                                                 class="w-full py-4 rounded-2xl font-black shadow-lg transition transform active:scale-95 disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-3">
                                             <template x-if="isSubmitting">
                                                 <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
