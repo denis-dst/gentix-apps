@@ -441,7 +441,7 @@ class PublicEventController extends Controller
         $firstTicket = null;
         $referenceNo  = null;
 
-        DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath, &$firstTicket, &$referenceNo) {
+        DB::transaction(function () use ($event, $category, $validated, $proofIgPath, $proofReviewPath, $uploadedProofs, &$firstTicket, &$referenceNo) {
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $firstAttendee = $validated['attendees'][0];
