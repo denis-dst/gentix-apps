@@ -24,6 +24,7 @@ class OperationalReportExport implements FromCollection, WithHeadings, WithTitle
                 $this->formatGender($row['gender'] ?? null),
                 $row['phone'] ?? '-',
                 $row['email'] ?? '-',
+                $row['custom_question_label'] ?? '-',
                 $row['umroh_answer'] ?? '-',
             ];
         });
@@ -31,7 +32,7 @@ class OperationalReportExport implements FromCollection, WithHeadings, WithTitle
 
     public function headings(): array
     {
-        return ['Nomor', 'Nama', 'Gender', 'No WA', 'Email', 'Tgl Umroh'];
+        return ['Nomor', 'Nama', 'Gender', 'No WA', 'Email', 'Pertanyaan Custom', 'Jawaban Custom'];
     }
 
     public function title(): string

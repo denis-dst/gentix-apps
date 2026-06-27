@@ -40,6 +40,7 @@ class GateController extends Controller
         ]);
 
         $eventId = (int) $request->event_id;
+        $event = Event::findOrFail($eventId);
 
         $tickets = Ticket::query()
             ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
@@ -53,12 +54,18 @@ class GateController extends Controller
                 'tickets.ticket_category_id',
                 'tickets.ticket_code',
                 'tickets.wristband_qr',
+                'tickets.visitor_data',
                 'ticket_categories.name as category_name',
+                'transactions.customer_name',
                 'transactions.customer_email',
+                'transactions.customer_umroh_answer',
                 'transactions.reference_no',
             ])
             ->get()
-            ->map(function ($ticket) {
+            ->map(function ($ticket) use ($event) {
+                $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+                $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
+
                 return [
                     'ticket_id' => $ticket->ticket_id,
                     'event_id' => $ticket->event_id,
@@ -67,7 +74,11 @@ class GateController extends Controller
                     'ticket_code' => $ticket->ticket_code,
                     'wristband_qr' => $ticket->wristband_qr,
                     'category_name' => $ticket->category_name ?? '-',
+                    'customer_name' => $visitorData['name'] ?? $ticket->customer_name ?? '-',
                     'customer_email' => $ticket->customer_email ?? '-',
+                    'custom_question_label' => $customQuestion['label'],
+                    'custom_question_answer' => $customQuestion['answer'],
+                    'custom_question' => $customQuestion,
                     'reference_no' => $ticket->reference_no ?? '-',
                 ];
             })
@@ -236,20 +247,30 @@ class GateController extends Controller
                 $q->with('scanner')->orderBy('scanned_at', 'desc');
             }])->get();
 
+            $ticketsInGroup->loadMissing('event');
+
             $attendeesList = $ticketsInGroup->map(function($t) {
                 $lastLog = $t->gateLogs->first();
                 $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                $visitorData = is_array($t->visitor_data) ? $t->visitor_data : [];
+                $customQuestion = $this->ticketCustomQuestionPayload($t);
+
                 return [
                     'ticket_id' => $t->id,
                     'ticket_code' => $t->ticket_code,
-                    'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
-                    'gender' => $t->visitor_data['gender'] ?? null,
+                    'name' => $visitorData['name'] ?? $t->transaction->customer_name,
+                    'gender' => $visitorData['gender'] ?? null,
+                    'custom_question_label' => $customQuestion['label'],
+                    'custom_question_answer' => $customQuestion['answer'],
+                    'custom_question' => $customQuestion,
                     'is_checked_in' => $isCheckedIn,
                     'category' => $t->category->name,
                     'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
                     'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
                 ];
             });
+
+            $customQuestion = $this->ticketCustomQuestionPayload($ticket);
 
             return response()->json([
                 'status' => 'SUCCESS',
@@ -258,6 +279,9 @@ class GateController extends Controller
                 'visitor' => $transaction->customer_name ?? '-',
                 'category' => $ticket->category->name,
                 'attendees' => $attendeesList,
+                'custom_question_label' => $customQuestion['label'],
+                'custom_question_answer' => $customQuestion['answer'],
+                'custom_question' => $customQuestion,
                 'scanned_ticket_id' => $ticket->id,
                 'ticket_code' => $ticket->ticket_code,
                 'email' => $transaction->customer_email ?? '-',
@@ -266,6 +290,9 @@ class GateController extends Controller
         }
 
         // Log the movement
+        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+        $customQuestion = $this->ticketCustomQuestionPayload($ticket);
+
         $log = GateLog::create([
             'tenant_id' => $ticket->tenant_id,
             'event_id' => $ticket->event_id,
@@ -280,11 +307,14 @@ class GateController extends Controller
         return response()->json([
             'status' => 'SUCCESS',
             'message' => 'Access Granted: ' . $request->type,
-            'visitor' => $ticket->transaction->customer_name ?? '-',
+            'visitor' => $visitorData['name'] ?? $ticket->transaction->customer_name ?? '-',
             'category' => $ticket->category->name,
             'color' => 'green',
             'ticket_code' => $ticket->ticket_code,
             'email' => $ticket->transaction->customer_email ?? '-',
+            'custom_question_label' => $customQuestion['label'],
+            'custom_question_answer' => $customQuestion['answer'],
+            'custom_question' => $customQuestion,
             'reference_no' => $ticket->transaction->reference_no ?? '-',
         ]);
     }
@@ -384,5 +414,33 @@ class GateController extends Controller
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function ticketCustomQuestionPayload(Ticket $ticket): array
+    {
+        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+        return $this->customQuestionPayload(
+            $ticket->event,
+            $visitorData,
+            $ticket->transaction->customer_umroh_answer ?? null
+        );
+    }
+
+    private function customQuestionPayload(?Event $event, array $visitorData, ?string $fallbackAnswer = null): array
+    {
+        $label = '-';
+
+        if ($event && $event->umroh_question_enabled) {
+            $eventLabel = trim((string) ($event->meta['custom_question_text'] ?? ''));
+            $label = $eventLabel !== '' ? $eventLabel : 'Pertanyaan Custom';
+        }
+
+        $answer = $visitorData['umroh_answer'] ?? $fallbackAnswer;
+
+        return [
+            'label' => $label,
+            'answer' => $answer ?: '-',
+        ];
     }
 }

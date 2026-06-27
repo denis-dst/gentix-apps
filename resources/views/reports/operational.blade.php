@@ -41,6 +41,9 @@
                 'customer_phone' => $transaction->customer_phone,
                 'customer_gender' => $transaction->customer_gender,
                 'customer_umroh_answer' => $transaction->customer_umroh_answer,
+                'custom_question_label' => ($transaction->event->umroh_question_enabled ?? false)
+                    ? ($transaction->event->meta['custom_question_text'] ?? 'Pertanyaan Custom')
+                    : '-',
                 'event_name' => $transaction->event->name ?? '-',
                 'category_name' => $transaction->category->name ?? 'Mixed',
                 'quantity' => $transaction->quantity,
@@ -217,7 +220,8 @@
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Bukti Upload</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Umroh</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pertanyaan Custom</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Custom</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event & Kategori</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Qty</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Bayar</th>
@@ -237,6 +241,7 @@
                                 $customerPhone = $transactionRow['customer_phone'] ?? null;
                                 $customerGender = $transactionRow['customer_gender'] ?? null;
                                 $customerUmrohAnswer = $transactionRow['customer_umroh_answer'] ?? '-';
+                                $customQuestionLabel = $transactionRow['custom_question_label'] ?? '-';
                                 $eventName = $transactionRow['event_name'] ?? '-';
                                 $categoryName = $transactionRow['category_name'] ?? 'Mixed';
                                 $quantity = $transactionRow['quantity'] ?? 0;
@@ -301,6 +306,7 @@
                                         <span class="text-slate-300">-</span>
                                     @endif
                                 </td>
+                                <td class="px-6 py-4 text-xs text-slate-600 max-w-[240px] truncate" title="{{ $customQuestionLabel }}">{{ $customQuestionLabel }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $customerUmrohAnswer }}">{{ $customerUmrohAnswer }}</td>
                                 <td class="px-6 py-4 text-xs">
                                     <span class="font-bold text-slate-700 block">{{ $eventName }}</span>
@@ -321,7 +327,7 @@
                             </tr>
                         @empty
                             <tr class="no-data-tx">
-                                <td colspan="13" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
+                                <td colspan="14" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada transaksi pendaftaran.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -350,7 +356,8 @@
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Umroh</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pertanyaan Custom</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Custom</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kategori</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
@@ -386,6 +393,7 @@
                                             <span class="text-slate-300">-</span>
                                         @endif
                                     </td>
+                                    <td class="px-6 py-4 text-xs text-slate-600 max-w-[240px] truncate" title="{{ $ticketRow['custom_question_label'] ?? '-' }}">{{ $ticketRow['custom_question_label'] ?? '-' }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $ticketRow['umroh_answer'] }}">{{ $ticketRow['umroh_answer'] ?? '-' }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-700 font-bold">{{ $ticketRow['event_name'] }}</td>
                                     <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider">{{ $ticketRow['category_name'] }}</td>
@@ -406,7 +414,7 @@
                                 </tr>
                         @empty
                             <tr class="no-data-tickets">
-                                <td colspan="12" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada detail tiket peserta.</td>
+                                <td colspan="13" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada detail tiket peserta.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -639,7 +647,7 @@
 
         if (window.activeTab === 'transactions') {
             filename = 'Laporan_Pendaftar_Per_Transaksi.csv';
-            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Bukti Upload', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
+            headers = ['Invoice No', 'Tanggal', 'Nama Pemesan', 'NIK', 'Email', 'WhatsApp', 'Bukti Upload', 'Gender', 'Pertanyaan Custom', 'Jawaban Custom', 'Event Name', 'Category Name', 'Quantity', 'Total Amount', 'Status', 'Payment Method'];
             
             const txRows = container.querySelectorAll('.tx-row[data-matched="true"]');
             txRows.forEach(row => {
@@ -656,12 +664,13 @@
                         Array.from(cols[5].querySelectorAll('button')).map(btn => btn.textContent.trim()).join('; ') || 'Belum Upload',
                         cols[6].textContent.trim().replace(/[🧔🧕]/g, '').trim(),
                         cols[7].textContent.trim(),
-                        cols[8].querySelector('span:nth-child(1)').textContent.trim(),
-                        cols[8].querySelector('span:nth-child(2)').textContent.trim(),
-                        cols[9].textContent.trim(),
-                        cols[10].textContent.trim().replace(/[Rp\s\.]/g, ''),
-                        cols[11].querySelector('span').textContent.trim(),
-                        cols[12].textContent.trim()
+                        cols[8].textContent.trim(),
+                        cols[9].querySelector('span:nth-child(1)').textContent.trim(),
+                        cols[9].querySelector('span:nth-child(2)').textContent.trim(),
+                        cols[10].textContent.trim(),
+                        cols[11].textContent.trim().replace(/[Rp\s\.]/g, ''),
+                        cols[12].querySelector('span').textContent.trim(),
+                        cols[13].textContent.trim()
                     ];
                 } catch (error) {
                     rowData = [];
@@ -672,7 +681,7 @@
             });
         } else {
             filename = 'Laporan_Pendaftar_Per_Tiket.csv';
-            headers = ['Kode Tiket', 'Invoice No', 'Nama Peserta', 'NIK', 'Email', 'WhatsApp', 'Gender', 'Jawaban Umroh', 'Event Name', 'Category Name', 'Status Tiket', 'Scan Checkin'];
+            headers = ['Kode Tiket', 'Invoice No', 'Nama Peserta', 'NIK', 'Email', 'WhatsApp', 'Gender', 'Pertanyaan Custom', 'Jawaban Custom', 'Event Name', 'Category Name', 'Status Tiket', 'Scan Checkin'];
             
             const ticketRows = container.querySelectorAll('.ticket-row[data-matched="true"]');
             ticketRows.forEach(row => {
@@ -688,8 +697,9 @@
                     cols[7].textContent.trim(),
                     cols[8].textContent.trim(),
                     cols[9].textContent.trim(),
-                    cols[10].querySelector('span').textContent.trim(),
-                    cols[11].textContent.trim()
+                    cols[10].textContent.trim(),
+                    cols[11].querySelector('span').textContent.trim(),
+                    cols[12].textContent.trim()
                 ];
                 rows.push(rowData);
             });

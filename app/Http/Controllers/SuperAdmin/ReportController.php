@@ -99,6 +99,7 @@ class ReportController extends Controller
                     'customer_phone' => $transaction->customer_phone,
                     'customer_gender' => $transaction->customer_gender,
                     'customer_umroh_answer' => $transaction->customer_umroh_answer,
+                    'custom_question_label' => $this->customQuestionLabel($transaction->event),
                     'event_name' => $transaction->event->name ?? '-',
                     'category_name' => $transaction->category->name ?? 'Mixed',
                     'quantity' => $transaction->quantity,
@@ -129,6 +130,7 @@ class ReportController extends Controller
                         'phone' => $visitorData['phone'] ?? $transaction->customer_phone,
                         'gender' => $visitorData['gender'] ?? $transaction->customer_gender,
                         'umroh_answer' => $visitorData['umroh_answer'] ?? $transaction->customer_umroh_answer,
+                        'custom_question_label' => $this->customQuestionLabel($transaction->event),
                         'event_name' => $transaction->event->name ?? '-',
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
@@ -137,6 +139,17 @@ class ReportController extends Controller
                 });
             })
             ->values();
+    }
+
+    private function customQuestionLabel(?Event $event): string
+    {
+        if (!$event || !$event->umroh_question_enabled) {
+            return '-';
+        }
+
+        $label = trim((string) ($event->meta['custom_question_text'] ?? ''));
+
+        return $label !== '' ? $label : 'Pertanyaan Custom';
     }
 
     private function buildEventReport(Event $event): array
