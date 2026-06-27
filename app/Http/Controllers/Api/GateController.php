@@ -210,7 +210,8 @@ class GateController extends Controller
         if ($alreadyInState) {
             $operatorName = $lastLog->scanner ? $lastLog->scanner->name : ($lastLog->gate_name ?? 'System');
             $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
-            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            $visitorData = $this->visitorDataArray($ticket->visitor_data);
+            $visitorName = $visitorData['name'] ?? ($ticket->transaction->customer_name ?? '-');
             
             return response()->json([
                 'status' => 'REJECT',
@@ -225,7 +226,8 @@ class GateController extends Controller
         }
 
         if ($request->type === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
-            $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
+            $visitorData = $this->visitorDataArray($ticket->visitor_data);
+            $visitorName = $visitorData['name'] ?? ($ticket->transaction->customer_name ?? '-');
             return response()->json([
                 'status' => 'REJECT',
                 'message' => $lastLog && $lastLog->type === 'OUT'
@@ -257,6 +259,7 @@ class GateController extends Controller
 
                 return [
                     'ticket_id' => $t->id,
+                    'ticket_category_id' => $t->ticket_category_id,
                     'ticket_code' => $t->ticket_code,
                     'name' => $visitorData['name'] ?? $t->transaction->customer_name,
                     'gender' => $visitorData['gender'] ?? null,
@@ -373,8 +376,21 @@ class GateController extends Controller
 
         try {
             \Illuminate\Support\Facades\DB::transaction(function() use ($request) {
+                $allowedCategoryIds = [];
+
+                if ($request->gate_id) {
+                    $gate = Gate::with('ticketCategories')->find($request->gate_id);
+                    $allowedCategoryIds = $gate
+                        ? $gate->ticketCategories->pluck('id')->map(fn ($id) => (int) $id)->all()
+                        : [];
+                }
+
                 foreach ($request->ticket_ids as $ticketId) {
                     $ticket = Ticket::findOrFail($ticketId);
+
+                    if (!empty($allowedCategoryIds) && !in_array((int) $ticket->ticket_category_id, $allowedCategoryIds, true)) {
+                        continue;
+                    }
                     
                     // Check logic status first to prevent duplicate active state
                     $lastLog = GateLog::where('ticket_id', $ticketId)
