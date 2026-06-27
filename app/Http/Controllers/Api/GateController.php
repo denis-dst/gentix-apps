@@ -63,7 +63,7 @@ class GateController extends Controller
             ])
             ->get()
             ->map(function ($ticket) use ($event) {
-                $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+                $visitorData = $this->visitorDataArray($ticket->visitor_data);
                 $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
 
                 return [
@@ -252,7 +252,7 @@ class GateController extends Controller
             $attendeesList = $ticketsInGroup->map(function($t) {
                 $lastLog = $t->gateLogs->first();
                 $isCheckedIn = $lastLog && $lastLog->type === 'IN';
-                $visitorData = is_array($t->visitor_data) ? $t->visitor_data : [];
+                $visitorData = $this->visitorDataArray($t->visitor_data);
                 $customQuestion = $this->ticketCustomQuestionPayload($t);
 
                 return [
@@ -290,7 +290,7 @@ class GateController extends Controller
         }
 
         // Log the movement
-        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+        $visitorData = $this->visitorDataArray($ticket->visitor_data);
         $customQuestion = $this->ticketCustomQuestionPayload($ticket);
 
         $log = GateLog::create([
@@ -418,7 +418,7 @@ class GateController extends Controller
 
     private function ticketCustomQuestionPayload(Ticket $ticket): array
     {
-        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+        $visitorData = $this->visitorDataArray($ticket->visitor_data);
 
         return $this->customQuestionPayload(
             $ticket->event,
@@ -442,5 +442,20 @@ class GateController extends Controller
             'label' => $label,
             'answer' => $answer ?: '-',
         ];
+    }
+
+    private function visitorDataArray(mixed $visitorData): array
+    {
+        if (is_array($visitorData)) {
+            return $visitorData;
+        }
+
+        if (is_string($visitorData) && $visitorData !== '') {
+            $decoded = json_decode($visitorData, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 }
