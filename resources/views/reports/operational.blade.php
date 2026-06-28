@@ -386,26 +386,71 @@
 
         <!-- 2. Laporan Per Tiket (Detail Keseluruhan) -->
         <div id="report-tab-tickets" style="display:none">
+
+            <!-- Filter Bar: Status Scan -->
+            <div class="px-6 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2 bg-slate-50/40">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Filter Scan:</span>
+                <button type="button" id="ticket-filter-all" onclick="setTicketScanFilter('all')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition bg-slate-800 text-white">
+                    Semua
+                </button>
+                <button type="button" id="ticket-filter-scanned" onclick="setTicketScanFilter('scanned')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600">
+                    ✅ Sudah Scan
+                </button>
+                <button type="button" id="ticket-filter-notscanned" onclick="setTicketScanFilter('notscanned')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600">
+                    ❌ Belum Scan
+                </button>
+                <button type="button" id="ticket-filter-partial" onclick="setTicketScanFilter('partial')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600">
+                    ⚠️ Partial
+                </button>
+                <span class="ml-auto text-[10px] text-slate-400 font-bold" id="ticket-filter-count"></span>
+            </div>
+
             <div class="overflow-x-auto">
                 <table id="table-report-tickets" class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50/70 border-b border-slate-100">
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kode Tiket</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Invoice</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Peserta</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">NIK</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
+                        <tr class="bg-slate-50/70 border-b border-slate-100" id="tickets-sort-header">
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(0, 'string')">
+                                <span class="flex items-center gap-1">Kode Tiket <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(1, 'string')">
+                                <span class="flex items-center gap-1">Invoice <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(2, 'string')">
+                                <span class="flex items-center gap-1">Nama Peserta <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(3, 'string')">
+                                <span class="flex items-center gap-1">NIK <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(4, 'string')">
+                                <span class="flex items-center gap-1">Email <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(5, 'string')">
+                                <span class="flex items-center gap-1">WhatsApp <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(6, 'string')">
+                                <span class="flex items-center gap-1">Gender <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pertanyaan Custom</th>
                             <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jawaban Custom</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kategori</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Scan Checkin</th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(9, 'string')">
+                                <span class="flex items-center gap-1">Event <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(10, 'string')">
+                                <span class="flex items-center gap-1">Kategori <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(11, 'status')">
+                                <span class="flex items-center gap-1">Status <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTicketTable(12, 'date')">
+                                <span class="flex items-center gap-1">Scan Checkin <span class="sort-icon opacity-40">↕</span></span>
+                            </th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-50 font-medium">
+                    <tbody class="divide-y divide-slate-50 font-medium" id="ticket-tbody">
                         @forelse($ticketReportRows as $ticketRow)
                             @php
                                 $ticketPhone     = $ticketRow['phone'];
@@ -413,14 +458,19 @@
                                 $isPartialTxn    = $ticketRow['is_partial_txn'] ?? false;
                                 $txnTotalTickets = $ticketRow['txn_total_tickets'] ?? 1;
                                 $txnRedeemed     = $ticketRow['txn_redeemed'] ?? 0;
+                                $scanStatus      = $ticketRow['status'] === 'redeemed' ? 'scanned' : ($isPartialTxn ? 'partial' : 'notscanned');
+                                $scanDateRaw     = $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('Y-m-d H:i:s') : '';
+                                $scanDateDisplay = $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('d M Y H:i') . ' WIB' : 'Belum Scan';
                             @endphp
-                                <tr class="ticket-row hover:bg-slate-50/40 transition {{ $isPartialTxn ? 'bg-amber-50/20' : '' }}">
-                                    <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticketRow['ticket_code'] }}</td>
-                                    <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $ticketRow['reference_no'] }}</td>
-                                    <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $ticketRow['name'] }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticketRow['nik'] }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">{{ $ticketRow['email'] }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-600">
+                                <tr class="ticket-row hover:bg-slate-50/40 transition {{ $isPartialTxn ? 'bg-amber-50/20' : '' }}"
+                                    data-scan-status="{{ $scanStatus }}"
+                                    data-partial="{{ $isPartialTxn ? '1' : '0' }}">
+                                    <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono" data-sort="{{ strtolower($ticketRow['ticket_code']) }}">{{ $ticketRow['ticket_code'] }}</td>
+                                    <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono" data-sort="{{ strtolower($ticketRow['reference_no']) }}">{{ $ticketRow['reference_no'] }}</td>
+                                    <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase" data-sort="{{ strtolower($ticketRow['name']) }}">{{ $ticketRow['name'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600" data-sort="{{ $ticketRow['nik'] }}">{{ $ticketRow['nik'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600" data-sort="{{ strtolower($ticketRow['email']) }}">{{ $ticketRow['email'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-600" data-sort="{{ $ticketPhone }}">
                                         @if($ticketWaUrl)
                                             <a href="{{ $ticketWaUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap">
                                                 {{ $ticketPhone }}
@@ -429,7 +479,7 @@
                                             <span class="text-slate-300">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-xs">
+                                    <td class="px-6 py-4 text-xs" data-sort="{{ $ticketRow['gender'] ?? '' }}">
                                         @php $tGender = $ticketRow['gender']; @endphp
                                         @if($tGender)
                                             <span class="font-black uppercase {{ $tGender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }}">
@@ -441,9 +491,9 @@
                                     </td>
                                     <td class="px-6 py-4 text-xs text-slate-600 max-w-[240px] truncate" title="{{ $ticketRow['custom_question_label'] ?? '-' }}">{{ $ticketRow['custom_question_label'] ?? '-' }}</td>
                                     <td class="px-6 py-4 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $ticketRow['umroh_answer'] }}">{{ $ticketRow['umroh_answer'] ?? '-' }}</td>
-                                    <td class="px-6 py-4 text-xs text-slate-700 font-bold">{{ $ticketRow['event_name'] }}</td>
-                                    <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider">{{ $ticketRow['category_name'] }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-4 text-xs text-slate-700 font-bold" data-sort="{{ strtolower($ticketRow['event_name']) }}">{{ $ticketRow['event_name'] }}</td>
+                                    <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider" data-sort="{{ strtolower($ticketRow['category_name']) }}">{{ $ticketRow['category_name'] }}</td>
+                                    <td class="px-6 py-4" data-sort="{{ $ticketRow['status'] }}">
                                         @if($ticketRow['status'] === 'sold')
                                             <div class="flex flex-col gap-1">
                                                 <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
@@ -464,9 +514,7 @@
                                             <span class="px-2 py-0.5 rounded bg-slate-50 text-slate-500 font-bold text-[9px] uppercase tracking-wide">{{ strtoupper($ticketRow['status']) }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-slate-500">
-                                        {{ $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('d M Y H:i') . ' WIB' : 'Belum Scan' }}
-                                    </td>
+                                    <td class="px-6 py-4 text-xs text-slate-500" data-sort="{{ $scanDateRaw }}">{{ $scanDateDisplay }}</td>
                                 </tr>
                         @empty
                             <tr class="no-data-tickets">
@@ -510,6 +558,9 @@
     // Tab switching state attached to window to ensure global availability
     window.activeTab = 'transactions';
     window.itemsPerPage = 15;
+    window.ticketScanFilter = 'all'; // 'all' | 'scanned' | 'notscanned' | 'partial'
+    window.ticketSortCol   = -1;
+    window.ticketSortDir   = 'asc';
 
     // Helper to get current page of a specific container
     function getContainerPage(container, key) {
@@ -588,12 +639,23 @@
                 }
             });
 
-            // 2. Process Tickets
+            // 2. Process Tickets — apply scan filter + search
             const ticketRows = container.querySelectorAll('.ticket-row');
             let visibleTickets = [];
+            const scanFilter = window.ticketScanFilter || 'all';
             ticketRows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (query === '' || text.includes(query)) {
+                const text       = row.textContent.toLowerCase();
+                const rowStatus  = row.dataset.scanStatus || '';
+                const isPartial  = row.dataset.partial === '1';
+
+                const matchSearch = query === '' || text.includes(query);
+                let matchFilter   = false;
+                if (scanFilter === 'all')        matchFilter = true;
+                else if (scanFilter === 'scanned')    matchFilter = rowStatus === 'scanned';
+                else if (scanFilter === 'notscanned') matchFilter = rowStatus === 'notscanned';
+                else if (scanFilter === 'partial')    matchFilter = isPartial;
+
+                if (matchSearch && matchFilter) {
                     row.setAttribute('data-matched', 'true');
                     visibleTickets.push(row);
                 } else {
@@ -601,6 +663,16 @@
                     row.style.display = 'none';
                 }
             });
+
+            // Update filter count badge
+            const filterCount = container.querySelector('#ticket-filter-count');
+            if (filterCount) {
+                const label = scanFilter === 'all' ? 'Semua tiket'
+                    : scanFilter === 'scanned'    ? 'Sudah Scan'
+                    : scanFilter === 'notscanned' ? 'Belum Scan'
+                    : 'Partial';
+                filterCount.textContent = `${visibleTickets.length} ${label}`;
+            }
 
             // Handle transaction pagination
             const totalTx = visibleTx.length;
@@ -816,10 +888,126 @@
         image.src = '';
     }
 
+    // ── Ticket Scan Filter ──────────────────────────────────────────────────
+    window.setTicketScanFilter = function(filter) {
+        window.ticketScanFilter = filter;
+
+        // Reset to page 1
+        document.querySelectorAll('.detailed-report-container').forEach(c => {
+            c.dataset.ticketsCurrentPage = '1';
+        });
+
+        // Update button styles
+        const filterIds = ['all','scanned','notscanned','partial'];
+        const activeStyles = {
+            all:          'bg-slate-800 text-white',
+            scanned:      'bg-emerald-600 text-white',
+            notscanned:   'bg-rose-600 text-white',
+            partial:      'bg-amber-500 text-white',
+        };
+        const inactiveBase = 'bg-slate-100 text-slate-500';
+        const hoverStyles = {
+            all:          '',
+            scanned:      'hover:bg-emerald-50 hover:text-emerald-600',
+            notscanned:   'hover:bg-rose-50 hover:text-rose-600',
+            partial:      'hover:bg-amber-50 hover:text-amber-600',
+        };
+        filterIds.forEach(id => {
+            const btn = document.getElementById('ticket-filter-' + id);
+            if (!btn) return;
+            // Strip all color classes
+            btn.className = btn.className
+                .replace(/bg-\S+/g, '')
+                .replace(/text-\S+/g, '')
+                .replace(/hover:bg-\S+/g, '')
+                .replace(/hover:text-\S+/g, '')
+                .trim();
+            if (id === filter) {
+                btn.className += ' ' + activeStyles[id];
+            } else {
+                btn.className += ' ' + inactiveBase + ' ' + hoverStyles[id];
+            }
+        });
+
+        window.filterReportTables();
+    };
+
+    // ── Ticket Table Sorting ────────────────────────────────────────────────
+    window.sortTicketTable = function(colIndex, type) {
+        const tbody = document.getElementById('ticket-tbody');
+        if (!tbody) return;
+
+        // Toggle direction if same column
+        if (window.ticketSortCol === colIndex) {
+            window.ticketSortDir = window.ticketSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            window.ticketSortCol = colIndex;
+            window.ticketSortDir = 'asc';
+        }
+        const dir = window.ticketSortDir;
+
+        // Update sort icons in header
+        const header = document.getElementById('tickets-sort-header');
+        if (header) {
+            header.querySelectorAll('.sort-icon').forEach((icon, i) => {
+                const thCol = [...header.querySelectorAll('th')].indexOf(icon.closest('th'));
+                if (thCol === colIndex) {
+                    icon.textContent = dir === 'asc' ? '↑' : '↓';
+                    icon.classList.remove('opacity-40');
+                    icon.classList.add('opacity-100', dir === 'asc' ? 'text-orange-500' : 'text-blue-500');
+                } else {
+                    icon.textContent = '↕';
+                    icon.classList.add('opacity-40');
+                    icon.classList.remove('opacity-100', 'text-orange-500', 'text-blue-500');
+                }
+            });
+        }
+
+        // Get ALL rows (not just visible)
+        const rows = [...tbody.querySelectorAll('.ticket-row')];
+
+        const statusOrder = { redeemed: 0, sold: 1, void: 2 };
+
+        rows.sort((a, b) => {
+            const aTd = a.querySelectorAll('td')[colIndex];
+            const bTd = b.querySelectorAll('td')[colIndex];
+            let aVal = aTd ? (aTd.dataset.sort || aTd.textContent.trim().toLowerCase()) : '';
+            let bVal = bTd ? (bTd.dataset.sort || bTd.textContent.trim().toLowerCase()) : '';
+
+            let cmp = 0;
+            if (type === 'date') {
+                // Empty dates go last
+                if (!aVal && !bVal) cmp = 0;
+                else if (!aVal) cmp = 1;
+                else if (!bVal) cmp = -1;
+                else cmp = aVal.localeCompare(bVal);
+            } else if (type === 'status') {
+                const ao = statusOrder[aVal] ?? 99;
+                const bo = statusOrder[bVal] ?? 99;
+                cmp = ao - bo;
+            } else {
+                cmp = aVal.localeCompare(bVal, 'id', { numeric: true });
+            }
+            return dir === 'asc' ? cmp : -cmp;
+        });
+
+        // Re-append sorted rows
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Reset to page 1 and re-filter
+        document.querySelectorAll('.detailed-report-container').forEach(c => {
+            c.dataset.ticketsCurrentPage = '1';
+        });
+        window.filterReportTables();
+    };
+
     // Initialize report tables on page load or on dynamic navigation load
     function initOperationalReports() {
         window.activeTab = 'transactions';
         window.itemsPerPage = 15;
+        window.ticketScanFilter = 'all';
+        window.ticketSortCol    = -1;
+        window.ticketSortDir    = 'asc';
 
         document.querySelectorAll('.detailed-report-container').forEach(container => {
             container.dataset.txCurrentPage = '1';
