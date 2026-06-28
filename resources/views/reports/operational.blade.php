@@ -32,11 +32,16 @@
 
             $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
-            // Partial scan detection for fallback
+            // Partial scan detection for fallback — use gate_logs (type=IN)
             $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
             $totalTickets    = $nonVoidTickets->count();
-            $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
-            $isPartialScan   = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+            // gate_logs may not be loaded in fallback — check if loaded, else fall back to status
+            $checkedInCount  = $nonVoidTickets->filter(fn ($t) =>
+                $t->relationLoaded('gateLogs')
+                    ? $t->gateLogs->where('type', 'IN')->isNotEmpty()
+                    : $t->status === 'redeemed'
+            )->count();
+            $isPartialScan   = $totalTickets > 1 && $checkedInCount > 0 && $checkedInCount < $totalTickets;
 
             return [
                 'reference_no' => $transaction->reference_no,
@@ -60,7 +65,7 @@
                 'proof_review' => $proofData['proof_review'] ?? null,
                 'proofs' => $proofData['proofs'] ?? [],
                 'total_tickets'    => $totalTickets,
-                'redeemed_tickets' => $redeemedTickets,
+                'redeemed_tickets' => $checkedInCount,
                 'is_partial_scan'  => $isPartialScan,
             ];
         })->values();
@@ -458,9 +463,12 @@
                                 $isPartialTxn    = $ticketRow['is_partial_txn'] ?? false;
                                 $txnTotalTickets = $ticketRow['txn_total_tickets'] ?? 1;
                                 $txnRedeemed     = $ticketRow['txn_redeemed'] ?? 0;
-                                $scanStatus      = $ticketRow['status'] === 'redeemed' ? 'scanned' : ($isPartialTxn ? 'partial' : 'notscanned');
-                                $scanDateRaw     = $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('Y-m-d H:i:s') : '';
-                                $scanDateDisplay = $ticketRow['redeemed_at'] ? $ticketRow['redeemed_at']->format('d M Y H:i') . ' WIB' : 'Belum Scan';
+                                $hasCheckin      = $ticketRow['has_checkin'] ?? ($ticketRow['status'] === 'redeemed');
+                                $firstCheckinAt  = $ticketRow['first_checkin_at'] ?? $ticketRow['redeemed_at'] ?? null;
+                                // scan filter: scanned=gate IN, partial=in partial txn, notscanned=neither
+                                $scanStatus      = $hasCheckin ? 'scanned' : ($isPartialTxn ? 'partial' : 'notscanned');
+                                $scanDateRaw     = $firstCheckinAt ? $firstCheckinAt->format('Y-m-d H:i:s') : '';
+                                $scanDateDisplay = $firstCheckinAt ? $firstCheckinAt->format('d M Y H:i') . ' WIB' : 'Belum Scan';
                             @endphp
                                 <tr class="ticket-row hover:bg-slate-50/40 transition {{ $isPartialTxn ? 'bg-amber-50/20' : '' }}"
                                     data-scan-status="{{ $scanStatus }}"

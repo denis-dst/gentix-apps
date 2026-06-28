@@ -51,7 +51,7 @@ class ReportController extends Controller
         $transactions = Transaction::query()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'tenant', 'category', 'tickets.category'])
+            ->with(['event', 'tenant', 'category', 'tickets.category', 'tickets.gateLogs'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -66,7 +66,7 @@ class ReportController extends Controller
         $transactions = Transaction::query()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'tenant', 'category', 'tickets.category'])
+            ->with(['event', 'tenant', 'category', 'tickets.category', 'tickets.gateLogs'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -90,11 +90,11 @@ class ReportController extends Controller
 
                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
-                // Partial scan detection
-                $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
-                $totalTickets    = $nonVoidTickets->count();
-                $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
-                $isPartialScan   = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+                // Partial scan detection: use gate_logs (type=IN) — NOT ticket.status
+                $nonVoidTickets   = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
+                $totalTickets     = $nonVoidTickets->count();
+                $checkedInCount   = $nonVoidTickets->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();
+                $isPartialScan    = $totalTickets > 1 && $checkedInCount > 0 && $checkedInCount < $totalTickets;
 
                 return [
                     'reference_no' => $transaction->reference_no,
@@ -115,9 +115,9 @@ class ReportController extends Controller
                     'proof_ig' => $proofData['proof_ig'] ?? null,
                     'proof_review' => $proofData['proof_review'] ?? null,
                     'proofs' => $proofData['proofs'] ?? [],
-                    // Partial scan fields
+                    // Partial scan fields (gate_logs based)
                     'total_tickets'    => $totalTickets,
-                    'redeemed_tickets' => $redeemedTickets,
+                    'redeemed_tickets' => $checkedInCount,
                     'is_partial_scan'  => $isPartialScan,
                 ];
             })
@@ -128,14 +128,19 @@ class ReportController extends Controller
     {
         return $transactions
             ->flatMap(function ($transaction) {
-                // Pre-compute partial scan flag for this transaction
-                $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
-                $totalTickets    = $nonVoidTickets->count();
-                $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
-                $isPartialTxn    = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+                // Partial scan: based on gate_logs IN entries per ticket
+                $nonVoidTickets   = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
+                $totalTickets     = $nonVoidTickets->count();
+                $checkedInCount   = $nonVoidTickets->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();
+                $isPartialTxn     = $totalTickets > 1 && $checkedInCount > 0 && $checkedInCount < $totalTickets;
 
-                return $transaction->tickets->map(function ($ticket) use ($transaction, $isPartialTxn, $totalTickets, $redeemedTickets) {
+                return $transaction->tickets->map(function ($ticket) use ($transaction, $isPartialTxn, $totalTickets, $checkedInCount) {
                     $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+
+                    // Gate scan data for this specific ticket
+                    $inLogs        = $ticket->gateLogs->where('type', 'IN')->sortBy('scanned_at');
+                    $hasCheckin    = $inLogs->isNotEmpty();
+                    $firstCheckin  = $inLogs->first()?->scanned_at;
 
                     return [
                         'ticket_code' => $ticket->ticket_code,
@@ -151,10 +156,13 @@ class ReportController extends Controller
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
                         'redeemed_at' => $ticket->redeemed_at,
+                        // Gate scan fields (accurate)
+                        'has_checkin'       => $hasCheckin,
+                        'first_checkin_at'  => $firstCheckin,
                         // Partial scan context
                         'is_partial_txn'    => $isPartialTxn,
                         'txn_total_tickets'  => $totalTickets,
-                        'txn_redeemed'       => $redeemedTickets,
+                        'txn_redeemed'       => $checkedInCount,
                     ];
                 });
             })
@@ -203,19 +211,19 @@ class ReportController extends Controller
             ->get()
             ->keyBy('ticket_category_id');
 
-        // Partial scan: transactions with qty>1 where some (not all, not zero) tickets are redeemed
+        // Partial scan: use gate_logs (type=IN) as source of truth
         $partialScanByCategory = Transaction::query()
             ->where('event_id', $event->id)
             ->where('payment_status', 'paid')
-            ->with(['tickets' => fn ($q) => $q->whereIn('status', ['sold', 'redeemed'])])
+            ->with(['tickets' => fn ($q) => $q->where('status', '!=', 'void')->with('gateLogs')])
             ->get()
             ->groupBy('ticket_category_id')
             ->map(function ($txns) {
                 return $txns->filter(function ($txn) {
-                    $nonVoid  = $txn->tickets;
-                    $total    = $nonVoid->count();
-                    $redeemed = $nonVoid->where('status', 'redeemed')->count();
-                    return $total > 1 && $redeemed > 0 && $redeemed < $total;
+                    $nonVoid   = $txn->tickets;
+                    $total     = $nonVoid->count();
+                    $checkedIn = $nonVoid->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();
+                    return $total > 1 && $checkedIn > 0 && $checkedIn < $total;
                 })->count();
             });
 
