@@ -32,6 +32,12 @@
 
             $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
+            // Partial scan detection for fallback
+            $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
+            $totalTickets    = $nonVoidTickets->count();
+            $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
+            $isPartialScan   = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+
             return [
                 'reference_no' => $transaction->reference_no,
                 'created_at' => $transaction->created_at,
@@ -53,6 +59,9 @@
                 'proof_ig' => $proofData['proof_ig'] ?? null,
                 'proof_review' => $proofData['proof_review'] ?? null,
                 'proofs' => $proofData['proofs'] ?? [],
+                'total_tickets'    => $totalTickets,
+                'redeemed_tickets' => $redeemedTickets,
+                'is_partial_scan'  => $isPartialScan,
             ];
         })->values();
     }
@@ -100,12 +109,20 @@
                         <h3 class="text-lg font-black text-slate-800 font-outfit truncate">{{ $event->name }}</h3>
                         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{{ $event->event_start_date?->format('d M Y H:i') }} | {{ $event->venue }}</p>
                     </div>
-                    <div class="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
+                    <div class="grid grid-cols-3 md:grid-cols-7 gap-3 text-center">
                         <div><div class="text-lg font-black text-slate-800">{{ number_format($row['sold_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Terjual</div></div>
                         <div><div class="text-lg font-black text-emerald-600">{{ number_format($row['redeemed_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Redeem</div></div>
                         <div><div class="text-lg font-black text-blue-600">{{ number_format($row['checkin_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Check-in</div></div>
                         <div><div class="text-lg font-black text-amber-600">{{ number_format($row['checkout_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Checkout</div></div>
                         <div><div class="text-lg font-black text-purple-600">{{ number_format($row['inside_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Inside</div></div>
+                        @if(($row['partial_scan_count'] ?? 0) > 0)
+                            <div class="relative">
+                                <div class="text-lg font-black text-amber-500">{{ number_format($row['partial_scan_count']) }}</div>
+                                <div class="text-[9px] font-black text-amber-400 uppercase flex items-center justify-center gap-0.5">⚠️ Partial</div>
+                            </div>
+                        @else
+                            <div><div class="text-lg font-black text-slate-300">0</div><div class="text-[9px] font-black text-slate-300 uppercase">Partial</div></div>
+                        @endif
                         <div><div class="text-sm font-black text-green-600">Rp {{ number_format($row['revenue'], 0, ',', '.') }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Paid</div></div>
                     </div>
                 </div>
@@ -120,6 +137,7 @@
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Check-in</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Checkout</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Di Dalam</th>
+                                <th class="px-6 py-3 text-[10px] font-black text-amber-500 uppercase tracking-widest text-right">⚠️ Partial Scan</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Transaksi Paid</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Pendapatan</th>
                             </tr>
@@ -138,12 +156,19 @@
                                     <td class="px-6 py-4 text-right text-sm font-black text-blue-600">{{ number_format($category['checkin_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-amber-600">{{ number_format($category['checkout_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-purple-600">{{ number_format($category['inside_count']) }}</td>
+                                    <td class="px-6 py-4 text-right">
+                                        @if(($category['partial_scan_count'] ?? 0) > 0)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-600 text-xs font-black">⚠️ {{ number_format($category['partial_scan_count']) }}</span>
+                                        @else
+                                            <span class="text-sm font-black text-slate-300">-</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ number_format($category['paid_transactions_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($category['revenue'], 0, ',', '.') }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada kategori tiket.</td>
+                                    <td colspan="9" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada kategori tiket.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -251,9 +276,18 @@
                                 $proofIgUrl = !empty($transactionRow['proof_ig']) ? asset('storage/' . $transactionRow['proof_ig']) : null;
                                 $proofReviewUrl = !empty($transactionRow['proof_review']) ? asset('storage/' . $transactionRow['proof_review']) : null;
                                 $waUrl = $formatWaUrl($customerPhone);
+                                $isPartialScan   = $transactionRow['is_partial_scan'] ?? false;
+                                $totalTickets    = $transactionRow['total_tickets'] ?? $quantity;
+                                $redeemedTickets = $transactionRow['redeemed_tickets'] ?? 0;
                             @endphp
-                            <tr class="tx-row hover:bg-slate-50/40 transition">
-                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">{{ $referenceNo }}<br><span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $createdAtText }}</span></td>
+                            <tr class="tx-row hover:bg-slate-50/40 transition {{ $isPartialScan ? 'bg-amber-50/30' : '' }}">
+                                <td class="px-6 py-4 text-xs font-black text-slate-600 font-mono">
+                                    {{ $referenceNo }}<br>
+                                    <span class="text-[9px] font-bold text-slate-400 font-sans block mt-0.5">{{ $createdAtText }}</span>
+                                    @if($isPartialScan)
+                                        <span class="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-wide">⚠️ PARTIAL SCAN</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $customerName }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">{{ $customerNik }}</td>
                                 <td class="px-6 py-4 text-xs text-slate-600">{{ $customerEmail }}</td>
@@ -312,7 +346,14 @@
                                     <span class="font-bold text-slate-700 block">{{ $eventName }}</span>
                                     <span class="text-[10px] text-orange-500 font-black uppercase tracking-wider block mt-0.5">{{ $categoryName }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ $quantity }}</td>
+                                <td class="px-6 py-4 text-right">
+                                    @if($isPartialScan)
+                                        <div class="font-black text-amber-600 text-sm">{{ $redeemedTickets }}/{{ $totalTickets }}</div>
+                                        <div class="text-[9px] text-amber-500 font-bold mt-0.5">scan masuk</div>
+                                    @else
+                                        <div class="font-black text-slate-700 text-sm">{{ $quantity }}</div>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-right text-sm font-black text-green-600">Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
                                 <td class="px-6 py-4">
                                     @if($paymentStatus === 'paid')
@@ -366,9 +407,14 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50 font-medium">
                         @forelse($ticketReportRows as $ticketRow)
-                            @php $ticketPhone = $ticketRow['phone']; @endphp
-                            @php $ticketWaUrl = $formatWaUrl($ticketPhone); @endphp
-                                <tr class="ticket-row hover:bg-slate-50/40 transition">
+                            @php
+                                $ticketPhone     = $ticketRow['phone'];
+                                $ticketWaUrl     = $formatWaUrl($ticketPhone);
+                                $isPartialTxn    = $ticketRow['is_partial_txn'] ?? false;
+                                $txnTotalTickets = $ticketRow['txn_total_tickets'] ?? 1;
+                                $txnRedeemed     = $ticketRow['txn_redeemed'] ?? 0;
+                            @endphp
+                                <tr class="ticket-row hover:bg-slate-50/40 transition {{ $isPartialTxn ? 'bg-amber-50/20' : '' }}">
                                     <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono">{{ $ticketRow['ticket_code'] }}</td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{{ $ticketRow['reference_no'] }}</td>
                                     <td class="px-6 py-4 text-sm font-black text-slate-800 uppercase">{{ $ticketRow['name'] }}</td>
@@ -399,9 +445,19 @@
                                     <td class="px-6 py-4 text-xs text-orange-500 font-black uppercase tracking-wider">{{ $ticketRow['category_name'] }}</td>
                                     <td class="px-6 py-4">
                                         @if($ticketRow['status'] === 'sold')
-                                            <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wide">SOLD</span>
+                                                @if($isPartialTxn)
+                                                    <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-500 font-bold text-[8px] uppercase tracking-wide whitespace-nowrap">⚠️ Blm Scan ({{ $txnRedeemed }}/{{ $txnTotalTickets }})</span>
+                                                @endif
+                                            </div>
                                         @elseif($ticketRow['status'] === 'redeemed')
-                                            <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold text-[9px] uppercase tracking-wide">REDEEMED</span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold text-[9px] uppercase tracking-wide">REDEEMED</span>
+                                                @if($isPartialTxn)
+                                                    <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-500 font-bold text-[8px] uppercase tracking-wide whitespace-nowrap">⚠️ Partial ({{ $txnRedeemed }}/{{ $txnTotalTickets }})</span>
+                                                @endif
+                                            </div>
                                         @elseif($ticketRow['status'] === 'void')
                                             <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-bold text-[9px] uppercase tracking-wide">VOID</span>
                                         @else

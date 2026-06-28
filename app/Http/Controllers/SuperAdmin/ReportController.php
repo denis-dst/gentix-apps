@@ -90,6 +90,12 @@ class ReportController extends Controller
 
                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
+                // Partial scan detection
+                $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
+                $totalTickets    = $nonVoidTickets->count();
+                $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
+                $isPartialScan   = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+
                 return [
                     'reference_no' => $transaction->reference_no,
                     'created_at' => $transaction->created_at,
@@ -109,6 +115,10 @@ class ReportController extends Controller
                     'proof_ig' => $proofData['proof_ig'] ?? null,
                     'proof_review' => $proofData['proof_review'] ?? null,
                     'proofs' => $proofData['proofs'] ?? [],
+                    // Partial scan fields
+                    'total_tickets'    => $totalTickets,
+                    'redeemed_tickets' => $redeemedTickets,
+                    'is_partial_scan'  => $isPartialScan,
                 ];
             })
             ->values();
@@ -118,7 +128,13 @@ class ReportController extends Controller
     {
         return $transactions
             ->flatMap(function ($transaction) {
-                return $transaction->tickets->map(function ($ticket) use ($transaction) {
+                // Pre-compute partial scan flag for this transaction
+                $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
+                $totalTickets    = $nonVoidTickets->count();
+                $redeemedTickets = $nonVoidTickets->where('status', 'redeemed')->count();
+                $isPartialTxn    = $totalTickets > 1 && $redeemedTickets > 0 && $redeemedTickets < $totalTickets;
+
+                return $transaction->tickets->map(function ($ticket) use ($transaction, $isPartialTxn, $totalTickets, $redeemedTickets) {
                     $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
 
                     return [
@@ -135,6 +151,10 @@ class ReportController extends Controller
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
                         'redeemed_at' => $ticket->redeemed_at,
+                        // Partial scan context
+                        'is_partial_txn'    => $isPartialTxn,
+                        'txn_total_tickets'  => $totalTickets,
+                        'txn_redeemed'       => $redeemedTickets,
                     ];
                 });
             })
@@ -183,7 +203,23 @@ class ReportController extends Controller
             ->get()
             ->keyBy('ticket_category_id');
 
-        $categories = $event->ticketCategories->map(function ($category) use ($ticketStats, $gateStats, $transactionStats) {
+        // Partial scan: transactions with qty>1 where some (not all, not zero) tickets are redeemed
+        $partialScanByCategory = Transaction::query()
+            ->where('event_id', $event->id)
+            ->where('payment_status', 'paid')
+            ->with(['tickets' => fn ($q) => $q->whereIn('status', ['sold', 'redeemed'])])
+            ->get()
+            ->groupBy('ticket_category_id')
+            ->map(function ($txns) {
+                return $txns->filter(function ($txn) {
+                    $nonVoid  = $txn->tickets;
+                    $total    = $nonVoid->count();
+                    $redeemed = $nonVoid->where('status', 'redeemed')->count();
+                    return $total > 1 && $redeemed > 0 && $redeemed < $total;
+                })->count();
+            });
+
+        $categories = $event->ticketCategories->map(function ($category) use ($ticketStats, $gateStats, $transactionStats, $partialScanByCategory) {
             $ticket = $ticketStats->get($category->id);
             $gate = $gateStats->get($category->id);
             $transaction = $transactionStats->get($category->id);
@@ -201,6 +237,7 @@ class ReportController extends Controller
                 'inside_count' => max(0, $checkin - $checkout),
                 'paid_transactions_count' => (int) ($transaction->paid_transactions_count ?? 0),
                 'revenue' => (float) ($transaction->revenue ?? 0),
+                'partial_scan_count' => (int) ($partialScanByCategory->get($category->id) ?? 0),
             ];
         });
 
@@ -214,6 +251,7 @@ class ReportController extends Controller
             'inside_count' => $categories->sum('inside_count'),
             'paid_transactions_count' => $categories->sum('paid_transactions_count'),
             'revenue' => $categories->sum('revenue'),
+            'partial_scan_count' => $categories->sum('partial_scan_count'),
         ];
     }
 }
