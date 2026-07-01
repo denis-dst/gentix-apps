@@ -75,6 +75,8 @@
                 </h2>
                 <p class="text-center text-slate-500 text-sm font-medium mb-6">
                     Pendaftaran Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
+                    <br>
+                    Silakan periksa Email anda pada folder SPAM untuk mendapatkan Evoucher atau ikuti intruksi di bawah ini
                 </p>
 
                 {{-- Instruction box --}}
@@ -313,4 +315,3 @@
     </div>
 </body>
 </html>
-

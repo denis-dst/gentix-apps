@@ -31,10 +31,18 @@
         <div class="header">
             <h2 style="margin:0; font-weight: 800; color: #1e293b;">Penerbitan E-Voucher</h2>
         </div>
+        @php
+            // Gunakan link yang sama dengan popup halaman sukses (tickets.view),
+            // yaitu halaman E-Voucher publik untuk visitor. Ambil tiket pertama.
+            $evoucherTicket = $transaction->tickets->first();
+            $evoucherUrl = $evoucherTicket
+                ? route('tickets.view', $evoucherTicket->ticket_code)
+                : url('/');
+        @endphp
         <div class="content">
             <p>Halo <strong>{{ $transaction->customer_name }}</strong>,</p>
             <p>Terima kasih sudah memesan tiket <strong>{{ $transaction->event->name }}</strong>.</p>
-            <p>Proses pemesanan dan pembayaran kamu telah kami terima! Tiket untuk event ini sudah kami terbitkan, ya. Klik tombol di bawah atau <a href="{{ route('evoucher.public', $transaction->reference_no) }}" style="color: #f97316; font-weight: bold;">klik di sini</a> untuk melihat E-Voucher.</p>
+            <p>Proses pemesanan dan pembayaran kamu telah kami terima! Tiket untuk event ini sudah kami terbitkan, ya. Klik tombol di bawah atau <a href="{{ $evoucherUrl }}" style="color: #f97316; font-weight: bold;">klik di sini</a> untuk melihat E-Voucher.</p>
 
             <div class="event-card">
                 <div class="event-title">{{ $transaction->event->name }}</div>
@@ -89,7 +97,7 @@
                 </div>
             </div>
 
-            <a href="{{ route('evoucher.public', $transaction->reference_no) }}" class="button">Lihat E-Voucher</a>
+            <a href="{{ $evoucherUrl }}" class="button">Lihat E-Voucher</a>
         </div>
         <div class="footer">
             &copy; {{ date('Y') }} GenTix Platform. Semua Hak Dilindungi.<br>
