@@ -21,13 +21,13 @@
 @if($showModal)
 {{-- Backdrop --}}
 <div id="invoice-notification-modal"
-     class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+     class="fixed inset-0 z-[999999] flex items-center justify-center p-4"
      x-data="{ open: true }"
      x-show="open"
      x-cloak>
     
     {{-- Overlay --}}
-    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+    <div class="absolute inset-0 bg-slate-900/80 z-0"
          x-show="open"
          x-transition:enter="transition-opacity duration-300"
          x-transition:enter-start="opacity-0"
@@ -38,7 +38,7 @@
     </div>
 
     {{-- Modal Card --}}
-    <div class="relative w-full max-w-md"
+    <div class="relative z-10 w-full max-w-md"
          x-show="open"
          x-transition:enter="transition duration-300"
          x-transition:enter-start="opacity-0 scale-90 translate-y-4"

@@ -30,7 +30,7 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice)
     {
         // Pastikan invoice milik tenant yang sedang login
-        abort_if($invoice->tenant_id !== $this->getTenantId(), 403);
+        abort_if((int)$invoice->tenant_id !== (int)$this->getTenantId(), 403);
 
         $invoice->load(['issuer', 'items']);
         return view('organizer.invoices.show', compact('invoice'));
@@ -41,7 +41,7 @@ class InvoiceController extends Controller
      */
     public function uploadProof(Request $request, Invoice $invoice)
     {
-        abort_if($invoice->tenant_id !== $this->getTenantId(), 403);
+        abort_if((int)$invoice->tenant_id !== (int)$this->getTenantId(), 403);
         abort_if($invoice->status !== 'sent', 403, 'Invoice tidak dalam status yang tepat.');
 
         $request->validate([
@@ -68,7 +68,7 @@ class InvoiceController extends Controller
      */
     public function downloadPdf(Invoice $invoice)
     {
-        abort_if($invoice->tenant_id !== $this->getTenantId(), 403);
+        abort_if((int)$invoice->tenant_id !== (int)$this->getTenantId(), 403);
 
         $invoice->load(['tenant', 'issuer', 'items']);
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
