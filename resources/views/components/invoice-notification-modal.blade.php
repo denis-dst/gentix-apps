@@ -21,33 +21,22 @@
 @if($showModal)
 {{-- Backdrop --}}
 <div id="invoice-notification-modal"
-     class="fixed inset-0 z-[999999] flex items-center justify-center p-4"
+     class="fixed top-4 right-4 md:top-6 md:right-6 z-[999999] w-full max-w-md"
      x-data="{ open: true }"
      x-show="open"
      x-cloak>
-    
-    {{-- Overlay --}}
-    <div class="absolute inset-0 bg-slate-900/80 z-0"
-         x-show="open"
-         x-transition:enter="transition-opacity duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition-opacity duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
-    </div>
 
     {{-- Modal Card --}}
     <div class="relative z-10 w-full max-w-md"
          x-show="open"
-         x-transition:enter="transition duration-300"
-         x-transition:enter-start="opacity-0 scale-90 translate-y-4"
-         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-         x-transition:leave="transition duration-200"
-         x-transition:leave-start="opacity-100 scale-100"
-         x-transition:leave-end="opacity-0 scale-95">
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 md:translate-y-0 md:translate-x-4"
+         x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 md:translate-x-0"
+         x-transition:leave-end="opacity-0 translate-y-4 md:translate-y-0 md:translate-x-4">
 
-        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden shadow-orange-500/10">
             {{-- Top gradient banner --}}
             <div class="relative bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 px-6 pt-8 pb-16">
                 {{-- Decorative circles --}}
