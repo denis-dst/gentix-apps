@@ -69,7 +69,7 @@
         {{-- Invoice Document --}}
         <div class="bg-white rounded-3xl border border-slate-100 shadow-md overflow-hidden">
             {{-- Invoice Header --}}
-            <div class="bg-gradient-to-r from-slate-800 to-slate-900 p-6 sm:p-8">
+            <div class="p-6 sm:p-8 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Invoice</p>

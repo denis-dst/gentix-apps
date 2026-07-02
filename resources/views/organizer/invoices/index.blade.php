@@ -4,11 +4,11 @@
     <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         {{-- Header --}}
-        <div class="relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl">
+        <div class="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
             <div class="relative z-10">
-                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Keuangan</p>
-                <h2 class="text-2xl font-black font-outfit">Invoice & Tagihan</h2>
-                <p class="text-sm text-slate-400 mt-1">Daftar tagihan dari pengelola platform</p>
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-orange-400 mb-1">Keuangan</p>
+                <h2 class="text-2xl font-black font-outfit text-white">Invoice & Tagihan</h2>
+                <p class="text-sm text-slate-300 mt-1">Daftar tagihan dari pengelola platform</p>
             </div>
             <div class="absolute -bottom-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
         </div>
