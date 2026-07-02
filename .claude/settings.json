@@ -1,7 +1,19 @@
 {
+  "apiKeyHelper": "echo 'aero_live_70J1rZ-PddLF3OGkNYFhvi3lEzmi1QwdgwrGnJF-AUw'",
+  "env": {
+    "ANTHROPIC_API_KEY": "aero_live_70J1rZ-PddLF3OGkNYFhvi3lEzmi1QwdgwrGnJF-AUw",
+    "ANTHROPIC_BASE_URL": "https://capi.aerolink.lat/",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
   "permissions": {
     "allow": [
-      "Bash(awk '{print $5\"\\\\t\"$9}')"
-    ]
-  }
+      "Bash(php artisan *)",
+      "Bash(php -l app/Http/Controllers/Teacher/AttendanceController.php)",
+      "Bash(xargs ls -la)",
+      "Bash(php -l app/Http/Controllers/Admin/CardGeneratorController.php)",
+      "Bash(/c/src/flutter/bin/flutter.bat build *)"
+    ],
+    "deny": []
+  },
+  "model": "opus[1m]"
 }

@@ -40,4 +40,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Gate::class);
     }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

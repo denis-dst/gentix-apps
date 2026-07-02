@@ -57,6 +57,13 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('reports/export-excel', [App\Http\Controllers\SuperAdmin\ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
+
+    // Invoice Management
+    Route::post('invoices/{invoice}/send', [App\Http\Controllers\SuperAdmin\InvoiceController::class, 'send'])->name('invoices.send');
+    Route::post('invoices/{invoice}/confirm-payment', [App\Http\Controllers\SuperAdmin\InvoiceController::class, 'confirmPayment'])->name('invoices.confirm-payment');
+    Route::get('invoices/{invoice}/download-pdf', [App\Http\Controllers\SuperAdmin\InvoiceController::class, 'downloadPdf'])->name('invoices.download-pdf');
+    Route::get('invoices/{invoice}/view-proof', [App\Http\Controllers\SuperAdmin\InvoiceController::class, 'viewProof'])->name('invoices.view-proof');
+    Route::resource('invoices', App\Http\Controllers\SuperAdmin\InvoiceController::class);
 });
 
 Route::get('/dashboard', function () {
@@ -144,6 +151,13 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     // Tenant Settings (T&C)
     Route::get('settings/terms', [App\Http\Controllers\Organizer\TenantSettingsController::class, 'editTerms'])->name('settings.terms');
     Route::post('settings/terms', [App\Http\Controllers\Organizer\TenantSettingsController::class, 'updateTerms'])->name('settings.terms.update');
+
+    // Invoice (Tenant View)
+    Route::get('invoices', [App\Http\Controllers\Organizer\InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('invoices/{invoice}', [App\Http\Controllers\Organizer\InvoiceController::class, 'show'])->name('invoices.show');
+    Route::post('invoices/{invoice}/upload-proof', [App\Http\Controllers\Organizer\InvoiceController::class, 'uploadProof'])->name('invoices.upload-proof');
+    Route::get('invoices/{invoice}/download-pdf', [App\Http\Controllers\Organizer\InvoiceController::class, 'downloadPdf'])->name('invoices.download-pdf');
+    Route::post('invoices/dismiss-modal', [App\Http\Controllers\Organizer\InvoiceController::class, 'dismissModal'])->name('invoices.dismiss-modal');
 });
 
 Route::middleware('auth')->group(function () {
