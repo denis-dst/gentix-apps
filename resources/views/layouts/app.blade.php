@@ -234,12 +234,5 @@
 
     {{-- Page-level scripts from child views --}}
     @stack('scripts')
-
-    {{-- Invoice Notification Modal (only for Penyedia Event with pending invoices) --}}
-    @auth
-        @if(auth()->user()->hasRole('Penyedia Event'))
-            <x-invoice-notification-modal />
-        @endif
-    @endauth
 </body>
 </html>
