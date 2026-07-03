@@ -319,9 +319,10 @@ class GateController extends Controller
             $visitorData = $this->visitorDataArray($ticket->visitor_data);
             $visitorName = $visitorData['name'] ?? ($ticket->transaction->customer_name ?? '-');
             
+            $actionText = $request->type === 'IN' ? 'Checkin' : 'Checkout';
             return response()->json([
                 'status' => 'REJECT',
-                'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
+                'message' => "Sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
                 'color' => 'pink',
                 'visitor' => $visitorName,
                 'category' => $ticket->category->name,
