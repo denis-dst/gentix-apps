@@ -190,6 +190,112 @@ class GateController extends Controller
             $gateName = $request->gate_name;
         }
 
+        // For group checking (transactions with quantity > 1), we return the group details
+        $transaction = $ticket->transaction;
+        if ($transaction && $transaction->tickets()->count() > 1) {
+            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
+                $q->with('scanner')->orderBy('scanned_at', 'desc');
+            }])->get();
+
+            $ticketsInGroup->loadMissing('event');
+
+            $totalGroupCount = $ticketsInGroup->count();
+            $checkedInCount = 0;
+            $checkedOutCount = 0;
+            $neverCheckedInCount = 0;
+            $latestLog = null;
+
+            foreach ($ticketsInGroup as $t) {
+                $tLastLog = $t->gateLogs->first();
+                if ($tLastLog) {
+                    if ($tLastLog->type === 'IN') {
+                        $checkedInCount++;
+                    } else {
+                        $checkedOutCount++;
+                    }
+                    if (!$latestLog || ($tLastLog->scanned_at && $latestLog->scanned_at && $tLastLog->scanned_at->gt($latestLog->scanned_at))) {
+                        $latestLog = $tLastLog;
+                    }
+                } else {
+                    $neverCheckedInCount++;
+                    $checkedOutCount++;
+                }
+            }
+
+            if ($request->type === 'IN') {
+                if ($checkedInCount === $totalGroupCount) {
+                    $operatorName = $latestLog && $latestLog->scanner ? $latestLog->scanner->name : ($latestLog->gate_name ?? 'System');
+                    $timeString = $latestLog && $latestLog->scanned_at ? $latestLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
+                    return response()->json([
+                        'status' => 'REJECT',
+                        'message' => "Seluruh peserta ({$totalGroupCount} orang) sudah Checkin. Checkin terakhir pada {$timeString} oleh Operator {$operatorName}.",
+                        'color' => 'pink',
+                        'visitor' => $transaction->customer_name ?? '-',
+                        'category' => $ticket->category->name,
+                        'ticket_code' => $ticket->ticket_code,
+                        'email' => $transaction->customer_email ?? '-',
+                        'reference_no' => $transaction->reference_no ?? '-',
+                    ], 403);
+                }
+            } else {
+                if ($checkedOutCount === $totalGroupCount) {
+                    $message = $neverCheckedInCount === $totalGroupCount
+                        ? "Seluruh peserta ({$totalGroupCount} orang) belum pernah Check-in!"
+                        : "Seluruh peserta ({$totalGroupCount} orang) sudah berada di luar area!";
+                    return response()->json([
+                        'status' => 'REJECT',
+                        'message' => $message,
+                        'color' => 'pink',
+                        'visitor' => $transaction->customer_name ?? '-',
+                        'category' => $ticket->category->name,
+                        'ticket_code' => $ticket->ticket_code,
+                        'email' => $transaction->customer_email ?? '-',
+                        'reference_no' => $transaction->reference_no ?? '-',
+                    ], 403);
+                }
+            }
+
+            $attendeesList = $ticketsInGroup->map(function($t) {
+                $lastLog = $t->gateLogs->first();
+                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                $visitorData = $this->visitorDataArray($t->visitor_data);
+                $customQuestion = $this->ticketCustomQuestionPayload($t);
+
+                return [
+                    'ticket_id' => $t->id,
+                    'ticket_category_id' => $t->ticket_category_id,
+                    'ticket_code' => $t->ticket_code,
+                    'name' => $visitorData['name'] ?? $t->transaction->customer_name,
+                    'gender' => $visitorData['gender'] ?? null,
+                    'custom_question_label' => $customQuestion['label'],
+                    'custom_question_answer' => $customQuestion['answer'],
+                    'custom_question' => $customQuestion,
+                    'is_checked_in' => $isCheckedIn,
+                    'category' => $t->category->name,
+                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
+                ];
+            });
+
+            $customQuestion = $this->ticketCustomQuestionPayload($ticket);
+
+            return response()->json([
+                'status' => 'SUCCESS',
+                'is_group' => true,
+                'message' => 'Detail grup ditemukan',
+                'visitor' => $transaction->customer_name ?? '-',
+                'category' => $ticket->category->name,
+                'attendees' => $attendeesList,
+                'custom_question_label' => $customQuestion['label'],
+                'custom_question_answer' => $customQuestion['answer'],
+                'custom_question' => $customQuestion,
+                'scanned_ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->ticket_code,
+                'email' => $transaction->customer_email ?? '-',
+                'reference_no' => $transaction->reference_no ?? '-',
+            ]);
+        }
+
         // Anti-passback: the movement must alternate IN -> OUT -> IN -> OUT.
         $lastLog = GateLog::where('ticket_id', $ticket->id)
             ->with('scanner')
@@ -240,56 +346,6 @@ class GateController extends Controller
                 'email' => $ticket->transaction->customer_email ?? '-',
                 'reference_no' => $ticket->transaction->reference_no ?? '-',
             ], 403);
-        }
-
-        // For group checking (transactions with quantity > 1), we return the group details
-        $transaction = $ticket->transaction;
-        if ($transaction && $transaction->tickets()->count() > 1) {
-            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
-                $q->with('scanner')->orderBy('scanned_at', 'desc');
-            }])->get();
-
-            $ticketsInGroup->loadMissing('event');
-
-            $attendeesList = $ticketsInGroup->map(function($t) {
-                $lastLog = $t->gateLogs->first();
-                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
-                $visitorData = $this->visitorDataArray($t->visitor_data);
-                $customQuestion = $this->ticketCustomQuestionPayload($t);
-
-                return [
-                    'ticket_id' => $t->id,
-                    'ticket_category_id' => $t->ticket_category_id,
-                    'ticket_code' => $t->ticket_code,
-                    'name' => $visitorData['name'] ?? $t->transaction->customer_name,
-                    'gender' => $visitorData['gender'] ?? null,
-                    'custom_question_label' => $customQuestion['label'],
-                    'custom_question_answer' => $customQuestion['answer'],
-                    'custom_question' => $customQuestion,
-                    'is_checked_in' => $isCheckedIn,
-                    'category' => $t->category->name,
-                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
-                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
-                ];
-            });
-
-            $customQuestion = $this->ticketCustomQuestionPayload($ticket);
-
-            return response()->json([
-                'status' => 'SUCCESS',
-                'is_group' => true,
-                'message' => 'Detail grup ditemukan',
-                'visitor' => $transaction->customer_name ?? '-',
-                'category' => $ticket->category->name,
-                'attendees' => $attendeesList,
-                'custom_question_label' => $customQuestion['label'],
-                'custom_question_answer' => $customQuestion['answer'],
-                'custom_question' => $customQuestion,
-                'scanned_ticket_id' => $ticket->id,
-                'ticket_code' => $ticket->ticket_code,
-                'email' => $transaction->customer_email ?? '-',
-                'reference_no' => $transaction->reference_no ?? '-',
-            ]);
         }
 
         // Log the movement
