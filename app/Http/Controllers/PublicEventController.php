@@ -60,48 +60,7 @@ class PublicEventController extends Controller
         ]);
     }
 
-    public function handleNotification(Request $request)
-    {
-        \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
 
-        try {
-            $notif = new \Midtrans\Notification();
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Invalid notification'], 400);
-        }
-
-        $transaction = $notif->transaction_status;
-        $type = $notif->payment_type;
-        $orderId = $notif->order_id;
-        $fraud = $notif->fraud_status;
-
-        $dbTransaction = Transaction::where('reference_no', $orderId)->first();
-
-        if (!$dbTransaction) {
-            return response()->json(['message' => 'Transaction not found'], 404);
-        }
-
-        if ($transaction == 'capture') {
-            if ($type == 'credit_card') {
-                if ($fraud == 'challenge') {
-                    $dbTransaction->update(['payment_status' => 'pending']);
-                } else {
-                    $dbTransaction->update(['payment_method' => $type]);
-                    $this->finalizeTransaction($dbTransaction);
-                }
-            }
-        } else if ($transaction == 'settlement') {
-            $dbTransaction->update(['payment_method' => $type]);
-            $this->finalizeTransaction($dbTransaction);
-        } else if ($transaction == 'pending') {
-            $dbTransaction->update(['payment_status' => 'pending', 'payment_method' => $type]);
-        } else if ($transaction == 'deny' || $transaction == 'expire' || $transaction == 'cancel') {
-            $dbTransaction->update(['payment_status' => 'failed', 'payment_method' => $type]);
-        }
-
-        return response()->json(['status' => 'ok']);
-    }
 
     private function finalizeTransaction($transaction)
     {
@@ -286,32 +245,22 @@ class PublicEventController extends Controller
                 'customer_nik' => $validated['nik'],
                 'discount_amount' => $discount,
                 'total_amount' => $totalAmount,
-                'payment_status' => 'pending', // Initial status
-                'payment_method' => 'Midtrans Snap',
-                'channel' => 'online',
+                'payment_status'       => 'pending', // Initial status
+                'payment_method'       => 'Doku',
+                'channel'              => 'online',
             ]);
 
             if ($promo) {
                 $promo->increment('used_count');
             }
 
-            // --- Midtrans Integration ---
-            \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
-            \Midtrans\Config::$isSanitized = true;
-            \Midtrans\Config::$is3ds = true;
-
-            $params = [
-                'transaction_details' => [
-                    'order_id' => $referenceNo,
-                    'gross_amount' => (int)$totalAmount,
-                ],
-                'customer_details' => [
-                    'first_name' => $validated['name'],
-                    'email' => $validated['email'],
-                    'phone' => $validated['phone'],
-                ],
-                'item_details' => [
+            // --- Doku Integration ---
+            $dokuService = new \App\Services\DokuService();
+            $dokuResult = $dokuService->createPaymentLink([
+                'amount' => $totalAmount,
+                'invoice_number' => $referenceNo,
+                'callback_url' => route('checkout.success', $referenceNo),
+                'line_items' => [
                     [
                         'id' => $category->id,
                         'price' => (int)($totalAmount / $validated['quantity']),
@@ -319,24 +268,26 @@ class PublicEventController extends Controller
                         'name' => $category->name . ' - ' . $event->name,
                     ]
                 ]
-            ];
+            ], [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+            ]);
 
-            try {
-                $snapToken = \Midtrans\Snap::getSnapToken($params);
-                
+            if ($dokuResult['success']) {
                 if (request()->ajax() || request()->wantsJson()) {
                     return response()->json([
                         'success' => true,
-                        'snap_token' => $snapToken,
+                        'redirect_url' => $dokuResult['payment_url'],
                         'reference_no' => $referenceNo
                     ]);
                 }
-
-                // If not AJAX, we might need a dedicated payment page or just redirect back with token
-                return view('checkout.payment', compact('transaction', 'snapToken'));
-
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+                return redirect($dokuResult['payment_url']);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $dokuResult['message'] ?? 'Gagal memproses pembayaran Doku.'
+                ], 500);
             }
         });
     }
@@ -621,27 +572,8 @@ class PublicEventController extends Controller
             return view('checkout.success', compact('transaction'));
         }
 
-        // If tickets are not generated yet, try to check status with Midtrans
-        if ($transaction->tickets->isEmpty()) {
-            \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
-
-            try {
-                $status = \Midtrans\Transaction::status($reference);
-                
-                if ($status->transaction_status == 'settlement' || $status->transaction_status == 'capture') {
-                    // Update payment method from real status
-                    $transaction->update(['payment_method' => $status->payment_type]);
-                    $this->finalizeTransaction($transaction);
-                    
-                    // Refresh transaction data
-                    $transaction->load('tickets.category');
-                }
-            } catch (\Exception $e) {
-                // Silently fail if Midtrans check fails, user will see the processing state
-                \Log::error('Midtrans status check failed: ' . $e->getMessage());
-            }
-        }
+        // If tickets are not generated yet, they will see the processing state.
+        // TODO: Implement Doku status check if needed.
 
         return view('checkout.success', compact('transaction'));
     }

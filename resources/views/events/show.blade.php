@@ -7,9 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    @if(!$event->is_free)
-        <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
-    @endif
+    <!-- Doku API checkout uses redirection, no client-side SDK injection is required -->
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
@@ -282,12 +280,8 @@
             }
 
             const data = await response.json();
-            if (data.success) {
-                window.snap.pay(data.snap_token, {
-                    onSuccess: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
-                    onPending: (result) => { window.location.href = `/checkout/success/${data.reference_no}`; },
-                    onError: (result) => { alert('Pembayaran gagal.'); }
-                });
+            if (data.success && data.redirect_url) {
+                window.location.href = data.redirect_url;
             } else {
                 alert(data.message || 'Gagal memproses pesanan.');
             }

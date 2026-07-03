@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->validateCsrfTokens(except: [
-            'midtrans/notification',
+            'doku/notification',
         ]);
         
         $middleware->web(append: [
