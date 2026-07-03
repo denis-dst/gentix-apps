@@ -765,7 +765,7 @@
                                             @if($qType === 'select')
                                                 <select x-model="attendees[currentAttendee].umroh_answer"
                                                         class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
-                                                    <option value="">Pilih salah satu...</option>
+                                                    <option value="" disabled selected>Pilih salah satu...</option>
                                                     @foreach($qOptions as $opt)
                                                         <option value="{{ $opt }}">{{ $opt }}</option>
                                                     @endforeach
