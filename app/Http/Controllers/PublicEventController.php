@@ -186,7 +186,6 @@ class PublicEventController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error('Checkout Validation failed: ' . json_encode($validator->errors()->toArray()));
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false, 

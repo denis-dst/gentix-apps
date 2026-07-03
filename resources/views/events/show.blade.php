@@ -75,6 +75,7 @@
     selectedCategory: null,
     quantity: 0,
     nik: '',
+    name: '',
     phone: '',
     email: '',
     uploadedProofs: {},
