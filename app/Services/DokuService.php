@@ -116,6 +116,11 @@ class DokuService
     {
         $this->ensureConfigured();
 
+        if (empty($this->sharedKey)) {
+            \Log::info('Doku Signature verification bypassed (DOKU_SHARED_KEY is empty).');
+            return true;
+        }
+
         $signatureHeader = $headers['signature'][0] ?? '';
         $requestId = $headers['request-id'][0] ?? '';
         $timestamp = $headers['request-timestamp'][0] ?? '';

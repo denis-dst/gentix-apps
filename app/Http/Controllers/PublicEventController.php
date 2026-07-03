@@ -60,7 +60,46 @@ class PublicEventController extends Controller
         ]);
     }
 
+    public function handleDokuNotification(Request $request)
+    {
+        $headers = $request->headers->all();
+        $body = $request->all();
 
+        $dokuService = new \App\Services\DokuService();
+
+        // 1. Verify the signature from Doku
+        if (!$dokuService->verifyNotification($headers, $body)) {
+            \Log::warning('Doku notification signature verification failed.');
+            return response()->json(['message' => 'Invalid signature'], 400);
+        }
+
+        // 2. Extract invoice and payment status
+        $invoiceNumber = $request->input('order.invoice_number');
+        $status = strtoupper($request->input('transaction.status', ''));
+
+        $dbTransaction = Transaction::where('reference_no', $invoiceNumber)->first();
+
+        if (!$dbTransaction) {
+            \Log::warning("Transaction not found for Doku invoice: {$invoiceNumber}");
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        // 3. Process payment status
+        if ($status === 'SUCCESS') {
+            $dbTransaction->update([
+                'payment_status' => 'paid',
+                'payment_method' => 'Doku',
+            ]);
+            $this->finalizeTransaction($dbTransaction);
+        } elseif (in_array($status, ['FAILED', 'EXPIRED', 'CANCELLED'])) {
+            $dbTransaction->update([
+                'payment_status' => 'failed',
+                'payment_method' => 'Doku',
+            ]);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
 
     private function finalizeTransaction($transaction)
     {
@@ -147,6 +186,7 @@ class PublicEventController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Checkout Validation failed: ' . json_encode($validator->errors()->toArray()));
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false, 
