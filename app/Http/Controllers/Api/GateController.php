@@ -431,7 +431,8 @@ class GateController extends Controller
         ]);
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function() use ($request) {
+            $processedTickets = [];
+            \Illuminate\Support\Facades\DB::transaction(function() use ($request, &$processedTickets) {
                 $allowedCategoryIds = [];
 
                 if ($request->gate_id) {
@@ -442,7 +443,7 @@ class GateController extends Controller
                 }
 
                 foreach ($request->ticket_ids as $ticketId) {
-                    $ticket = Ticket::findOrFail($ticketId);
+                    $ticket = Ticket::with(['category', 'transaction', 'event'])->findOrFail($ticketId);
 
                     if (!empty($allowedCategoryIds) && !in_array((int) $ticket->ticket_category_id, $allowedCategoryIds, true)) {
                         continue;
@@ -472,8 +473,54 @@ class GateController extends Controller
                         'device_id' => $request->device_id,
                         'scanned_by' => auth()->id()
                     ]);
+
+                    $processedTickets[] = $ticket;
                 }
             });
+
+            if (empty($processedTickets)) {
+                $firstId = reset($request->ticket_ids);
+                $firstTicket = Ticket::with(['category', 'transaction', 'event'])->find($firstId);
+                if ($firstTicket) {
+                    $processedTickets[] = $firstTicket;
+                }
+            }
+
+            if (!empty($processedTickets)) {
+                $firstTicket = $processedTickets[0];
+                $transaction = $firstTicket->transaction;
+
+                $visitorNames = [];
+                $ticketCodes = [];
+                $customQuestions = [];
+
+                foreach ($processedTickets as $t) {
+                    $visitorData = $this->visitorDataArray($t->visitor_data);
+                    $visitorNames[] = $visitorData['name'] ?? ($transaction->customer_name ?? '-');
+                    $ticketCodes[] = $t->ticket_code;
+
+                    $customQ = $this->ticketCustomQuestionPayload($t);
+                    if ($customQ['label'] !== '-' && $customQ['answer'] !== '-') {
+                        $customQuestions[] = $customQ['label'] . ': ' . $customQ['answer'];
+                    }
+                }
+
+                $visitorNameString = implode(', ', array_unique($visitorNames));
+                $ticketCodeString = implode(', ', array_unique($ticketCodes));
+                $customQAnswerString = implode('; ', array_unique($customQuestions));
+
+                return response()->json([
+                    'status' => 'SUCCESS',
+                    'message' => 'Berhasil memproses check-in masal',
+                    'visitor' => $visitorNameString,
+                    'category' => $firstTicket->category->name,
+                    'ticket_code' => $ticketCodeString,
+                    'email' => $transaction->customer_email ?? '-',
+                    'reference_no' => $transaction->reference_no ?? '-',
+                    'custom_question_label' => count($customQuestions) > 0 ? 'Pertanyaan Custom' : '-',
+                    'custom_question_answer' => count($customQuestions) > 0 ? $customQAnswerString : '-',
+                ]);
+            }
 
             return response()->json([
                 'status' => 'SUCCESS',
