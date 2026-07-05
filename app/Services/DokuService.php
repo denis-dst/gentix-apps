@@ -15,12 +15,37 @@ class DokuService
 
     public function __construct()
     {
-        $this->clientId = config('services.doku.client_id', '');
-        $this->sharedKey = config('services.doku.shared_key', '');
-        $this->isProduction = config('services.doku.is_production', false);
+        $this->clientId = config('services.doku.client_id') ?? '';
+        $this->sharedKey = config('services.doku.shared_key') ?? '';
+        $this->isProduction = (bool) (config('services.doku.is_production') ?? false);
         $this->apiUrl = config('services.doku.api_url') ?: ($this->isProduction 
             ? 'https://api.doku.com' 
             : 'https://api-sandbox.doku.com');
+    }
+
+    /**
+     * Get the authoritative timestamp from Doku's server via a HEAD request.
+     * This prevents "request_time_out_of_range" errors caused by local clock drift.
+     * Falls back to gmdate() if the HEAD request fails.
+     */
+    protected function getDokuServerTimestamp(): string
+    {
+        try {
+            $response = Http::timeout(5)->head($this->apiUrl);
+            $dateHeader = $response->header('Date');
+            if ($dateHeader) {
+                $serverTime = strtotime($dateHeader);
+                if ($serverTime !== false) {
+                    return gmdate('Y-m-d\\TH:i:s\\Z', $serverTime);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('DokuService: Could not fetch server timestamp, falling back to local time.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return gmdate('Y-m-d\\TH:i:s\\Z');
     }
 
     /**
@@ -33,7 +58,9 @@ class DokuService
         // Target path for Doku hosted checkout
         $targetPath = '/checkout/v1/payment';
         $requestId = 'REQ-' . Str::uuid();
-        $timestamp = gmdate('Y-m-d\TH:i:s\Z');
+
+        // Use Doku's own server time to avoid clock-skew rejection (±3600 s limit)
+        $timestamp = $this->getDokuServerTimestamp();
 
         $body = [
             'order' => [
@@ -49,7 +76,9 @@ class DokuService
             ]
         ];
 
-        $signature = $this->generateSignature($targetPath, $requestId, $timestamp, $body);
+        $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $digest = base64_encode(hash('sha256', $bodyJson, true));
+        $signature = $this->generateSignature($targetPath, $requestId, $timestamp, $bodyJson);
 
         // For now during preparation, return simulation URLs if credentials are empty
         if (empty($this->clientId) || empty($this->sharedKey)) {
@@ -67,8 +96,10 @@ class DokuService
                 'Request-Id' => $requestId,
                 'Request-Timestamp' => $timestamp,
                 'Signature' => 'HMACSHA256=' . $signature,
+                'Digest' => $digest,
             ])
-            ->post($this->apiUrl . $targetPath, $body);
+            ->withBody($bodyJson, 'application/json')
+            ->post($this->apiUrl . $targetPath);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -79,11 +110,29 @@ class DokuService
                 ];
             }
 
+            \Log::error('Doku API request failed', [
+                'url' => $this->apiUrl . $targetPath,
+                'request_headers' => [
+                    'Client-Id' => $this->clientId,
+                    'Request-Id' => $requestId,
+                    'Request-Timestamp' => $timestamp,
+                    'Signature' => 'HMACSHA256=' . $signature,
+                    'Digest' => $digest,
+                ],
+                'request_body' => $bodyJson,
+                'response_status' => $response->status(),
+                'response_body' => $response->body(),
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Doku API Error: ' . $response->body(),
             ];
         } catch (\Exception $e) {
+            \Log::error('Doku API connection exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'success' => false,
                 'message' => 'Doku connection failed: ' . $e->getMessage(),
@@ -94,9 +143,11 @@ class DokuService
     /**
      * Generate Signature according to Doku API requirement.
      */
-    public function generateSignature(string $targetPath, string $requestId, string $timestamp, array $body): string
+    public function generateSignature(string $targetPath, string $requestId, string $timestamp, array|string $body): string
     {
-        $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $bodyJson = is_array($body)
+            ? json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            : $body;
         $digest = base64_encode(hash('sha256', $bodyJson, true));
 
         $rawString = "Client-Id:" . $this->clientId . "\n" .
@@ -112,7 +163,7 @@ class DokuService
     /**
      * Verify the notification signature from Doku webhook.
      */
-    public function verifyNotification(array $headers, array $body): bool
+    public function verifyNotification(array $headers, array|string $body): bool
     {
         $this->ensureConfigured();
 

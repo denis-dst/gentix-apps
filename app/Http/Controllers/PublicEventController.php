@@ -63,12 +63,12 @@ class PublicEventController extends Controller
     public function handleDokuNotification(Request $request)
     {
         $headers = $request->headers->all();
-        $body = $request->all();
+        $rawBody = $request->getContent();
 
         $dokuService = new \App\Services\DokuService();
 
         // 1. Verify the signature from Doku
-        if (!$dokuService->verifyNotification($headers, $body)) {
+        if (!$dokuService->verifyNotification($headers, $rawBody)) {
             \Log::warning('Doku notification signature verification failed.');
             return response()->json(['message' => 'Invalid signature'], 400);
         }
