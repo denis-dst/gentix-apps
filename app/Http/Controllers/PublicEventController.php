@@ -296,15 +296,16 @@ class PublicEventController extends Controller
             // --- Doku Integration ---
             $dokuService = new \App\Services\DokuService();
             $dokuResult = $dokuService->createPaymentLink([
-                'amount' => $totalAmount,
+                'amount'         => $totalAmount,
                 'invoice_number' => $referenceNo,
-                'callback_url' => route('checkout.success', $referenceNo),
-                'line_items' => [
+                'callback_url'   => route('checkout.success', $referenceNo),
+                'failed_url'     => route('events.show', $event->slug),
+                'line_items'     => [
                     [
-                        'id' => $category->id,
-                        'price' => (int)($totalAmount / $validated['quantity']),
+                        'id'       => (string) $category->id,
+                        'price'    => (int)($totalAmount / $validated['quantity']),
                         'quantity' => $validated['quantity'],
-                        'name' => $category->name . ' - ' . $event->name,
+                        'name'     => $category->name . ' - ' . $event->name,
                     ]
                 ]
             ], [

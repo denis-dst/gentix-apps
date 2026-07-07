@@ -62,18 +62,30 @@ class DokuService
         // Use Doku's own server time to avoid clock-skew rejection (±3600 s limit)
         $timestamp = $this->getDokuServerTimestamp();
 
+        // Normalize line_items: Doku requires 'id' as a string, not integer
+        $lineItems = array_map(function ($item) {
+            if (isset($item['id'])) {
+                $item['id'] = (string) $item['id'];
+            }
+            return $item;
+        }, $transactionDetails['line_items'] ?? []);
+
         $body = [
             'order' => [
-                'amount' => (int) $transactionDetails['amount'],
+                'amount'         => (int) $transactionDetails['amount'],
                 'invoice_number' => $transactionDetails['invoice_number'],
-                'callback_url' => $transactionDetails['callback_url'] ?? url('/'),
-                'line_items' => $transactionDetails['line_items'] ?? [],
+                'callback_url'   => $transactionDetails['callback_url'] ?? url('/'),
+                'failed_url'     => $transactionDetails['failed_url'] ?? url('/'),
+                'line_items'     => $lineItems,
+            ],
+            'payment' => [
+                'payment_due_date' => 60, // minutes
             ],
             'customer' => [
-                'name' => $customerDetails['name'],
+                'name'  => $customerDetails['name'],
                 'email' => $customerDetails['email'],
                 'phone' => $customerDetails['phone'],
-            ]
+            ],
         ];
 
         $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
