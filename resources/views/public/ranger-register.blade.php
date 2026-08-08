@@ -115,7 +115,7 @@
                            name="name" 
                            id="name" 
                            value="{{ old('name') }}" 
-                           placeholder="Contoh: Ahmad Rizky" 
+                           placeholder="Contoh: Didi Zizie" 
                            required 
                            class="w-full form-input px-4 py-3.5 rounded-xl text-sm font-medium placeholder-slate-500">
                     @error('name')
@@ -169,7 +169,7 @@
                            name="account_number" 
                            id="account_number" 
                            value="{{ old('account_number') }}" 
-                           placeholder="Contoh: 1234567890 a.n Ahmad Rizky" 
+                           placeholder="Contoh: 1234567890 a.n Didi Zizie" 
                            required 
                            class="w-full form-input px-4 py-3.5 rounded-xl text-sm font-medium placeholder-slate-500">
                     @error('account_number')
