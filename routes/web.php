@@ -31,6 +31,14 @@ Route::get('/lang/{locale}', [App\Http\Controllers\LanguageController::class, 's
 
 Route::get('/p/{slug}', [App\Http\Controllers\PageController::class, 'show'])->name('pages.show');
 
+Route::get('/portofolio', function () {
+    return view('portofolio');
+})->name('portofolio');
+
+Route::get('/portfolio', function () {
+    return redirect()->route('portofolio');
+});
+
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
