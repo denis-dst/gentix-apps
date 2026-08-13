@@ -29,6 +29,17 @@ Route::get('/tickets/view/{code}', [App\Http\Controllers\TicketViewController::c
 
 Route::get('/lang/{locale}', [App\Http\Controllers\LanguageController::class, 'switchLang'])->name('lang.switch');
 
+Route::get('/faq', [App\Http\Controllers\PageController::class, 'faq'])->name('faq');
+Route::get('/syarat-ketentuan', [App\Http\Controllers\PageController::class, 'terms'])->name('terms');
+Route::get('/terms', function() { return redirect()->route('terms'); });
+Route::get('/terms-of-service', function() { return redirect()->route('terms'); });
+
+Route::get('/refund-policy', [App\Http\Controllers\PageController::class, 'refund'])->name('refund');
+
+Route::get('/kontak', [App\Http\Controllers\PageController::class, 'contact'])->name('contact');
+Route::get('/contact', function() { return redirect()->route('contact'); });
+Route::get('/contact-us', function() { return redirect()->route('contact'); });
+
 Route::get('/p/{slug}', [App\Http\Controllers\PageController::class, 'show'])->name('pages.show');
 
 Route::get('/portofolio', function () {

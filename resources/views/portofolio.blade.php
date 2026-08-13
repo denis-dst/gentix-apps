@@ -763,11 +763,7 @@
     </section>
 
     <!-- FOOTER -->
-    <footer>
-        <div class="container">
-            &copy; 2026 DnD Tech Solutions &mdash; Profesional &bull; Terpercaya &bull; Tepat Waktu
-        </div>
-    </footer>
+    <x-public-footer />
 
 </body>
 </html>
