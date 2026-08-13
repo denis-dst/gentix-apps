@@ -39,6 +39,11 @@ Route::get('/portfolio', function () {
     return redirect()->route('portofolio');
 });
 
+// Ranger Bhayangkara FC Public Registration
+Route::get('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'index'])->name('ranger.register');
+Route::post('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'store'])->name('ranger.store');
+
+
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
@@ -65,6 +70,15 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('reports/export-excel', [App\Http\Controllers\SuperAdmin\ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
+
+    // Ranger Management
+    Route::get('rangers', [App\Http\Controllers\SuperAdmin\RangerController::class, 'index'])->name('rangers.index');
+    Route::post('rangers/quotas', [App\Http\Controllers\SuperAdmin\RangerController::class, 'updateQuotas'])->name('rangers.update-quotas');
+    Route::post('rangers/generate', [App\Http\Controllers\SuperAdmin\RangerController::class, 'generateCrew'])->name('rangers.generate');
+    Route::post('rangers/reset', [App\Http\Controllers\SuperAdmin\RangerController::class, 'resetAssignments'])->name('rangers.reset');
+    Route::patch('rangers/{ranger}/assignment', [App\Http\Controllers\SuperAdmin\RangerController::class, 'updateAssignment'])->name('rangers.update-assignment');
+    Route::delete('rangers/{ranger}', [App\Http\Controllers\SuperAdmin\RangerController::class, 'destroy'])->name('rangers.destroy');
+    Route::get('rangers/export', [App\Http\Controllers\SuperAdmin\RangerController::class, 'export'])->name('rangers.export');
 
     // Invoice Management
     Route::post('invoices/{invoice}/send', [App\Http\Controllers\SuperAdmin\InvoiceController::class, 'send'])->name('invoices.send');
