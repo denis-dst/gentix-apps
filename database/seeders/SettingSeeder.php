@@ -11,12 +11,12 @@ class SettingSeeder extends Seeder
     {
         $settings = [
             // General
-            ['key' => 'app_name', 'value' => 'GenTix', 'group' => 'general'],
+            ['key' => 'app_name', 'value' => 'Gentix Apps', 'group' => 'general'],
             ['key' => 'app_tagline', 'value' => 'Connecting Generations Through Every Gate', 'group' => 'general'],
-            ['key' => 'meta_description', 'value' => 'GenTix is the ultimate destination for discovery and access to the world\'s most exciting live events.', 'group' => 'general'],
-            ['key' => 'contact_email', 'value' => 'support@gentix.test', 'group' => 'general'],
-            ['key' => 'contact_phone', 'value' => '+62 812 3456 7890', 'group' => 'general'],
-            ['key' => 'address', 'value' => 'Jl. Sudirman No. 123, Jakarta, Indonesia', 'group' => 'general'],
+            ['key' => 'meta_description', 'value' => 'Gentix Apps is the ultimate destination for discovery and access to the world\'s most exciting live events.', 'group' => 'general'],
+            ['key' => 'contact_email', 'value' => 'virtusunity@gmail.com', 'group' => 'general'],
+            ['key' => 'contact_phone', 'value' => '083878537818', 'group' => 'general'],
+            ['key' => 'address', 'value' => 'DUSUN MANDAH INDUK 00/001 MANDAH, NATAR, LAMPUNG SELATAN, LAMPUNG 35362', 'group' => 'general'],
             
             // Social Media
             ['key' => 'social_facebook', 'value' => 'https://facebook.com/gentix', 'group' => 'social'],
@@ -31,7 +31,7 @@ class SettingSeeder extends Seeder
             ['key' => 'app_favicon', 'value' => null, 'group' => 'appearance'],
             ['key' => 'app_icon', 'value' => null, 'group' => 'appearance'],
             ['key' => 'wristband_league_logo', 'value' => null, 'group' => 'appearance'],
-            ['key' => 'footer_text', 'value' => '&copy; 2026 GenTix. All rights reserved.', 'group' => 'general'],
+            ['key' => 'footer_text', 'value' => '&copy; 2026 Gentix Apps. All rights reserved.', 'group' => 'general'],
         ];
 
         foreach ($settings as $setting) {

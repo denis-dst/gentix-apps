@@ -29,11 +29,31 @@ Route::get('/tickets/view/{code}', [App\Http\Controllers\TicketViewController::c
 
 Route::get('/lang/{locale}', [App\Http\Controllers\LanguageController::class, 'switchLang'])->name('lang.switch');
 
+Route::get('/faq', [App\Http\Controllers\PageController::class, 'faq'])->name('faq');
+Route::get('/syarat-ketentuan', [App\Http\Controllers\PageController::class, 'terms'])->name('terms');
+Route::get('/terms', function() { return redirect()->route('terms'); });
+Route::get('/terms-of-service', function() { return redirect()->route('terms'); });
+
+Route::get('/refund-policy', [App\Http\Controllers\PageController::class, 'refund'])->name('refund');
+
+Route::get('/kontak', [App\Http\Controllers\PageController::class, 'contact'])->name('contact');
+Route::get('/contact', function() { return redirect()->route('contact'); });
+Route::get('/contact-us', function() { return redirect()->route('contact'); });
+
 Route::get('/p/{slug}', [App\Http\Controllers\PageController::class, 'show'])->name('pages.show');
+
+Route::get('/portofolio', function () {
+    return view('portofolio');
+})->name('portofolio');
+
+Route::get('/portfolio', function () {
+    return redirect()->route('portofolio');
+});
 
 // Ranger Bhayangkara FC Public Registration
 Route::get('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'index'])->name('ranger.register');
 Route::post('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'store'])->name('ranger.store');
+
 
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');

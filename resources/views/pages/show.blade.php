@@ -66,12 +66,6 @@
     </section>
 
     <!-- Footer -->
-    <footer class="py-10 border-t border-white/5 bg-[#0d0d14] mt-20">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-stone-600 text-sm">
-                &copy; {{ date('Y') }} GenTix Inc. All rights reserved.
-            </p>
-        </div>
-    </footer>
+    <x-public-footer />
 </body>
 </html>
