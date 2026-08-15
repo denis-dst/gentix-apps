@@ -60,45 +60,41 @@ class PublicEventController extends Controller
         ]);
     }
 
-    public function handleDokuNotification(Request $request)
+    public function handleIPaymuNotification(Request $request)
     {
-        $headers = $request->headers->all();
-        $rawBody = $request->getContent();
+        \Log::info('iPaymu notification received', $request->all());
 
-        $dokuService = new \App\Services\DokuService();
+        $referenceId = $request->input('reference_id');
+        $statusCode  = (int) $request->input('status_code', 0);
+        $statusMsg   = strtolower((string) $request->input('status', ''));
+        $paymentVia  = $request->input('via', 'iPaymu');
 
-        // 1. Verify the signature from Doku
-        if (!$dokuService->verifyNotification($headers, $rawBody)) {
-            \Log::warning('Doku notification signature verification failed.');
-            return response()->json(['message' => 'Invalid signature'], 400);
+        if (empty($referenceId)) {
+            return response()->json(['message' => 'Missing reference_id'], 400);
         }
 
-        // 2. Extract invoice and payment status
-        $invoiceNumber = $request->input('order.invoice_number');
-        $status = strtoupper($request->input('transaction.status', ''));
-
-        $dbTransaction = Transaction::where('reference_no', $invoiceNumber)->first();
+        $dbTransaction = Transaction::where('reference_no', $referenceId)->first();
 
         if (!$dbTransaction) {
-            \Log::warning("Transaction not found for Doku invoice: {$invoiceNumber}");
+            \Log::warning("Transaction not found for iPaymu reference_id: {$referenceId}");
             return response()->json(['message' => 'Transaction not found'], 404);
         }
 
-        // 3. Process payment status
-        if ($status === 'SUCCESS') {
+        // Status code: 1 = Success/Paid, 0 = Pending, -1 = Expired/Failed
+        if ($statusCode === 1 || in_array($statusMsg, ['berhasil', 'success', 'paid'])) {
             $dbTransaction->update([
                 'payment_status' => 'paid',
-                'payment_method' => 'Doku',
+                'payment_method' => 'iPaymu (' . strtoupper($paymentVia) . ')',
             ]);
             $this->finalizeTransaction($dbTransaction);
-        } elseif (in_array($status, ['FAILED', 'EXPIRED', 'CANCELLED'])) {
+        } elseif ($statusCode === -1 || in_array($statusMsg, ['batal', 'expired', 'failed', 'gagal'])) {
             $dbTransaction->update([
                 'payment_status' => 'failed',
-                'payment_method' => 'Doku',
+                'payment_method' => 'iPaymu (' . strtoupper($paymentVia) . ')',
             ]);
         }
 
-        return response()->json(['status' => 'ok']);
+        return response()->json(['status' => 'ok', 'message' => 'Notification processed successfully']);
     }
 
     private function finalizeTransaction($transaction)
@@ -285,7 +281,7 @@ class PublicEventController extends Controller
                 'discount_amount' => $discount,
                 'total_amount' => $totalAmount,
                 'payment_status'       => 'pending', // Initial status
-                'payment_method'       => 'Doku',
+                'payment_method'       => 'iPaymu',
                 'channel'              => 'online',
             ]);
 
@@ -293,41 +289,43 @@ class PublicEventController extends Controller
                 $promo->increment('used_count');
             }
 
-            // --- Doku Integration ---
-            $dokuService = new \App\Services\DokuService();
-            $dokuResult = $dokuService->createPaymentLink([
+            // --- iPaymu Integration ---
+            $ipaymuService = new \App\Services\IPaymuService();
+            $ipaymuResult  = $ipaymuService->createPaymentLink([
                 'amount'         => $totalAmount,
                 'invoice_number' => $referenceNo,
                 'callback_url'   => route('checkout.success', $referenceNo),
+                'notify_url'     => route('ipaymu.notification'),
                 'failed_url'     => route('events.show', $event->slug),
                 'line_items'     => [
                     [
-                        'id'       => (string) $category->id,
-                        'price'    => (int)($totalAmount / $validated['quantity']),
-                        'quantity' => $validated['quantity'],
-                        'name'     => $category->name . ' - ' . $event->name,
+                        'id'          => (string) $category->id,
+                        'price'       => (int)($totalAmount / $validated['quantity']),
+                        'quantity'    => $validated['quantity'],
+                        'name'        => $category->name . ' - ' . $event->name,
+                        'description' => 'Tiket ' . $category->name . ' - ' . $event->name,
                     ]
                 ]
             ], [
-                'name' => $validated['name'],
+                'name'  => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
             ]);
 
-            if ($dokuResult['success']) {
+            if ($ipaymuResult['success']) {
                 if (request()->ajax() || request()->wantsJson()) {
                     return response()->json([
-                        'success' => true,
-                        'redirect_url' => $dokuResult['payment_url'],
+                        'success'      => true,
+                        'redirect_url' => $ipaymuResult['payment_url'],
                         'reference_no' => $referenceNo
                     ]);
                 }
-                return redirect($dokuResult['payment_url']);
+                return redirect($ipaymuResult['payment_url']);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => $dokuResult['message'] ?? 'Gagal memproses pembayaran Doku.'
-                ], 500);
+                    'message' => $ipaymuResult['message'] ?? 'Gagal memproses pembayaran iPaymu.'
+                ], 400);
             }
         });
     }

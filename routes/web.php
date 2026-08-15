@@ -21,7 +21,7 @@ Route::get('/', function () {
 Route::get('/event/{slug}', [PublicEventController::class, 'show'])->name('events.show');
 Route::get('/promo/validate', [PublicEventController::class, 'validatePromo'])->name('promo.validate');
 Route::post('/event/{slug}/checkout', [PublicEventController::class, 'checkout'])->name('checkout.process');
-Route::post('/doku/notification', [PublicEventController::class, 'handleDokuNotification'])->name('doku.notification');
+Route::post('/ipaymu/notification', [PublicEventController::class, 'handleIPaymuNotification'])->name('ipaymu.notification');
 Route::get('/checkout/success/{reference}', [App\Http\Controllers\PublicEventController::class, 'success'])->name('checkout.success');
 Route::get('/evoucher/{reference}', [App\Http\Controllers\PublicEventController::class, 'evoucher'])->name('evoucher.public');
 
