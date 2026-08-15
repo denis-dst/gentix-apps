@@ -137,4 +137,63 @@ class IPaymuService
             ];
         }
     }
+
+    /**
+     * Check transaction status via iPaymu API v2 /transaction endpoint.
+     */
+    public function checkTransactionStatus(string $transactionId): array
+    {
+        if (empty($this->va) || empty($this->apiKey)) {
+            return [
+                'success' => true,
+                'status_code' => 1,
+                'status' => 'Berhasil',
+                'is_simulated' => true,
+            ];
+        }
+
+        $body = [
+            'transactionId' => $transactionId,
+        ];
+
+        $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES);
+        $bodyHash = strtolower(hash('sha256', $bodyJson));
+        $signature = $this->generateSignature('POST', $this->va, $bodyHash, $this->apiKey);
+
+        try {
+            $response = Http::withHeaders([
+                'Accept'       => 'application/json',
+                'Content-Type' => 'application/json',
+                'va'           => $this->va,
+                'signature'    => $signature,
+                'timestamp'    => date('YmdHis'),
+            ])
+            ->withBody($bodyJson, 'application/json')
+            ->post($this->apiUrl . '/transaction');
+
+            $data = $response->json();
+
+            if ($response->successful() && isset($data['Status']) && (int)$data['Status'] === 200) {
+                $statusData = $data['Data'] ?? [];
+                $statusCode = (int) ($statusData['StatusCode'] ?? $statusData['Status'] ?? 0);
+                return [
+                    'success' => true,
+                    'status_code' => $statusCode,
+                    'status' => $statusData['Status'] ?? '',
+                    'data' => $statusData,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['Message'] ?? 'Gagal mengecek status transaksi',
+            ];
+        } catch (\Exception $e) {
+            Log::error('iPaymu check transaction status exception: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
 }

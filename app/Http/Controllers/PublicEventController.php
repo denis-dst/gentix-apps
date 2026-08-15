@@ -99,7 +99,8 @@ class PublicEventController extends Controller
 
     private function finalizeTransaction($transaction)
     {
-        if ($transaction->payment_status === 'paid') return;
+        // Don't duplicate tickets if already generated
+        if ($transaction->tickets()->count() >= $transaction->quantity) return;
 
         // Collect created tickets OUTSIDE the closure so we can notify after commit
         $createdTickets = [];
@@ -605,13 +606,29 @@ class PublicEventController extends Controller
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
 
-        // Free events are already paid — skip Midtrans check
+        // Free events are already paid
         if ($transaction->payment_method === 'free') {
             return view('checkout.success', compact('transaction'));
         }
 
-        // If tickets are not generated yet, they will see the processing state.
-        // TODO: Implement Doku status check if needed.
+        // If tickets are not generated yet for this transaction
+        if ($transaction->tickets->isEmpty()) {
+            $isReturned = request()->has('return') || request()->has('status') || request()->has('sid') || request()->has('trx_id');
+            
+            if ($isReturned || $transaction->payment_status === 'paid' || empty(config('services.ipaymu.va')) || empty(config('services.ipaymu.api_key'))) {
+                $this->finalizeTransaction($transaction);
+                $transaction->refresh();
+                $transaction->load('tickets.category', 'event');
+            } else {
+                $ipaymuService = new \App\Services\IPaymuService();
+                $checkResult = $ipaymuService->checkTransactionStatus($transaction->reference_no);
+                if ($checkResult['success'] && (in_array($checkResult['status_code'] ?? 0, [1, 6]) || strtolower($checkResult['status'] ?? '') === 'berhasil')) {
+                    $this->finalizeTransaction($transaction);
+                    $transaction->refresh();
+                    $transaction->load('tickets.category', 'event');
+                }
+            }
+        }
 
         return view('checkout.success', compact('transaction'));
     }
