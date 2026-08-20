@@ -5,25 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Refund Policy (Kebijakan Pengembalian Dana) - Gentix Apps</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #111118; color: #e8e4df; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(30, 28, 35, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .policy-prose h2 { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 700; color: #ffffff; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; }
-        .policy-prose h3 { font-size: 1.2rem; font-weight: 600; color: #f97316; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .policy-prose p { color: #d6d3d1; font-size: 0.95rem; line-height: 1.7; margin-bottom: 1rem; }
-        .policy-prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; color: #a8a29e; }
-        .policy-prose li { margin-bottom: 0.5rem; font-size: 0.95rem; }
-        .policy-prose strong { color: #ffffff; }
+        .bg-gradient-main {
+            background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 45%),
+                        radial-gradient(circle at bottom left, rgba(251, 146, 60, 0.08), transparent 45%);
+        }
+        ::selection { background: rgba(249, 115, 22, 0.3); color: #ffffff; }
     </style>
 </head>
-<body class="bg-[#0b0c10] text-[#e8e4df] antialiased flex flex-col min-h-screen">
+<body class="bg-[#111118] text-[#e8e4df] antialiased flex flex-col min-h-screen bg-gradient-main selection:bg-orange-500/30">
 
     <!-- Header / Navbar -->
     <nav class="fixed w-full z-50 transition-all duration-300 py-4 glass border-b border-white/10">
@@ -35,11 +36,11 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                         </svg>
                     </div>
-                    <span class="text-2xl font-bold tracking-tight font-outfit uppercase text-white">Gentix<span class="text-orange-400">Apps</span></span>
+                    <span class="text-2xl font-black tracking-tight font-outfit uppercase text-white">Gentix<span class="text-orange-400">Apps</span></span>
                 </a>
                 <div class="flex items-center gap-4">
-                    <a href="/" class="text-sm font-medium text-stone-300 hover:text-white transition flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <a href="/" class="text-sm font-medium text-stone-200 hover:text-orange-400 transition flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/30">
+                        <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         Kembali ke Beranda
                     </a>
                 </div>
@@ -48,54 +49,142 @@
     </nav>
 
     <!-- Hero Banner -->
-    <section class="pt-36 pb-16 relative overflow-hidden bg-[#0e0f15]">
-        <div class="absolute inset-0 bg-orange-500/10 blur-[120px]"></div>
+    <section class="pt-36 pb-16 relative overflow-hidden">
+        <div class="absolute inset-0 bg-orange-500/10 blur-[130px] pointer-events-none"></div>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-            <span class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 inline-block mb-4">Jaminan Transaksi Aman</span>
-            <h1 class="text-4xl md:text-5xl font-black font-outfit mb-4 text-white">Refund Policy</h1>
-            <p class="text-stone-400 max-w-xl mx-auto text-base font-light">Panduan dan kebijakan resmi mengenai pengembalian dana (refund) untuk tiket event di Gentix Apps.</p>
+            <span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/15 text-orange-400 border border-orange-500/30 inline-flex items-center gap-2 mb-4 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                Jaminan Transaksi Aman
+            </span>
+            <h1 class="text-4xl md:text-5xl font-black font-outfit mb-4 text-white tracking-tight">Refund Policy</h1>
+            <p class="text-stone-300 max-w-2xl mx-auto text-base leading-relaxed font-normal">Panduan dan kebijakan resmi mengenai pengembalian dana (refund) untuk tiket event di Gentix Apps.</p>
         </div>
     </section>
 
     <!-- Policy Content -->
-    <main class="py-12 flex-1">
+    <main class="py-6 pb-20 flex-1">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="glass p-8 md:p-12 rounded-[2rem] policy-prose">
+            <div class="glass bg-[#16151e]/85 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-[2.5rem] shadow-2xl shadow-black/50 space-y-8">
 
-                <p>Gentix Apps selalu berupaya menjamin kepuasan dan kepastian bagi seluruh pengguna platform kami. Kebijakan Pengembalian Dana (Refund Policy) ini mengatur syarat dan tata cara pengembalian dana transaksi tiket.</p>
+                <!-- Introduction -->
+                <div class="p-6 rounded-2xl bg-orange-500/10 border border-orange-500/25">
+                    <p class="text-stone-200 leading-relaxed text-base">Gentix Apps selalu berupaya menjamin kepuasan, transparansi, dan keamanan bagi seluruh pengguna platform kami. Kebijakan Pengembalian Dana (<strong class="text-white">Refund Policy</strong>) ini mengatur syarat dan tata cara resmi pengajuan pengembalian dana transaksi tiket.</p>
+                </div>
 
-                <h2>1. Prinsip Utama Penjualan Tiket</h2>
-                <p>Setiap transaksi tiket yang telah berhasil dikonfirmasi secara umum bersifat <strong>Final, Terkunci, dan Non-Refundable</strong> (tidak dapat dikembalikan atau ditukar dengan uang tunai), kecuali apabila terjadi kondisi tertentu yang secara resmi disetujui oleh Penyelenggara Event atau akibat gangguan teknis sistem pembayaran.</p>
+                <!-- Section 1 -->
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold font-outfit text-white flex items-center gap-3 border-b border-white/10 pb-3 mb-4">
+                        <span class="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 font-black text-sm flex items-center justify-center shrink-0 border border-orange-500/30">1</span>
+                        Prinsip Utama Penjualan Tiket
+                    </h2>
+                    <p class="text-stone-200 text-base leading-relaxed pl-1">
+                        Setiap transaksi pembelian tiket yang telah berhasil dikonfirmasi secara umum bersifat <strong class="text-white">Final, Terkunci, dan Non-Refundable</strong> (tidak dapat dikembalikan atau ditukar dengan uang tunai), kecuali apabila terjadi kondisi khusus yang secara resmi disetujui oleh Penyelenggara Event atau akibat gangguan teknis sistem pembayaran resmi kami.
+                    </p>
+                </div>
 
-                <h2>2. Kondisi yang Memenuhi Syarat Refund</h2>
-                <ul>
-                    <li><strong>Pembatalan Resmi Event oleh Organizer:</strong> Apabila event dibatalkan sepenuhnya oleh Penyelenggara tanpa ada tanggal pengganti, seluruh pemegang tiket yang sah berhak mendapatkan pengembalian dana sesuai prosedur resmi.</li>
-                    <li><strong>Pembayaran Ganda (Overpayment / Double Charge):</strong> Apabila terjadi gangguan sistem pembayaran sehingga rekening/kartu Anda terpotong lebih dari satu kali untuk nomor referensi transaksi yang sama, pemotongan dana ganda tersebut akan dikembalikan 100%.</li>
-                </ul>
+                <!-- Section 2 -->
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold font-outfit text-white flex items-center gap-3 border-b border-white/10 pb-3 mb-4">
+                        <span class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-black text-sm flex items-center justify-center shrink-0 border border-emerald-500/30">2</span>
+                        Kondisi yang Memenuhi Syarat Refund
+                    </h2>
+                    <div class="space-y-3 mt-4">
+                        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white mb-1">Pembatalan Resmi Event oleh Penyelenggara (Organizer)</h3>
+                                    <p class="text-stone-300 text-sm leading-relaxed">Apabila event dibatalkan sepenuhnya oleh pihak Penyelenggara tanpa ada penetapan tanggal pengganti, seluruh pemegang tiket yang sah berhak mendapatkan pengembalian dana penuh sesuai ketentuan penyelenggara.</p>
+                                </div>
+                            </div>
+                        </div>
 
-                <h2>3. Kondisi yang TIDAK Memenuhi Syarat Refund</h2>
-                <ul>
-                    <li>Pembeli berhalangan hadir atau berubah pikiran setelah tiket berhasil dibeli.</li>
-                    <li>Kesalahan pembeli saat memilih tanggal event, sesi acara, atau jenis kategori tiket.</li>
-                    <li>Tiket telah dipindai (scanned) di lokasi gate/loket event.</li>
-                    <li>E-Voucher hilang atau bocor akibat kelalaian pembeli membagikan kode QR ke pihak lain.</li>
-                </ul>
+                        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white mb-1">Pembayaran Ganda (Overpayment / Double Charge)</h3>
+                                    <p class="text-stone-300 text-sm leading-relaxed">Apabila terjadi anomali sistem perbankan/gateway yang mengakibatkan rekening/kartu Anda terpotong lebih dari satu kali untuk satu kode referensi transaksi yang sama, kelebihan dana tersebut akan dikembalikan 100% setelah proses rekonsiliasi selesai.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <h2>4. Prosedur dan Alur Pengajuan Refund</h2>
-                <ol class="list-decimal list-inside space-y-2 text-stone-300 mb-6">
-                    <li>Kirimkan email ke <a href="mailto:virtusunity@gmail.com" class="text-orange-400 underline">virtusunity@gmail.com</a> atau WhatsApp ke <a href="https://wa.me/6283878537818" class="text-orange-400 underline">083878537818</a>.</li>
-                    <li>Cantumkan Subjek: <strong>[Pengajuan Refund] - Kode Transaksi / Nama Pembeli</strong>.</li>
-                    <li>Sertakan Lampiran: Bukti Pembayaran, Foto KTP Pembeli, dan Nomor Rekening Bank Pengembalian.</li>
-                    <li>Tim Gentix Apps akan melakukan verifikasi data transaksi dalam waktu 2 x 24 jam kerja.</li>
-                    <li>Proses transfer refund yang telah disetujui akan dilaksanakan dalam kurun waktu 7–14 hari kerja tergantung metode pembayaran awal.</li>
-                </ol>
+                <!-- Section 3 -->
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold font-outfit text-white flex items-center gap-3 border-b border-white/10 pb-3 mb-4">
+                        <span class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 font-black text-sm flex items-center justify-center shrink-0 border border-rose-500/30">3</span>
+                        Kondisi yang TIDAK Memenuhi Syarat Refund
+                    </h2>
+                    <ul class="space-y-2.5 text-stone-200 text-sm leading-relaxed pl-1 mt-3">
+                        <li class="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <span class="text-rose-400 font-bold shrink-0 mt-0.5">&#10005;</span>
+                            <span>Pembeli berhalangan hadir, sakit, terjebak macet, atau berubah pikiran setelah transaksi tiket sukses terbit.</span>
+                        </li>
+                        <li class="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <span class="text-rose-400 font-bold shrink-0 mt-0.5">&#10005;</span>
+                            <span>Kesalahan pembeli saat memilih jadwal hari, jam sesi acara, ataupun jenis kategori tiket.</span>
+                        </li>
+                        <li class="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <span class="text-rose-400 font-bold shrink-0 mt-0.5">&#10005;</span>
+                            <span>Tiket/E-Voucher telah berstatus dipindai (<strong class="text-white">scanned/checked-in</strong>) di pintu masuk gate event.</span>
+                        </li>
+                        <li class="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <span class="text-rose-400 font-bold shrink-0 mt-0.5">&#10005;</span>
+                            <span>E-Voucher hilang atau disalahgunakan akibat kelalaian pembeli membagikan tangkapan layar/file QR Code kepada pihak lain.</span>
+                        </li>
+                    </ul>
+                </div>
 
-                <h2>5. Layanan Bantuan Refund</h2>
-                <div class="p-6 bg-white/5 border border-white/10 rounded-2xl mt-4">
-                    <p class="text-white font-bold mb-1">Customer Support Refund - Gentix Apps</p>
-                    <p class="text-stone-400 text-sm">Email: <a href="mailto:virtusunity@gmail.com" class="text-orange-400 hover:underline">virtusunity@gmail.com</a></p>
-                    <p class="text-stone-400 text-sm">WhatsApp Support: <a href="https://wa.me/6283878537818" class="text-orange-400 hover:underline">083878537818</a></p>
-                    <p class="text-stone-400 text-sm">Alamat Usaha: DUSUN MANDAH INDUK 00/001 MANDAH, NATAR, LAMPUNG SELATAN, LAMPUNG 35362</p>
+                <!-- Section 4 -->
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold font-outfit text-white flex items-center gap-3 border-b border-white/10 pb-3 mb-4">
+                        <span class="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 font-black text-sm flex items-center justify-center shrink-0 border border-orange-500/30">4</span>
+                        Prosedur dan Alur Pengajuan Refund
+                    </h2>
+                    <div class="space-y-3 mt-4">
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                            <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">1</div>
+                            <p class="text-stone-200 text-sm leading-relaxed">Kirimkan permohonan ke email resmi <a href="mailto:virtusunity@gmail.com" class="text-orange-400 font-bold hover:underline">virtusunity@gmail.com</a> atau melalui WhatsApp Helpdesk di <a href="https://wa.me/6283878537818" target="_blank" class="text-orange-400 font-bold hover:underline">083878537818</a>.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                            <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">2</div>
+                            <p class="text-stone-200 text-sm leading-relaxed">Gunakan format subjek: <strong class="text-white">[Pengajuan Refund] - Kode Transaksi / Nama Pembeli</strong>.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                            <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">3</div>
+                            <p class="text-stone-200 text-sm leading-relaxed">Lampirkan kelengkapan data: Bukti Bayar / Screenshot Mutasi, Foto Identitas (KTP/SIM) Pembeli, serta Nomor Rekening Bank Tujuan.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                            <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">4</div>
+                            <p class="text-stone-200 text-sm leading-relaxed">Tim verifikasi Gentix Apps akan memeriksa keabsahan transaksi dalam kurun waktu <strong class="text-white">2 x 24 jam kerja</strong>.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                            <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">5</div>
+                            <p class="text-stone-200 text-sm leading-relaxed">Penyaluran dana refund yang disetujui akan diproses dalam waktu <strong class="text-white">7–14 hari kerja</strong> tergantung mekanisme penyedia metode pembayaran asal.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Official Contact Box -->
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold font-outfit text-white flex items-center gap-3 border-b border-white/10 pb-3 mb-4">
+                        <span class="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 font-black text-sm flex items-center justify-center shrink-0 border border-orange-500/30">5</span>
+                        Layanan Bantuan & Customer Support
+                    </h2>
+                    <div class="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-orange-500/30 shadow-lg">
+                        <h4 class="text-lg font-black text-white font-outfit mb-3">Customer Support Refund &ndash; Gentix Apps</h4>
+                        <div class="space-y-2.5 text-sm">
+                            <p class="text-stone-300"><span class="text-stone-500 font-medium">Email Bantuan:</span> <a href="mailto:virtusunity@gmail.com" class="text-orange-400 font-bold hover:underline ml-1">virtusunity@gmail.com</a></p>
+                            <p class="text-stone-300"><span class="text-stone-500 font-medium">WhatsApp Support:</span> <a href="https://wa.me/6283878537818" target="_blank" class="text-orange-400 font-bold hover:underline ml-1">083878537818</a></p>
+                            <p class="text-stone-300"><span class="text-stone-500 font-medium">Alamat Usaha:</span> <span class="text-stone-200 ml-1">DUSUN MANDAH INDUK 00/001 MANDAH, NATAR, LAMPUNG SELATAN, LAMPUNG 35362</span></p>
+                        </div>
+                    </div>
                 </div>
 
             </div>
