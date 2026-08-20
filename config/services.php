@@ -35,11 +35,13 @@ return [
         ],
     ],
 
-    'doku' => [
-        'client_id' => env('DOKU_CLIENT_ID'),
-        'shared_key' => env('DOKU_SHARED_KEY'),
-        'is_production' => env('DOKU_IS_PRODUCTION', false),
-        'api_url' => env('DOKU_API_URL'),
+    'ipaymu' => [
+        'va' => env('IPAYMU_VA'),
+        'api_key' => env('IPAYMU_API_KEY'),
+        'is_production' => (bool) env('IPAYMU_IS_PRODUCTION', false),
+        'api_url' => env('IPAYMU_IS_PRODUCTION', false) 
+            ? 'https://my.ipaymu.com/api/v2' 
+            : 'https://sandbox.ipaymu.com/api/v2',
     ],
 
     'fonnte' => [
