@@ -55,9 +55,32 @@ class TransactionController extends Controller
     public function resendEvoucher(Transaction $transaction)
     {
         $transaction->load(['event', 'tickets.category']);
-        
-        Mail::to($transaction->customer_email)->send(new \App\Mail\EVoucherMail($transaction));
-        
+
+        try {
+            Mail::to($transaction->customer_email)->send(new \App\Mail\EVoucherMail($transaction));
+        } catch (\Exception $e) {
+            \Log::error('resendEvoucher failed for transaction #' . $transaction->reference_no . ': ' . $e->getMessage(), [
+                'userId' => auth()->id(),
+                'email'  => $transaction->customer_email,
+            ]);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengirim e-voucher: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->with('error', 'Gagal mengirim e-voucher ke ' . $transaction->customer_email . ': Autentikasi SMTP cPanel gagal (535). Pastikan password akun email no-reply@gentix-apps.com di .env/cPanel sudah sesuai.');
+        }
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'E-Voucher berhasil dikirim ulang ke ' . $transaction->customer_email,
+            ]);
+        }
+
         return back()->with('success', 'E-Voucher berhasil dikirim ulang ke ' . $transaction->customer_email);
     }
 
