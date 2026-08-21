@@ -82,6 +82,13 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
 
+    // Mail Monitor (Incoming IMAP/POP3 & Outgoing SMTP)
+    Route::get('mail', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'index'])->name('mail.index');
+    Route::post('mail/inbox', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'fetchInbox'])->name('mail.inbox');
+    Route::post('mail/message/{id}', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'readMessage'])->name('mail.message');
+    Route::post('mail/test-smtp', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'testSmtp'])->name('mail.test-smtp');
+    Route::post('mail/test-incoming', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'testIncoming'])->name('mail.test-incoming');
+
     // Ranger Management
     Route::get('rangers', [App\Http\Controllers\SuperAdmin\RangerController::class, 'index'])->name('rangers.index');
     Route::post('rangers/quotas', [App\Http\Controllers\SuperAdmin\RangerController::class, 'updateQuotas'])->name('rangers.update-quotas');
