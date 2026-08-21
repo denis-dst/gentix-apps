@@ -149,12 +149,50 @@
         <!-- TAB 2: OUTBOX / RIWAYAT TRANSAKSI E-VOUCHER -->
         <div id="tab-content-outbox" class="hidden space-y-6">
             <div class="bg-white rounded-3xl p-7 border-2 border-slate-200 shadow-sm">
-                <div class="flex items-center justify-between mb-6 pb-6 border-b border-slate-100">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-950 font-outfit">Kotak Keluar & Riwayat E-Voucher</h2>
-                        <p class="text-xs text-slate-700 font-bold mt-1">Daftar email E-Voucher yang telah diterbitkan dan dikirimkan otomatis ke pembeli tiket.</p>
-                    </div>
+                <div class="text-center mb-6 pb-6 border-b border-slate-100">
+                    <h2 class="text-2xl font-black text-slate-950 font-outfit">Kotak Keluar & Riwayat E-Voucher</h2>
+                    <p class="text-xs text-slate-700 font-bold mt-1">Daftar email E-Voucher yang telah diterbitkan dan dikirimkan otomatis ke pembeli tiket.</p>
                 </div>
+
+                <!-- Filter & Search Bar -->
+                <form method="GET" action="{{ route('superadmin.mail.index') }}" class="mb-6 p-5 bg-slate-50 rounded-2xl border-2 border-slate-200">
+                    <input type="hidden" name="tab" value="outbox">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                        <!-- Search Name / Email / Reference -->
+                        <div class="lg:col-span-6">
+                            <label class="block text-xs font-black uppercase text-slate-900 tracking-wider mb-1.5">Pencarian Pembeli / Email / Invoice</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 font-bold text-sm">🔍</span>
+                                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama pembeli, email, No. HP, atau No. Invoice..." class="w-full text-xs rounded-2xl border-2 border-slate-300 text-slate-950 font-bold bg-white pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder:text-slate-500 shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Filter Event -->
+                        <div class="lg:col-span-4">
+                            <label class="block text-xs font-black uppercase text-slate-900 tracking-wider mb-1.5">Filter Event</label>
+                            <select name="event_id" class="w-full text-xs rounded-2xl border-2 border-slate-300 text-slate-950 font-black bg-white px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 shadow-sm">
+                                <option value="">Semua Event</option>
+                                @foreach($events as $event)
+                                    <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>
+                                        {{ $event->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="lg:col-span-2 flex items-center gap-2">
+                            <button type="submit" class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5">
+                                <span>Cari</span>
+                            </button>
+                            @if(request('search') || request('event_id'))
+                                <a href="{{ route('superadmin.mail.index', ['tab' => 'outbox']) }}" class="px-3.5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-2xl text-xs font-black transition text-center shrink-0" title="Reset Filter">
+                                    ✕
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </form>
 
                 <div class="overflow-x-auto rounded-2xl border border-slate-200">
                     <table class="w-full text-left border-collapse">
@@ -175,6 +213,9 @@
                                     <td class="py-4 px-4">
                                         <p class="font-black text-slate-950">{{ $tx->customer_name }}</p>
                                         <p class="text-xs text-slate-700 font-bold font-mono">{{ $tx->customer_email }}</p>
+                                        @if($tx->customer_phone)
+                                            <p class="text-[11px] text-slate-500 font-mono font-semibold">{{ $tx->customer_phone }}</p>
+                                        @endif
                                     </td>
                                     <td class="py-4 px-4 font-black text-slate-900">{{ $tx->event->name ?? '-' }}</td>
                                     <td class="py-4 px-4">
@@ -194,11 +235,22 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="py-12 text-center text-slate-700 font-bold text-sm bg-slate-50/50">Belum ada riwayat email transaksi lunas.</td>
+                                    <td colspan="6" class="py-12 text-center text-slate-700 font-bold text-sm bg-slate-50/50">
+                                        @if(request('search') || request('event_id'))
+                                            Tidak ditemukan data transaksi yang sesuai dengan filter pencarian.
+                                        @else
+                                            Belum ada riwayat email transaksi lunas.
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Pagination Links -->
+                <div class="mt-6">
+                    {{ $sentTransactions->links() }}
                 </div>
             </div>
         </div>
@@ -544,5 +596,9 @@
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('{{ $activeTab ?? "inbox" }}');
+        });
     </script>
 </x-app-layout>

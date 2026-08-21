@@ -39,16 +39,35 @@ class MailMonitorController extends Controller
             'username'  => config('mail.mailers.smtp.username', 'no-reply@gentix-apps.com'),
         ];
 
-        // Recent Sent Emails (from Transactions E-Voucher)
-        $sentTransactions = Transaction::with(['event', 'tickets.category'])
-            ->whereNotNull('customer_email')
-            ->where('payment_status', 'paid')
-            ->orderByDesc('paid_at')
-            ->orderByDesc('updated_at')
-            ->take(30)
-            ->get();
+        $search = $request->input('search');
+        $eventId = $request->input('event_id');
+        $activeTab = $request->input('tab', ($search || $eventId || $request->has('page')) ? 'outbox' : 'inbox');
 
-        return view('superadmin.mail.index', compact('smtpConfig', 'incomingConfig', 'sentTransactions'));
+        $query = Transaction::with(['event', 'tickets.category'])
+            ->whereNotNull('customer_email')
+            ->where('payment_status', 'paid');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%")
+                  ->orWhere('reference_no', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($eventId)) {
+            $query->where('event_id', $eventId);
+        }
+
+        $sentTransactions = $query->orderByDesc('paid_at')
+            ->orderByDesc('updated_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $events = \App\Models\Event::orderBy('name')->get(['id', 'name']);
+
+        return view('superadmin.mail.index', compact('smtpConfig', 'incomingConfig', 'sentTransactions', 'events', 'activeTab', 'search', 'eventId'));
     }
 
     /**
