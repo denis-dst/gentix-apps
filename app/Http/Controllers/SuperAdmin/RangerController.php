@@ -34,6 +34,16 @@ class RangerController extends Controller
             $query->where('gender', $request->gender);
         }
 
+        if ($request->filled('role_filter')) {
+            if ($request->role_filter === 'spv') {
+                $query->where('is_spv', true);
+            } elseif ($request->role_filter === 'offday') {
+                $query->where('is_offday', true);
+            } elseif ($request->role_filter === 'active') {
+                $query->where('is_offday', false)->where('is_spv', false);
+            }
+        }
+
         if ($request->filled('gate')) {
             if ($request->gate === 'unassigned') {
                 $query->whereNull('assigned_gate');
@@ -48,8 +58,11 @@ class RangerController extends Controller
             'total' => Ranger::count(),
             'male' => Ranger::male()->count(),
             'female' => Ranger::female()->count(),
+            'spv' => Ranger::where('is_spv', true)->count(),
+            'offday' => Ranger::where('is_offday', true)->count(),
             'assigned' => Ranger::assigned()->count(),
             'unassigned' => Ranger::unassigned()->count(),
+            'active_plotting_pool' => Ranger::availableForPlotting()->count(),
         ];
 
         return view('superadmin.rangers.index', compact('quotas', 'rangers', 'stats'));
@@ -79,6 +92,7 @@ class RangerController extends Controller
 
     /**
      * Generate Crew: Plot rangers into designated gates according to defined gender quotas.
+     * EXCLUDES any ranger marked as is_offday or is_spv.
      */
     public function generateCrew(Request $request)
     {
@@ -98,8 +112,9 @@ class RangerController extends Controller
             'assigned_at' => null,
         ]);
 
-        $availableMales = Ranger::male()->inRandomOrder()->get();
-        $availableFemales = Ranger::female()->inRandomOrder()->get();
+        // ONLY take rangers who are NOT offday and NOT SPV
+        $availableMales = Ranger::male()->availableForPlotting()->inRandomOrder()->get();
+        $availableFemales = Ranger::female()->availableForPlotting()->inRandomOrder()->get();
 
         $assignedMaleCount = 0;
         $assignedFemaleCount = 0;
@@ -131,15 +146,77 @@ class RangerController extends Controller
             }
         }
 
-        $message = "Generate Crew Berhasil! {$assignedMaleCount} Laki-laki dan {$assignedFemaleCount} Perempuan berhasil ditempatkan di Gate & Redemption.";
+        $message = "Generate Crew Berhasil! {$assignedMaleCount} Laki-laki dan {$assignedFemaleCount} Perempuan berhasil ditempatkan di Gate & Redemption (Ranger Offday & SPV tidak dimasukkan ke dalam plotting).";
 
         if ($assignedMaleCount < $totalRequiredMale || $assignedFemaleCount < $totalRequiredFemale) {
             $shortageMale = max(0, $totalRequiredMale - $assignedMaleCount);
             $shortageFemale = max(0, $totalRequiredFemale - $assignedFemaleCount);
-            $message .= " (Catatan: Kekurangan ranger pendaftar: {$shortageMale} Laki-laki, {$shortageFemale} Perempuan).";
+            $message .= " (Catatan: Kekurangan ranger: {$shortageMale} Laki-laki, {$shortageFemale} Perempuan).";
         }
 
         return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Toggle Offday status for a ranger.
+     */
+    public function toggleOffday(Request $request, Ranger $ranger)
+    {
+        $newStatus = !$ranger->is_offday;
+        $updates = ['is_offday' => $newStatus];
+
+        // If marked as Offday, remove gate plotting
+        if ($newStatus) {
+            $updates['assigned_gate'] = null;
+            $updates['assigned_at'] = null;
+        }
+
+        $ranger->update($updates);
+
+        $msg = $newStatus
+            ? "Status Offday untuk {$ranger->name} telah DIAKTIFKAN (dikeluarkan dari plotting gate)."
+            : "Status Offday untuk {$ranger->name} telah DINONAKTIFKAN (siap untuk plotting gate).";
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_offday' => $newStatus,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
+    }
+
+    /**
+     * Toggle SPV status for a ranger.
+     */
+    public function toggleSpv(Request $request, Ranger $ranger)
+    {
+        $newStatus = !$ranger->is_spv;
+        $updates = ['is_spv' => $newStatus];
+
+        // If marked as SPV, remove regular gate plotting
+        if ($newStatus) {
+            $updates['assigned_gate'] = null;
+            $updates['assigned_at'] = null;
+        }
+
+        $ranger->update($updates);
+
+        $msg = $newStatus
+            ? "{$ranger->name} berhasil ditandai sebagai ⭐ SPV (dikeluarkan dari plotting gate reguler)."
+            : "Status SPV untuk {$ranger->name} telah dinonaktifkan.";
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_spv' => $newStatus,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     /**
@@ -191,7 +268,7 @@ class RangerController extends Controller
     {
         $filename = 'Ranger_Bhayangkara_FC_' . date('Y-m-d_H-i-s') . '.csv';
 
-        $rangers = Ranger::orderBy('assigned_gate', 'asc')->orderBy('name', 'asc')->get();
+        $rangers = Ranger::orderBy('is_spv', 'desc')->orderBy('is_offday', 'asc')->orderBy('assigned_gate', 'asc')->orderBy('name', 'asc')->get();
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -207,6 +284,8 @@ class RangerController extends Controller
             fputcsv($file, [
                 'ID',
                 'Nama Lengkap',
+                'Peran / Role',
+                'Status Kehadiran',
                 'Nomor WhatsApp',
                 'Gender',
                 'Nama Bank / E-Wallet',
@@ -216,9 +295,14 @@ class RangerController extends Controller
             ]);
 
             foreach ($rangers as $ranger) {
+                $role = $ranger->is_spv ? 'SPV (Supervisor)' : 'Ranger Reguler';
+                $status = $ranger->is_offday ? 'Offday' : 'Aktif';
+
                 fputcsv($file, [
                     $ranger->id,
                     $ranger->name,
+                    $role,
+                    $status,
                     $ranger->whatsapp,
                     $ranger->gender === 'male' ? 'Laki-laki (Male)' : 'Perempuan (Female)',
                     $ranger->bank_name,

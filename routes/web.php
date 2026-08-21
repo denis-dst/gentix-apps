@@ -95,6 +95,8 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::post('rangers/generate', [App\Http\Controllers\SuperAdmin\RangerController::class, 'generateCrew'])->name('rangers.generate');
     Route::post('rangers/reset', [App\Http\Controllers\SuperAdmin\RangerController::class, 'resetAssignments'])->name('rangers.reset');
     Route::patch('rangers/{ranger}/assignment', [App\Http\Controllers\SuperAdmin\RangerController::class, 'updateAssignment'])->name('rangers.update-assignment');
+    Route::post('rangers/{ranger}/toggle-offday', [App\Http\Controllers\SuperAdmin\RangerController::class, 'toggleOffday'])->name('rangers.toggle-offday');
+    Route::post('rangers/{ranger}/toggle-spv', [App\Http\Controllers\SuperAdmin\RangerController::class, 'toggleSpv'])->name('rangers.toggle-spv');
     Route::delete('rangers/{ranger}', [App\Http\Controllers\SuperAdmin\RangerController::class, 'destroy'])->name('rangers.destroy');
     Route::get('rangers/export', [App\Http\Controllers\SuperAdmin\RangerController::class, 'export'])->name('rangers.export');
 
