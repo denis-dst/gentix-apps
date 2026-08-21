@@ -16,7 +16,7 @@ class TicketViewController extends Controller
             ->where('ticket_code', $code)
             ->firstOrFail();
 
-        if ($ticket->status === 'void') {
+        if ($ticket->status === 'void' || ($ticket->transaction && $ticket->transaction->payment_method !== 'free' && $ticket->transaction->payment_status !== 'paid')) {
             return response()->view('tickets.invalid', compact('ticket'), 410);
         }
 

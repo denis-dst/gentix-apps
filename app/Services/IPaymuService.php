@@ -139,21 +139,97 @@ class IPaymuService
     }
 
     /**
-     * Check transaction status via iPaymu API v2 /transaction endpoint.
+     * Map iPaymu status code to internal status & description.
+     *
+     * Status Codes:
+     *  0  : Pending (Menunggu Pembayaran)
+     *  1  : Success (Berhasil)
+     *  2  : Cancelled (Dibatalkan)
+     *  3  : Refund (Dikembalikan)
+     *  4  : Error
+     *  5  : Failed (Gagal)
+     *  6  : Success - Unsettled (Berhasil Belum Settlement)
+     *  7  : Escrow
+     * -2  : Expired (Kedaluwarsa)
+     * -1  : Expired / Failed (Legacy)
      */
-    public function checkTransactionStatus(string $transactionId): array
+    public static function parseStatusCode(int|string $code, string $paidStatus = '', string $statusDesc = ''): array
+    {
+        $codeInt = (int) $code;
+        $paidStatus = strtolower(trim($paidStatus));
+        $statusDesc = trim($statusDesc);
+
+        // Status code text mapping based on iPaymu Documentation
+        $statusMap = [
+            0  => 'Pending (Menunggu Pembayaran)',
+            1  => 'Success (Berhasil)',
+            2  => 'Cancelled (Dibatalkan)',
+            3  => 'Refund (Dikembalikan)',
+            4  => 'Error',
+            5  => 'Failed (Gagal)',
+            6  => 'Success - Unsettled (Berhasil Belum Settlement)',
+            7  => 'Escrow',
+            -2 => 'Expired (Kedaluwarsa)',
+            -1 => 'Expired / Failed',
+        ];
+
+        $description = $statusDesc ?: ($statusMap[$codeInt] ?? 'Unknown Status');
+
+        // Check if status is PAID / SUCCESS: 1 (Success), 6 (Success Unsettled), 7 (Escrow)
+        $isPaid = in_array($codeInt, [1, 6, 7]) 
+            || $paidStatus === 'paid' 
+            || in_array(strtolower($statusDesc), ['berhasil', 'success', 'paid', 'settlement']);
+
+        // Check if status is FAILED / CANCELLED / EXPIRED: -2 (Expired), 2 (Cancelled), 3 (Refund), 4 (Error), 5 (Failed)
+        $isFailed = in_array($codeInt, [-2, -1, 2, 3, 4, 5]) 
+            || in_array(strtolower($statusDesc), ['expired', 'cancelled', 'dibatalkan', 'gagal', 'failed', 'kedaluwarsa', 'batal']);
+
+        // Map to internal database transaction payment_status
+        if ($isPaid) {
+            $internalStatus = 'paid';
+        } elseif ($codeInt === 3 || strtolower($statusDesc) === 'refund') {
+            $internalStatus = 'refunded';
+        } elseif ($codeInt === -2 || in_array(strtolower($statusDesc), ['expired', 'kedaluwarsa'])) {
+            $internalStatus = 'expired';
+        } elseif ($isFailed) {
+            $internalStatus = 'failed';
+        } else {
+            $internalStatus = 'pending';
+        }
+
+        return [
+            'status_code'     => $codeInt,
+            'status_text'     => $description,
+            'status_desc'     => $description,
+            'internal_status' => $internalStatus,
+            'is_paid'         => $isPaid,
+            'is_failed'       => $isFailed,
+            'is_pending'      => ($internalStatus === 'pending'),
+        ];
+    }
+
+    /**
+     * Check transaction status via iPaymu API v2 /transaction endpoint.
+     * POST {{baseUrl}}/api/v2/transaction
+     */
+    public function checkTransactionStatus(string|int $transactionId): array
     {
         if (empty($this->va) || empty($this->apiKey)) {
+            Log::warning('IPaymuService: IPAYMU_VA or IPAYMU_API_KEY is not configured in .env file.');
             return [
-                'success' => true,
-                'status_code' => 1,
-                'status' => 'Berhasil',
-                'is_simulated' => true,
+                'success'         => false,
+                'status_code'     => 0,
+                'status'          => 'Pending',
+                'status_desc'     => 'Credentials not configured',
+                'internal_status' => 'pending',
+                'is_paid'         => false,
+                'is_failed'       => false,
+                'is_simulated'    => true,
             ];
         }
 
         $body = [
-            'transactionId' => $transactionId,
+            'transactionId' => is_numeric($transactionId) ? (int) $transactionId : (string) $transactionId,
         ];
 
         $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES);
@@ -173,23 +249,37 @@ class IPaymuService
 
             $data = $response->json();
 
-            if ($response->successful() && isset($data['Status']) && (int)$data['Status'] === 200) {
+            if ($response->successful() && isset($data['Status']) && (int)$data['Status'] === 200 && !empty($data['Data'])) {
                 $statusData = $data['Data'] ?? [];
-                $statusCode = (int) ($statusData['StatusCode'] ?? $statusData['Status'] ?? 0);
-                return [
-                    'success' => true,
-                    'status_code' => $statusCode,
-                    'status' => $statusData['Status'] ?? '',
-                    'data' => $statusData,
-                ];
+                $statusCode = isset($statusData['Status']) ? (int) $statusData['Status'] : 0;
+                $statusDesc = (string) ($statusData['StatusDesc'] ?? '');
+                $paidStatus = (string) ($statusData['PaidStatus'] ?? '');
+
+                $parsed = self::parseStatusCode($statusCode, $paidStatus, $statusDesc);
+
+                return array_merge([
+                    'success'        => true,
+                    'transaction_id' => $statusData['TransactionId'] ?? null,
+                    'session_id'     => $statusData['SessionId'] ?? null,
+                    'reference_id'   => $statusData['ReferenceId'] ?? null,
+                    'data'           => $statusData,
+                ], $parsed);
             }
+
+            Log::warning('iPaymu check transaction status returned non-200 or error', [
+                'transaction_id' => $transactionId,
+                'response'       => $data,
+            ]);
 
             return [
                 'success' => false,
-                'message' => $data['Message'] ?? 'Gagal mengecek status transaksi',
+                'message' => $data['Message'] ?? 'Gagal mengecek status transaksi di iPaymu.',
+                'raw'     => $data,
             ];
         } catch (\Exception $e) {
-            Log::error('iPaymu check transaction status exception: ' . $e->getMessage());
+            Log::error('iPaymu check transaction status exception: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'success' => false,
                 'message' => $e->getMessage(),

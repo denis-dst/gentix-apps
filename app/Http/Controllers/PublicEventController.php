@@ -64,43 +64,101 @@ class PublicEventController extends Controller
     {
         \Log::info('iPaymu notification received', $request->all());
 
-        $referenceId = $request->input('reference_id');
-        $statusCode  = (int) $request->input('status_code', 0);
+        // Support both JSON body and form-urlencoded payload from iPaymu callback
+        $referenceId = $request->input('reference_id') ?: $request->input('referenceId');
+        $statusCode  = (string) ($request->input('status_code') ?? $request->input('transaction_status_code', ''));
         $statusMsg   = strtolower((string) $request->input('status', ''));
-        $paymentVia  = $request->input('via', 'iPaymu');
+        $statusDesc  = strtolower((string) $request->input('status_desc', ''));
+        $paymentVia  = (string) $request->input('via', 'iPaymu');
+        $channel     = (string) $request->input('channel', '');
+        $paidAt      = $request->input('paid_at');
 
         if (empty($referenceId)) {
-            return response()->json(['message' => 'Missing reference_id'], 400);
+            \Log::warning('iPaymu notification received without reference_id', $request->all());
+            return response()->json(['status' => 400, 'message' => 'Missing reference_id'], 400);
         }
 
         $dbTransaction = Transaction::where('reference_no', $referenceId)->first();
 
         if (!$dbTransaction) {
             \Log::warning("Transaction not found for iPaymu reference_id: {$referenceId}");
-            return response()->json(['message' => 'Transaction not found'], 404);
+            return response()->json(['status' => 404, 'message' => 'Transaction not found'], 404);
         }
 
-        // Status code: 1 = Success/Paid, 0 = Pending, -1 = Expired/Failed
-        if ($statusCode === 1 || in_array($statusMsg, ['berhasil', 'success', 'paid'])) {
-            $dbTransaction->update([
+        // Format payment method string (e.g., "iPaymu (VA - BCA)")
+        $methodParts = [];
+        if (!empty($paymentVia)) {
+            $methodParts[] = strtoupper($paymentVia);
+        }
+        if (!empty($channel)) {
+            $methodParts[] = strtoupper($channel);
+        }
+        $paymentMethod = !empty($methodParts) ? 'iPaymu (' . implode(' - ', $methodParts) . ')' : 'iPaymu';
+
+        // Parse status using standard iPaymu Status Codes
+        $parsedStatus = \App\Services\IPaymuService::parseStatusCode($statusCode, '', $statusMsg ?: $statusDesc);
+
+        if ($parsedStatus['is_paid']) {
+            $updateData = [
                 'payment_status' => 'paid',
-                'payment_method' => 'iPaymu (' . strtoupper($paymentVia) . ')',
-            ]);
+                'payment_method' => $paymentMethod,
+            ];
+            if (!empty($paidAt)) {
+                try {
+                    $updateData['paid_at'] = \Carbon\Carbon::parse($paidAt);
+                } catch (\Exception $e) {
+                    $updateData['paid_at'] = now();
+                }
+            } else {
+                $updateData['paid_at'] = now();
+            }
+
+            $dbTransaction->update($updateData);
+            
+            // Finalize transaction: generate tickets & send E-Voucher ONLY on confirmed payment
             $this->finalizeTransaction($dbTransaction);
-        } elseif ($statusCode === -1 || in_array($statusMsg, ['batal', 'expired', 'failed', 'gagal'])) {
+
+            \Log::info("iPaymu transaction {$referenceId} marked as PAID. Tickets generated & Evoucher sent.");
+        } elseif ($parsedStatus['is_failed']) {
+            $statusToSet = $parsedStatus['internal_status'];
             $dbTransaction->update([
-                'payment_status' => 'failed',
-                'payment_method' => 'iPaymu (' . strtoupper($paymentVia) . ')',
+                'payment_status' => $statusToSet,
+                'payment_method' => $paymentMethod,
             ]);
+
+            \Log::info("iPaymu transaction {$referenceId} marked as {$statusToSet}. No tickets/voucher issued.");
+        } else {
+            $dbTransaction->update([
+                'payment_status' => 'pending',
+                'payment_method' => $paymentMethod,
+            ]);
+
+            \Log::info("iPaymu transaction {$referenceId} is PENDING. No tickets/voucher issued.");
         }
 
-        return response()->json(['status' => 'ok', 'message' => 'Notification processed successfully']);
+        return response()->json([
+            'status'  => 200,
+            'message' => 'Notification processed successfully',
+            'data'    => [
+                'reference_id'   => $referenceId,
+                'payment_status' => $dbTransaction->payment_status,
+            ]
+        ], 200);
     }
 
     private function finalizeTransaction($transaction)
     {
+        // STRICT SAFETY CHECK:
+        // Never finalize or issue tickets/evoucher for unpaid transactions (unless free event)
+        if ($transaction->payment_method !== 'free' && $transaction->payment_status !== 'paid') {
+            \Log::warning("finalizeTransaction blocked: Transaction {$transaction->reference_no} is not paid (status: {$transaction->payment_status})");
+            return;
+        }
+
         // Don't duplicate tickets if already generated
-        if ($transaction->tickets()->count() >= $transaction->quantity) return;
+        if ($transaction->tickets()->count() >= $transaction->quantity) {
+            return;
+        }
 
         // Collect created tickets OUTSIDE the closure so we can notify after commit
         $createdTickets = [];
@@ -108,7 +166,7 @@ class PublicEventController extends Controller
         DB::transaction(function() use ($transaction, &$createdTickets) {
             $transaction->update([
                 'payment_status' => 'paid',
-                'paid_at' => now()
+                'paid_at' => $transaction->paid_at ?? now()
             ]);
 
             $category = $transaction->category;
@@ -606,26 +664,46 @@ class PublicEventController extends Controller
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
 
-        // Free events are already paid
+        // Free events are already paid and finalized during registration
         if ($transaction->payment_method === 'free') {
             return view('checkout.success', compact('transaction'));
         }
 
-        // If tickets are not generated yet for this transaction
+        // If tickets are already generated and transaction is paid
+        if ($transaction->payment_status === 'paid' && $transaction->tickets->isNotEmpty()) {
+            return view('checkout.success', compact('transaction'));
+        }
+
+        // If tickets are not generated yet, check status
         if ($transaction->tickets->isEmpty()) {
-            $isReturned = request()->has('return') || request()->has('status') || request()->has('sid') || request()->has('trx_id');
-            
-            if ($isReturned || $transaction->payment_status === 'paid' || empty(config('services.ipaymu.va')) || empty(config('services.ipaymu.api_key'))) {
+            $statusParam     = strtolower((string) request()->query('status', ''));
+            $statusCodeParam = (string) (request()->query('status_code', request()->query('transaction_status_code', '')));
+            $trxIdParam      = (string) request()->query('trx_id', '');
+
+            // Parse status from URL query parameters if present
+            $hasQueryStatus = !empty($statusCodeParam) || !empty($statusParam);
+            $parsedQuery = $hasQueryStatus ? \App\Services\IPaymuService::parseStatusCode($statusCodeParam, '', $statusParam) : null;
+
+            if ($parsedQuery && $parsedQuery['is_failed']) {
+                $transaction->update(['payment_status' => $parsedQuery['internal_status']]);
+                $transaction->refresh();
+            } elseif ($transaction->payment_status === 'paid' || ($parsedQuery && $parsedQuery['is_paid'])) {
+                $transaction->update(['payment_status' => 'paid']);
                 $this->finalizeTransaction($transaction);
                 $transaction->refresh();
                 $transaction->load('tickets.category', 'event');
-            } else {
+            } elseif (!empty($trxIdParam) && !empty(config('services.ipaymu.va')) && !empty(config('services.ipaymu.api_key'))) {
+                // If we have trx_id from return URL, verify status directly with iPaymu /transaction API
                 $ipaymuService = new \App\Services\IPaymuService();
-                $checkResult = $ipaymuService->checkTransactionStatus($transaction->reference_no);
-                if ($checkResult['success'] && (in_array($checkResult['status_code'] ?? 0, [1, 6]) || strtolower($checkResult['status'] ?? '') === 'berhasil')) {
+                $checkResult = $ipaymuService->checkTransactionStatus($trxIdParam);
+                if ($checkResult['success'] && $checkResult['is_paid']) {
+                    $transaction->update(['payment_status' => 'paid']);
                     $this->finalizeTransaction($transaction);
                     $transaction->refresh();
                     $transaction->load('tickets.category', 'event');
+                } elseif ($checkResult['success'] && $checkResult['is_failed']) {
+                    $transaction->update(['payment_status' => $checkResult['internal_status']]);
+                    $transaction->refresh();
                 }
             }
         }
