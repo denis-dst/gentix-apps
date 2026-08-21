@@ -191,12 +191,18 @@ class PublicEventController extends Controller
 
         // Send notifications AFTER the DB transaction is committed
         // so SMTP errors/timeouts cannot cause DB rollback or browser fetch failures
-        foreach ($createdTickets as $ticket) {
+        if (!empty($createdTickets)) {
             try {
                 $notificationService = new \App\Services\TicketNotificationService();
-                $notificationService->sendEVoucher($ticket);
+                // Send primary E-Voucher email + WA for the first ticket
+                $notificationService->sendEVoucher($createdTickets[0]);
+
+                // For any remaining tickets in the same transaction, send WA notifications
+                for ($i = 1; $i < count($createdTickets); $i++) {
+                    $notificationService->sendWhatsApp($createdTickets[$i]);
+                }
             } catch (\Exception $e) {
-                \Log::error('Notification failed after finalizeTransaction for ticket ' . $ticket->ticket_code . ': ' . $e->getMessage());
+                \Log::error('Notification failed after finalizeTransaction for transaction ' . $transaction->reference_no . ': ' . $e->getMessage());
             }
         }
     }

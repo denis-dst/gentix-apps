@@ -16,6 +16,13 @@ class TicketNotificationService
      */
     public function sendEVoucher(Ticket $ticket)
     {
+        // STRICT SAFETY CHECK:
+        // E-voucher must NEVER be sent if payment is not paid (unless free event)
+        if ($ticket->transaction && $ticket->transaction->payment_method !== 'free' && $ticket->transaction->payment_status !== 'paid') {
+            Log::warning("sendEVoucher blocked: Transaction {$ticket->transaction->reference_no} is not paid (status: {$ticket->transaction->payment_status})");
+            return;
+        }
+
         // 1. Send Email
         $this->sendEmail($ticket);
 
@@ -26,6 +33,12 @@ class TicketNotificationService
     protected function sendEmail(Ticket $ticket)
     {
         try {
+            // STRICT SAFETY CHECK
+            if ($ticket->transaction && $ticket->transaction->payment_method !== 'free' && $ticket->transaction->payment_status !== 'paid') {
+                Log::warning("sendEmail blocked: Transaction {$ticket->transaction->reference_no} is not paid");
+                return;
+            }
+
             // Check global setting first
             $globalEmailEnabled = Setting::where('key', 'global_email_notifications_enabled')->value('value');
             if ($globalEmailEnabled === '0' || $globalEmailEnabled === false) {
@@ -44,6 +57,16 @@ class TicketNotificationService
 
     public function sendWhatsApp(Ticket $ticket, bool $force = false, bool $throwExceptions = false)
     {
+        // STRICT SAFETY CHECK:
+        // WhatsApp E-Voucher must ONLY be sent when transaction payment is confirmed paid (or free event)
+        if ($ticket->transaction && $ticket->transaction->payment_method !== 'free' && $ticket->transaction->payment_status !== 'paid') {
+            Log::warning("sendWhatsApp blocked: Transaction {$ticket->transaction->reference_no} is not paid (status: {$ticket->transaction->payment_status})");
+            if ($throwExceptions) {
+                throw new \Exception('Pembayaran transaksi belum berstatus berhasil/lunas.');
+            }
+            return;
+        }
+
         if (!$force) {
             // Check global setting first
             $globalWaEnabled = Setting::where('key', 'global_wa_notifications_enabled')->value('value');
