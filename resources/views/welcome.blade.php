@@ -225,26 +225,36 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 @foreach($events as $event)
-                <div class="glass-card rounded-3xl overflow-hidden group transition-all">
-                    <div class="relative h-64 overflow-hidden">
-                        <img src="{{ $event->background_image ? asset('storage/' . $event->background_image) : asset('images/concert.png') }}" alt="{{ $event->name }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-gradient-to-t from-[#13131b] via-transparent to-transparent"></div>
-                        <div class="absolute top-4 left-4 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
+                @php
+                    $bgImg = $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : asset('images/concert.png');
+                @endphp
+                <div class="glass-card rounded-3xl overflow-hidden group transition-all flex flex-col h-full">
+                    <div class="relative aspect-[16/10] overflow-hidden bg-[#181824] flex items-center justify-center">
+                        <!-- Ambient blurred backdrop to match poster tones without blank space -->
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-125 pointer-events-none">
+                        
+                        <!-- Main contained poster image (100% visible, fully responsive without cropping) -->
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" class="relative z-10 w-full h-full object-contain p-1 transition duration-500 group-hover:scale-105">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#13131b]/80 via-transparent to-transparent z-10 pointer-events-none"></div>
+                        <div class="absolute top-4 left-4 z-20 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
                             {{ $event->city ?? 'Event' }}
                         </div>
                     </div>
-                    <div class="p-8">
-                        <div class="flex items-center gap-2 mb-4">
-                            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span class="text-xs text-stone-400 font-medium tracking-wide">
-                                {{ $event->event_start_date->format('M d, Y • H:i A') }}
-                            </span>
+                    <div class="p-8 flex flex-col flex-1 justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-4">
+                                <svg class="w-4 h-4 text-orange-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-xs text-stone-400 font-medium tracking-wide">
+                                    {{ $event->event_start_date->format('M d, Y • H:i A') }}
+                                </span>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-4 font-outfit text-white group-hover:text-orange-400 transition">{{ $event->name }}</h3>
+                            <p class="text-stone-400 font-light text-sm mb-6 line-clamp-2">{{ trim(html_entity_decode(strip_tags($event->description), ENT_QUOTES, 'UTF-8')) }}</p>
                         </div>
-                        <h3 class="text-2xl font-bold mb-4 font-outfit text-white group-hover:text-orange-400 transition">{{ $event->name }}</h3>
-                        <p class="text-stone-400 font-light text-sm mb-6 line-clamp-2">{{ trim(html_entity_decode(strip_tags($event->description), ENT_QUOTES, 'UTF-8')) }}</p>
-                        <div class="flex items-center justify-between pt-6 border-t border-white/5">
+                        <div class="flex items-center justify-between pt-6 border-t border-white/5 mt-auto">
                             <span class="text-xl font-bold text-orange-400">
                                 @if($event->ticketCategories->count() > 0)
                                     Mulai Rp. {{ number_format($event->ticketCategories->min('price'), 0, ',', '.') }}
