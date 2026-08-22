@@ -32,10 +32,10 @@
 
             $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
-            // Partial scan detection for fallback — use gate_logs (type=IN)
+            // Partial scan detection for fallback: use gate_logs (type=IN)
             $nonVoidTickets  = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
             $totalTickets    = $nonVoidTickets->count();
-            // gate_logs may not be loaded in fallback — check if loaded, else fall back to status
+            // gate_logs may not be loaded in fallback: check if loaded, else fall back to status
             $checkedInCount  = $nonVoidTickets->filter(fn ($t) =>
                 $t->relationLoaded('gateLogs')
                     ? $t->gateLogs->where('type', 'IN')->isNotEmpty()
@@ -647,7 +647,7 @@
                 }
             });
 
-            // 2. Process Tickets — apply scan filter + search
+            // Process Tickets: apply scan filter and search
             const ticketRows = container.querySelectorAll('.ticket-row');
             let visibleTickets = [];
             const scanFilter = window.ticketScanFilter || 'all';

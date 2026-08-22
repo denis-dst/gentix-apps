@@ -142,7 +142,7 @@
                     @if($isFree)
                         <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3">
                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            Event Gratis — Registrasi Terverifikasi
+                            Event Gratis: Registrasi Terverifikasi
                         </div>
                     @endif
                     <h1 class="text-3xl font-black text-slate-900 leading-tight font-outfit mb-4">
@@ -278,7 +278,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-black text-amber-800">Cara Check-in di Lokasi</p>
-                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem) — cukup scan langsung QR Code dari rombongan Anda.</p>
+                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem), cukup scan langsung QR Code dari rombongan Anda.</p>
                 </div>
             </div>
             @endif

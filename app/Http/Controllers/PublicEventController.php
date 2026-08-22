@@ -223,16 +223,12 @@ class PublicEventController extends Controller
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
-        // -------------------------------------------------------
-        // FREE EVENT: validation rules include gender & umroh
-        // -------------------------------------------------------
+        // Free event validation rules include gender and custom questions
         if ($event->is_free) {
             return $this->processFreeCheckout($request, $event);
         }
 
-        // -------------------------------------------------------
-        // PAID EVENT: existing Midtrans flow (unchanged)
-        // -------------------------------------------------------
+        // Paid event checkout flow
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
             'quantity' => 'required|integer|min:1|max:10', // Increased to 10 for testing
@@ -354,7 +350,7 @@ class PublicEventController extends Controller
                 $promo->increment('used_count');
             }
 
-            // --- iPaymu Integration ---
+            // iPaymu payment gateway integration
             $ipaymuService = new \App\Services\IPaymuService();
             $ipaymuResult  = $ipaymuService->createPaymentLink([
                 'amount'         => $totalAmount,
@@ -500,7 +496,7 @@ class PublicEventController extends Controller
 
             $firstAttendee = $validated['attendees'][0];
 
-            // Create Transaction — immediately paid (free)
+            // Create Transaction: immediately paid (free event)
             $transaction = Transaction::create([
                 'tenant_id'            => $event->tenant_id,
                 'event_id'             => $event->id,

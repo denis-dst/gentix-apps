@@ -90,7 +90,7 @@ class ReportController extends Controller
 
                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
-                // Partial scan detection: use gate_logs (type=IN) — NOT ticket.status
+                // Partial scan detection: use gate_logs (type=IN), NOT ticket.status
                 $nonVoidTickets   = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
                 $totalTickets     = $nonVoidTickets->count();
                 $checkedInCount   = $nonVoidTickets->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();

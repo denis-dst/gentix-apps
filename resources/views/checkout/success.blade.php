@@ -57,9 +57,7 @@
         $isFailed  = !$isPaid && in_array($transaction->payment_status, ['failed', 'expired', 'refunded', 'cancelled']);
     @endphp
 
-    {{-- ============================================================
-         POPUP MODAL — Terima Kasih (hanya untuk free event & paid)
-         ============================================================ --}}
+    {{-- Modal: Terima Kasih (Free event & Paid) --}}
     @if($isFree && $isPaid)
     <div id="thankYouModal"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"

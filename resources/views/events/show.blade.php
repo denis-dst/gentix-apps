@@ -551,9 +551,7 @@
                     <div class="sticky top-8 space-y-4">
                         
                         @if($event->is_free)
-                            {{-- ============================================
-                                 FREE EVENT: Step 1 — Pilih Kategori + NIK
-                                 ============================================ --}}
+                            {{-- Free Event: Step 1 (Pilih Kategori & Kontak) --}}
                             <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-6">
                                 <!-- Free badge -->
                                 <div class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
@@ -593,9 +591,7 @@
                                 </button>
                             </div>
 
-                            {{-- ============================================
-                                 FREE EVENT: Step 2 — Form Data Diri
-                                 ============================================ --}}
+                            {{-- Free Event: Step 2 (Form Data Diri) --}}
                             <div x-show="step === 2" x-cloak class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-emerald-900/5 border border-slate-50 space-y-5">
                                 <div class="flex items-center gap-2 mb-2">
                                     <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
@@ -667,7 +663,7 @@
                                                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                                          <span x-text="proof.label + ' wajib diunggah'"></span>
                                                      </p>
-                                                     <p x-show="!formTouched || uploadedProofs[proof.id]" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG — Maks. 1 MB.</p>
+                                                     <p x-show="!formTouched || uploadedProofs[proof.id]" class="mt-1 text-xs font-medium text-slate-400">Format: JPG/PNG, Maks. 1 MB.</p>
                                                 </div>
                                             </template>
                                         </div>

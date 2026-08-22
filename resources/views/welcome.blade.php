@@ -337,7 +337,7 @@
                             <div>
                                 <h4 class="text-xl font-bold mb-2 text-white">{{ __('Technology Inclusivity') }}</h4>
                                 <p class="text-stone-400 text-sm leading-relaxed">
-                                    Built on high-end cloud infrastructure, yet designed with a UI so simple that everyone—from Gen Z to Baby Boomers—can scan their E-vouchers or RFID bands without a single worry.
+                                    Built on high-end cloud infrastructure, yet designed with a UI so simple that everyone, from Gen Z to Baby Boomers, can scan their E-vouchers or RFID bands without a single worry.
                                 </p>
                             </div>
                         </div>

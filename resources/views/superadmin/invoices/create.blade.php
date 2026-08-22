@@ -33,7 +33,7 @@
                             <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Tenant / Penyedia Event <span class="text-red-500">*</span></label>
                             <select name="tenant_id" required
                                     class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white">
-                                <option value="">— Pilih Tenant —</option>
+                                <option value="">Pilih Tenant</option>
                                 @foreach($tenants as $tenant)
                                     <option value="{{ $tenant->id }}" {{ old('tenant_id') == $tenant->id ? 'selected' : '' }}>
                                         {{ $tenant->name }}

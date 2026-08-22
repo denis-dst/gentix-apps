@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* Accessibility: Visible high-contrast focus indicator for keyboard users (WCAG AA) */
+    :focus-visible {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+    }
+
+    /* Prevent unintended horizontal scroll overflow on mobile viewports */
+    html, body {
+        overflow-x: clip;
+        scroll-behavior: smooth;
+    }
+
+    /* Respect user motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+@layer utilities {
+    /* Mobile-first minimum 44px touch target area utility */
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
