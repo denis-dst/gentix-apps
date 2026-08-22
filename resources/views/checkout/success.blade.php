@@ -51,13 +51,14 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
     @php
-        $isFree    = $transaction->payment_method === 'free';
+        $isFree    = in_array($transaction->payment_method, ['free', 'promo']) || $transaction->total_amount == 0;
         $isPaid    = $isFree || $transaction->payment_status === 'paid';
         $isPending = !$isPaid && $transaction->payment_status === 'pending';
         $isFailed  = !$isPaid && in_array($transaction->payment_status, ['failed', 'expired', 'refunded', 'cancelled']);
+        $purchaseFlow = $transaction->event->purchase_flow ?? 'redeem';
     @endphp
 
-    {{-- Modal: Terima Kasih (Free event & Paid) --}}
+    {{-- Modal: Terima Kasih (Free event, Promo 100% & Paid) --}}
     @if($isFree && $isPaid)
     <div id="thankYouModal"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
@@ -79,9 +80,9 @@
                     🎉 Terima Kasih!
                 </h2>
                 <p class="text-center text-slate-500 text-sm font-medium mb-6">
-                    Pendaftaran Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
+                    Pemesanan Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
                     <br>
-                    Silakan periksa Email anda pada folder SPAM untuk mendapatkan Evoucher atau ikuti instruksi di bawah ini.
+                    Silakan periksa Email anda pada folder Inbox/SPAM untuk mendapatkan E-Voucher atau ikuti petunjuk di bawah ini.
                 </p>
 
                 <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-5 space-y-3">
@@ -89,26 +90,30 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        Petunjuk Penting
+                        Petunjuk Masuk Acara
                     </p>
 
                     <ol class="space-y-2.5">
                         <li class="flex items-start gap-3">
                             <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</div>
                             <p class="text-sm text-slate-700 font-medium leading-snug">
-                                <strong>Salin URL E-Voucher</strong> Anda di bawah ini
+                                <strong>Buka E-Voucher</strong> dengan menekan tombol hijau di bawah
                             </p>
                         </li>
                         <li class="flex items-start gap-3">
                             <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">2</div>
                             <p class="text-sm text-slate-700 font-medium leading-snug">
-                                <strong>Buka E-Voucher</strong> dengan menekan tombol di bawah
+                                <strong>Screenshot / Simpan sebagai PDF</strong> untuk ditunjukkan di hari H
                             </p>
                         </li>
                         <li class="flex items-start gap-3">
                             <div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">3</div>
                             <p class="text-sm text-slate-700 font-medium leading-snug">
-                                <strong>Screenshot / Simpan sebagai PDF</strong> untuk ditunjukkan kepada panitia di hari H
+                                @if($purchaseFlow === 'redeem')
+                                    <strong>Wajib Ditukar (Redeem):</strong> Tunjukkan E-Voucher di booth resmi untuk ditukar dengan tiket fisik/gelang sebelum masuk.
+                                @else
+                                    <strong>Langsung Masuk (Tanpa Redeem):</strong> Tunjukkan QR Code E-Voucher langsung di pintu/gate masuk untuk dipindai oleh kru.
+                                @endif
                             </p>
                         </li>
                     </ol>

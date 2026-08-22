@@ -149,8 +149,8 @@ class PublicEventController extends Controller
     private function finalizeTransaction($transaction)
     {
         // STRICT SAFETY CHECK:
-        // Never finalize or issue tickets/evoucher for unpaid transactions (unless free event)
-        if ($transaction->payment_method !== 'free' && $transaction->payment_status !== 'paid') {
+        // Never finalize or issue tickets/evoucher for unpaid transactions (unless free event or promo)
+        if (!in_array($transaction->payment_method, ['free', 'promo']) && $transaction->payment_status !== 'paid') {
             \Log::warning("finalizeTransaction blocked: Transaction {$transaction->reference_no} is not paid (status: {$transaction->payment_status})");
             return;
         }
@@ -327,7 +327,48 @@ class PublicEventController extends Controller
             $totalAmount = max(0, $subtotal - $discount);
             $referenceNo = 'TX-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
-            // Create Transaction Record (Status: Pending)
+            // If 100% Promo Discount or 0 Rupiah, issue E-Voucher directly without iPaymu Payment Gateway
+            if ($totalAmount <= 0) {
+                $transaction = Transaction::create([
+                    'tenant_id'          => $event->tenant_id,
+                    'event_id'           => $event->id,
+                    'ticket_category_id' => $category->id,
+                    'quantity'           => $validated['quantity'],
+                    'promo_code_id'      => $promo?->id,
+                    'reference_no'       => $referenceNo,
+                    'customer_name'      => $validated['name'],
+                    'customer_email'     => $validated['email'],
+                    'customer_phone'     => $validated['phone'],
+                    'customer_nik'       => $validated['nik'],
+                    'discount_amount'    => $discount,
+                    'total_amount'       => 0,
+                    'payment_status'     => 'paid',
+                    'payment_method'     => 'promo',
+                    'paid_at'            => now(),
+                    'channel'            => 'online',
+                ]);
+
+                if ($promo) {
+                    $promo->increment('used_count');
+                }
+
+                $this->finalizeTransaction($transaction);
+
+                $redirectUrl = route('checkout.success', $referenceNo);
+
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json([
+                        'success'      => true,
+                        'redirect_url' => $redirectUrl,
+                        'reference_no' => $referenceNo,
+                        'is_free'      => true
+                    ]);
+                }
+
+                return redirect($redirectUrl);
+            }
+
+            // Create Transaction Record (Status: Pending for paid transactions)
             $transaction = Transaction::create([
                 'tenant_id' => $event->tenant_id,
                 'event_id' => $event->id,
@@ -666,8 +707,8 @@ class PublicEventController extends Controller
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
 
-        // Free events are already paid and finalized during registration
-        if ($transaction->payment_method === 'free') {
+        // Free events or 100% Promo discounts are already paid and finalized during checkout
+        if ($transaction->payment_method === 'free' || $transaction->payment_method === 'promo' || $transaction->total_amount == 0) {
             return view('checkout.success', compact('transaction'));
         }
 

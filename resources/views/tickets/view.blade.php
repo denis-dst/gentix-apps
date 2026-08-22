@@ -56,7 +56,9 @@
 <body class="bg-slate-100 min-h-screen py-4 md:py-10">
 
     @php
-        $isFree = $ticket->transaction->payment_method === 'free';
+        $isPromo100 = $ticket->transaction->payment_method === 'promo' || ($ticket->transaction->total_amount == 0 && ($ticket->transaction->discount_amount ?? 0) > 0);
+        $isFree = $ticket->transaction->payment_method === 'free' || $isPromo100;
+        $purchaseFlow = $ticket->event->purchase_flow ?? 'redeem';
         $activeGroupTickets = $ticket->transaction->tickets->where('status', '!=', 'void')->values();
         $voidGroupTicketsCount = $ticket->transaction->tickets->where('status', 'void')->count();
         $groupTicketCount = $activeGroupTickets->count();
@@ -181,6 +183,11 @@
                             <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Metode Pembayaran</span>
                             <span class="text-slate-800 font-bold uppercase">{{ str_replace('_', ' ', $ticket->transaction->payment_method) }}</span>
                         </div>
+                        @elseif($isPromo100)
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Metode Pembayaran</span>
+                            <span class="text-emerald-700 font-black uppercase">✓ PROMO 100% (GRATIS)</span>
+                        </div>
                         @else
                         <div class="flex justify-between text-sm">
                             <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Jenis Tiket</span>
@@ -270,15 +277,25 @@
             </div>
             @endif
 
-            <!-- Check-in instruction for free events -->
-            @if($isFree)
+            <!-- Check-in / Redeem instruction based on purchase_flow -->
+            @if($purchaseFlow === 'redeem')
             <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4 {{ $isMultiTicket ? 'print-hide-on-multi' : '' }}">
                 <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 text-amber-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
-                    <p class="text-sm font-black text-amber-800">Cara Check-in di Lokasi</p>
-                    <p class="text-xs text-amber-700 mt-1">Tunjukkan QR Code ini kepada petugas saat tiba di lokasi acara untuk proses check-in. Tidak ada proses penukaran (redeem), cukup scan langsung QR Code dari rombongan Anda.</p>
+                    <p class="text-sm font-black text-amber-800">Petunjuk Penukaran Tiket (Wajib Redeem)</p>
+                    <p class="text-xs text-amber-700 mt-1">E-Voucher ini <strong>wajib ditukarkan</strong> dengan tiket fisik / gelang wristband di booth resmi sebelum memasuki area acara. Tunjukkan QR Code ini kepada petugas penukaran.</p>
+                </div>
+            </div>
+            @else
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4 {{ $isMultiTicket ? 'print-hide-on-multi' : '' }}">
+                <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 text-emerald-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-black text-emerald-800">Petunjuk Masuk Acara (Direct Gate Check-in)</p>
+                    <p class="text-xs text-emerald-700 mt-1">Tunjukkan QR Code E-Voucher ini langsung di pintu masuk/gate acara untuk dipindai oleh kru. <strong>Tidak memerlukan penukaran tiket fisik</strong>.</p>
                 </div>
             </div>
             @endif
