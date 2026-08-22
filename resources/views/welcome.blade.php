@@ -243,7 +243,7 @@
                             </span>
                         </div>
                         <h3 class="text-2xl font-bold mb-4 font-outfit text-white group-hover:text-orange-400 transition">{{ $event->name }}</h3>
-                        <p class="text-stone-400 font-light text-sm mb-6 line-clamp-2">{{ $event->description }}</p>
+                        <p class="text-stone-400 font-light text-sm mb-6 line-clamp-2">{{ trim(html_entity_decode(strip_tags($event->description), ENT_QUOTES, 'UTF-8')) }}</p>
                         <div class="flex items-center justify-between pt-6 border-t border-white/5">
                             <span class="text-xl font-bold text-orange-400">
                                 @if($event->ticketCategories->count() > 0)

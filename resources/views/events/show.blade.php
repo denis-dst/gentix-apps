@@ -409,11 +409,11 @@
                         <div class="pt-4" x-data="{ expanded: false }">
                             <h3 class="font-bold text-slate-900 mb-2" x-text="lang === 'id' ? 'Deskripsi' : 'Description'"></h3>
                             @if($descriptionHtml !== '')
-                                <div class="text-sm text-slate-600 leading-relaxed whitespace-pre-line" x-show="expanded">
-                                    {!! nl2br(e($descriptionHtml)) !!}
+                                <div class="text-sm text-slate-600 leading-relaxed trix-content" x-show="expanded">
+                                    {!! $descriptionHtml !!}
                                 </div>
-                                <div class="text-sm text-slate-600 leading-relaxed whitespace-pre-line" x-show="!expanded">
-                                    {{ \Illuminate\Support\Str::limit(strip_tags($descriptionHtml), 220) }}
+                                <div class="text-sm text-slate-600 leading-relaxed" x-show="!expanded">
+                                    {{ \Illuminate\Support\Str::limit(trim(html_entity_decode(strip_tags($descriptionHtml), ENT_QUOTES, 'UTF-8')), 220) }}
                                 </div>
                                 <button @click="expanded = !expanded" class="text-blue-600 text-sm font-bold mt-1 hover:underline">
                                     <span x-show="!expanded" x-text="lang === 'id' ? 'Selengkapnya...' : 'Read More...'"></span>
