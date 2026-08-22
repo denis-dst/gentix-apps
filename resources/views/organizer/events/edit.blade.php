@@ -81,8 +81,8 @@
 
                         <div class="mb-6">
                             <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Update Thumbnail</label>
-                            <input type="file" name="background_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                            <p class="mt-1 text-[10px] text-gray-400 italic">Recommended aspect ratio 4:3 (e.g. 800x600px)</p>
+                            <input type="file" name="background_image" accept="image/jpeg,image/png,image/webp,image/jpg" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
+                            <p class="mt-1 text-[10px] text-gray-400 italic">Format: JPG, PNG, WEBP (Maksimal 10 MB). Rasio rekomendasi 16:9 atau 4:3.</p>
                         </div>
 
                         <div>

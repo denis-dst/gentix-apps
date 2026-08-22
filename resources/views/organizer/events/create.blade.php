@@ -44,6 +44,12 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Thumbnail / Banner Event</label>
+                        <input type="file" name="background_image" accept="image/jpeg,image/png,image/webp,image/jpg" class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-2xl file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 transition cursor-pointer">
+                        <p class="mt-1 text-[10px] text-slate-400 italic">Format: JPG, PNG, WEBP (Maksimal 10 MB). Rasio rekomendasi 16:9 atau 4:3.</p>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Deskripsi Event</label>
                         <input id="description_input" type="hidden" name="description" value="{{ old('description') }}">
                         <trix-editor input="description_input" class="trix-content min-h-[150px] bg-white rounded-2xl border-slate-200 focus-within:border-purple-500 focus:ring-purple-500 transition-all text-sm px-6 py-4" placeholder="Ceritakan tentang event ini..."></trix-editor>

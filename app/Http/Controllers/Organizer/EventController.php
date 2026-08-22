@@ -62,6 +62,7 @@ class EventController extends Controller
             'terms_conditions' => 'nullable|string',
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
+            'background_image' => 'nullable|image|max:10240',
             'security_code' => 'nullable|string|size:6',
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
@@ -128,6 +129,10 @@ class EventController extends Controller
             $validated['security_code'] = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         }
 
+        if ($request->hasFile('background_image')) {
+            $validated['background_image'] = $request->file('background_image')->store('events/backgrounds', 'public');
+        }
+
         $event = Event::create($validated);
 
         return redirect()->route('organizer.events.edit', $event)->with('success', 'Event created. Now add ticket categories.');
@@ -145,7 +150,7 @@ class EventController extends Controller
     {
         $this->authorizeTenant($event);
 
-        // Filter out empty/invalid file uploads before validation to prevent Laravel from failing on nullable fields
+        // Only remove empty file inputs when no file was chosen
         foreach ([
             'background_image',
             'wristband_league_logo',
@@ -154,7 +159,7 @@ class EventController extends Controller
         ] as $input) {
             if ($request->files->has($input)) {
                 $file = $request->files->get($input);
-                if ($file && !$file->isValid()) {
+                if ($file && $file->getError() === UPLOAD_ERR_NO_FILE) {
                     $request->files->remove($input);
                 }
             }
@@ -164,7 +169,7 @@ class EventController extends Controller
             $files = $request->files->get('wristband_sponsor_logos');
             if (is_array($files)) {
                 $filtered = array_filter($files, function ($file) {
-                    return $file && $file->isValid();
+                    return $file && $file->getError() !== UPLOAD_ERR_NO_FILE;
                 });
                 if (empty($filtered)) {
                     $request->files->remove('wristband_sponsor_logos');
@@ -184,7 +189,7 @@ class EventController extends Controller
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
             'status' => 'required|in:draft,published,cancelled',
-            'background_image' => 'nullable|image|max:2048',
+            'background_image' => 'nullable|image|max:10240',
             'security_code' => 'required|string|size:6',
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
@@ -197,11 +202,11 @@ class EventController extends Controller
             'thermal_paper_width_mm' => 'nullable|integer|min:40|max:120',
             'thermal_paper_height_mm' => 'nullable|integer|min:60|max:300',
             'wristband_league_name' => 'nullable|string|max:255',
-            'wristband_league_logo' => 'nullable|image|max:1024',
-            'wristband_home_club_logo' => 'nullable|image|max:1024',
-            'wristband_away_club_logo' => 'nullable|image|max:1024',
+            'wristband_league_logo' => 'nullable|image|max:5120',
+            'wristband_home_club_logo' => 'nullable|image|max:5120',
+            'wristband_away_club_logo' => 'nullable|image|max:5120',
             'wristband_sponsor_logos' => 'nullable|array',
-            'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'wristband_sponsor_logos.*' => 'nullable|image|max:5120',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
             'registration_proofs_json' => 'nullable|string',
