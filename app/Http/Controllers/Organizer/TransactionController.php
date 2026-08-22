@@ -202,8 +202,10 @@ class TransactionController extends Controller
             }
 
             // Restore promo code usage if any
-            if ($transaction->promoCode) {
-                $transaction->promoCode->decrement('used_count');
+            $activeTicketsCount = $activeTickets->count();
+            if ($transaction->promoCode && $activeTicketsCount > 0) {
+                $currentUsed = $transaction->promoCode->used_count;
+                $transaction->promoCode->decrement('used_count', min($currentUsed, $activeTicketsCount));
             }
 
             $transaction->update([
@@ -260,9 +262,11 @@ class TransactionController extends Controller
 
             if ($newQty === 0) {
                 $updateData['payment_status'] = $transaction->payment_status === 'paid' ? 'refunded' : 'failed';
-                if ($transaction->promoCode) {
-                    $transaction->promoCode->decrement('used_count');
-                }
+            }
+
+            if ($transaction->promoCode && $numCanceled > 0) {
+                $currentUsed = $transaction->promoCode->used_count;
+                $transaction->promoCode->decrement('used_count', min($currentUsed, $numCanceled));
             }
 
             $transaction->update($updateData);

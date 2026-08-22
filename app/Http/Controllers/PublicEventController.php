@@ -18,9 +18,10 @@ class PublicEventController extends Controller
 {
     public function validatePromo(Request $request)
     {
-        $code = $request->code;
-        $eventId = $request->event_id;
-        $amount = $request->amount;
+        $code = $request->input('code');
+        $amount = (float) $request->input('amount', 0);
+        $eventId = $request->input('event_id');
+        $quantity = max(1, (int) $request->input('quantity', 1));
 
         $promo = PromoCode::where('code', $code)
             ->where('is_active', true)
@@ -41,8 +42,14 @@ class PublicEventController extends Controller
             return response()->json(['success' => false, 'message' => 'Promo sudah berakhir.']);
         }
 
-        if ($promo->max_usage && $promo->used_count >= $promo->max_usage) {
-            return response()->json(['success' => false, 'message' => 'Kuota promo sudah habis.']);
+        if ($promo->max_usage) {
+            $remaining = max(0, $promo->max_usage - $promo->used_count);
+            if ($remaining <= 0) {
+                return response()->json(['success' => false, 'message' => 'Kuota promo sudah habis.']);
+            }
+            if ($quantity > $remaining) {
+                return response()->json(['success' => false, 'message' => "Kuota promo hanya tersisa {$remaining} tiket untuk jumlah pembelian ini."]);
+            }
         }
 
         $discount = 0;
@@ -55,7 +62,7 @@ class PublicEventController extends Controller
         return response()->json([
             'success' => true,
             'promo_id' => $promo->id,
-            'discount' => $discount,
+            'discount' => min($discount, $amount),
             'message' => 'Promo berhasil digunakan!'
         ]);
     }
@@ -267,16 +274,28 @@ class PublicEventController extends Controller
         $discount = 0;
         if (!empty($validated['promo_code_id'])) {
             $promo = PromoCode::find($validated['promo_code_id']);
-            if ($promo && $promo->is_active) {
-                // Re-calculate discount to prevent tampering
-                $subtotal = $category->price * $validated['quantity'];
-                if ($promo->type === 'percentage') {
-                    $discount = ($promo->value / 100) * $subtotal;
+            if ($promo) {
+                if (!$promo->is_active || ($promo->start_at && now()->lt($promo->start_at)) || ($promo->expires_at && now()->gt($promo->expires_at))) {
+                    $promo = null;
+                    $discount = 0;
+                } elseif ($promo->max_usage && ($promo->used_count + $validated['quantity']) > $promo->max_usage) {
+                    $remaining = max(0, $promo->max_usage - $promo->used_count);
+                    $message = $remaining <= 0 
+                        ? 'Mohon maaf, kuota promo sudah habis.' 
+                        : "Mohon maaf, kuota promo hanya tersisa {$remaining} tiket untuk jumlah pembelian ini.";
+                    if ($request->ajax()) return response()->json(['success' => false, 'message' => $message]);
+                    return back()->with('error', $message);
                 } else {
-                    $discount = $promo->value;
+                    // Re-calculate discount to prevent tampering
+                    $subtotal = $category->price * $validated['quantity'];
+                    if ($promo->type === 'percentage') {
+                        $discount = ($promo->value / 100) * $subtotal;
+                    } else {
+                        $discount = $promo->value;
+                    }
+                    // Limit discount to subtotal
+                    $discount = min($discount, $subtotal);
                 }
-                // Limit discount to subtotal
-                $discount = min($discount, $subtotal);
             }
         }
 
@@ -344,7 +363,7 @@ class PublicEventController extends Controller
                 ]);
 
                 if ($promo) {
-                    $promo->increment('used_count');
+                    $promo->increment('used_count', $validated['quantity']);
                 }
 
                 $this->finalizeTransaction($transaction);
@@ -383,7 +402,7 @@ class PublicEventController extends Controller
             ]);
 
             if ($promo) {
-                $promo->increment('used_count');
+                $promo->increment('used_count', $validated['quantity']);
             }
 
             // iPaymu payment gateway integration

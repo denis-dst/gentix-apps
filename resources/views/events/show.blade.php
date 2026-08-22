@@ -113,8 +113,14 @@
                 this.quantity = 0;
             }
         }
-        this.discount = 0;
-        this.promoMessage = '';
+        if (this.appliedPromoId && this.promoCode) {
+            this.applyPromo();
+        } else {
+            this.discount = 0;
+            this.promoMessage = '';
+            this.appliedPromoId = null;
+            this.promoStatus = null;
+        }
     },
 
     async applyPromo() {
@@ -125,7 +131,7 @@
         }
         try {
             const amount = this.selectedCategory.price * this.quantity;
-            const response = await fetch(`/promo/validate?code=${this.promoCode}&event_id={{ $event->id }}&amount=${amount}`);
+            const response = await fetch(`/promo/validate?code=${encodeURIComponent(this.promoCode)}&event_id={{ $event->id }}&amount=${amount}&quantity=${this.quantity}`);
             const data = await response.json();
             
             if (data.success) {
