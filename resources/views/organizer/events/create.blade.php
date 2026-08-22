@@ -130,6 +130,31 @@
                         <p class="text-[10px] text-slate-400 mt-1 italic px-1">Informasi ini akan ditampilkan di bagian paling atas halaman E-Voucher peserta. Link URL akan otomatis menjadi link klik.</p>
                     </div>
 
+                    <!-- Pilihan Tipe Halaman E-Voucher (Untuk Pembelian > 1 Orang) -->
+                    <div class="pt-6 border-t border-slate-100 space-y-3"
+                         x-data="{ pageMode: '{{ old('evoucher_page_mode', '1_page') }}' }">
+                        <div>
+                            <h4 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">Tipe Tampilan E-Voucher (Multi-Peserta)</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">Format tata letak E-Voucher jika pembeli memesan lebih dari 1 tiket.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition duration-200" :class="pageMode === '1_page' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
+                                <input type="radio" name="evoucher_page_mode" value="1_page" x-model="pageMode" class="sr-only">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 uppercase">Default</span>
+                                    <span class="block text-sm font-black text-slate-800">1 Halaman (Semua Tiket)</span>
+                                </div>
+                                <span class="block text-xs text-slate-500 mt-1.5 leading-relaxed">Semua QR Code & nama peserta digabung dalam 1 lembar halaman ringkas.</span>
+                            </label>
+                            <label class="relative p-4 border-2 rounded-2xl cursor-pointer transition duration-200" :class="pageMode === 'multi_page' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300'">
+                                <input type="radio" name="evoucher_page_mode" value="multi_page" x-model="pageMode" class="sr-only">
+                                <span class="block text-sm font-black text-slate-800">Halaman Terpisah (Per Tiket)</span>
+                                <span class="block text-xs text-slate-500 mt-1.5 leading-relaxed">Tiap tiket peserta memiliki 1 lembar halaman penuh tersendiri (misal 2 tiket = 2 halaman).</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="pt-6 border-t border-slate-100 space-y-4"
                          x-data="{ flow: '{{ old('purchase_flow', 'redeem') }}' }">
                         <div>

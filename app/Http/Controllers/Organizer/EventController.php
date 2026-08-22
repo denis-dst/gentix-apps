@@ -83,6 +83,7 @@ class EventController extends Controller
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
             'registration_proofs_json' => 'nullable|string',
+            'evoucher_page_mode' => 'nullable|in:1_page,multi_page',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -210,6 +211,7 @@ class EventController extends Controller
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
             'registration_proofs_json' => 'nullable|string',
+            'evoucher_page_mode' => 'nullable|in:1_page,multi_page',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -270,6 +272,7 @@ class EventController extends Controller
     {
         $meta = $current;
         $meta['wristband_league_name'] = $request->input('wristband_league_name') ?: ($meta['wristband_league_name'] ?? null);
+        $meta['evoucher_page_mode'] = $request->input('evoucher_page_mode', $meta['evoucher_page_mode'] ?? '1_page');
 
         foreach ([
             'wristband_league_logo',

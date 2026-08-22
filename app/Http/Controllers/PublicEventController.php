@@ -194,13 +194,8 @@ class PublicEventController extends Controller
         if (!empty($createdTickets)) {
             try {
                 $notificationService = new \App\Services\TicketNotificationService();
-                // Send primary E-Voucher email + WA for the first ticket
+                // Send primary E-Voucher email + 1 representative WhatsApp notification for the transaction
                 $notificationService->sendEVoucher($createdTickets[0]);
-
-                // For any remaining tickets in the same transaction, send WA notifications
-                for ($i = 1; $i < count($createdTickets); $i++) {
-                    $notificationService->sendWhatsApp($createdTickets[$i]);
-                }
             } catch (\Exception $e) {
                 \Log::error('Notification failed after finalizeTransaction for transaction ' . $transaction->reference_no . ': ' . $e->getMessage());
             }

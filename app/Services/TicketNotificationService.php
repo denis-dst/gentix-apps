@@ -58,8 +58,8 @@ class TicketNotificationService
     public function sendWhatsApp(Ticket $ticket, bool $force = false, bool $throwExceptions = false)
     {
         // STRICT SAFETY CHECK:
-        // WhatsApp E-Voucher must ONLY be sent when transaction payment is confirmed paid (or free event)
-        if ($ticket->transaction && $ticket->transaction->payment_method !== 'free' && $ticket->transaction->payment_status !== 'paid') {
+        // WhatsApp E-Voucher must ONLY be sent when transaction payment is confirmed paid (or free/promo event)
+        if ($ticket->transaction && !in_array($ticket->transaction->payment_method, ['free', 'promo']) && $ticket->transaction->payment_status !== 'paid') {
             Log::warning("sendWhatsApp blocked: Transaction {$ticket->transaction->reference_no} is not paid (status: {$ticket->transaction->payment_status})");
             if ($throwExceptions) {
                 throw new \Exception('Pembayaran transaksi belum berstatus berhasil/lunas.');
@@ -88,15 +88,29 @@ class TicketNotificationService
         $ticketCode = $ticket->ticket_code;
         $categoryName = $ticket->category->name;
         $url = config('app.url') . "/tickets/view/{$ticketCode}";
+        $customerName = $ticket->transaction->customer_name ?? 'Pelanggan';
+        $quantity = $ticket->transaction->quantity ?? 1;
 
-        $message = "*E-Voucher {$eventName}*\n\n";
-        $message .= "Halo, terima kasih telah melakukan pembelian tiket.\n\n";
-        $message .= "Detail Tiket:\n";
-        $message .= "Kategori: {$categoryName}\n";
-        $message .= "Kode Tiket: {$ticketCode}\n\n";
-        $message .= "Silakan tunjukkan QR Code pada link berikut saat Registrasi di hari H:\n";
-        $message .= "{$url}\n\n";
-        $message .= "Sampai jumpa di lokasi!";
+        if ($quantity > 1) {
+            $message = "*E-Voucher {$eventName}*\n\n";
+            $message .= "Halo {$customerName}, terima kasih atas pemesanan tiket Anda.\n\n";
+            $message .= "Detail Pemesanan:\n";
+            $message .= "No. Invoice: {$ticket->transaction->reference_no}\n";
+            $message .= "Kategori: {$categoryName}\n";
+            $message .= "Jumlah: {$quantity} Tiket\n\n";
+            $message .= "Silakan buka link E-Voucher berikut untuk melihat semua QR Code rombongan Anda:\n";
+            $message .= "{$url}\n\n";
+            $message .= "Sampai jumpa di lokasi acara!";
+        } else {
+            $message = "*E-Voucher {$eventName}*\n\n";
+            $message .= "Halo {$customerName}, terima kasih telah melakukan pemesanan tiket.\n\n";
+            $message .= "Detail Tiket:\n";
+            $message .= "Kategori: {$categoryName}\n";
+            $message .= "Kode Tiket: {$ticketCode}\n\n";
+            $message .= "Silakan tunjukkan QR Code pada link berikut saat Check-in di lokasi:\n";
+            $message .= "{$url}\n\n";
+            $message .= "Sampai jumpa di lokasi acara!";
+        }
 
         try {
             $this->sendViaFonnte($phone, $message, $throwExceptions);
