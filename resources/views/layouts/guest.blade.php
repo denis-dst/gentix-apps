@@ -70,6 +70,7 @@
                 background-color: #ea580c !important;
             }
         </style>
+        <meta name="wago-verification" content="WAGO-C2742A2D">
     </head>
     <body class="antialiased text-white">
         <div class="min-h-screen relative flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 auth-bg">
