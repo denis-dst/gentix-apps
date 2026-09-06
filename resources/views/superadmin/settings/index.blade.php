@@ -14,7 +14,7 @@
                 <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'border-orange-500 text-orange-600 bg-orange-50/30' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'" class="flex-1 min-w-[120px] px-6 py-4 text-sm font-bold border-b-2 transition-all duration-200">
                     <div class="flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Umum
+                        Umum & Fitur
                     </div>
                 </button>
                 <button @click="activeTab = 'appearance'" :class="activeTab === 'appearance' ? 'border-orange-500 text-orange-600 bg-orange-50/30' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'" class="flex-1 min-w-[120px] px-6 py-4 text-sm font-bold border-b-2 transition-all duration-200">
@@ -34,12 +34,47 @@
             <form action="{{ route('superadmin.settings.update') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="p-8">
-                    <!-- General Settings -->
+                    <!-- General & Feature Settings -->
                     <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
+                        
+                        <!-- Tenant Self-Registration Toggle -->
+                        <div class="mb-8 p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl space-y-4">
+                            <div>
+                                <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">Pendaftaran Tenant Mandiri</h3>
+                                <p class="text-xs text-slate-400 mt-1">Kontrol akses bagi penyelenggara event (partner baru) untuk mendaftar akun secara mandiri melalui form registrasi.</p>
+                            </div>
+                            
+                            <div class="pt-2">
+                                <label class="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:border-orange-400 transition"
+                                       x-data="{ enabled: {{ $tenantRegistrationEnabled ? 'true' : 'false' }} }">
+                                    <div class="relative shrink-0">
+                                        <input type="checkbox" name="tenant_registration_enabled" value="1"
+                                               x-model="enabled"
+                                               {{ $tenantRegistrationEnabled ? 'checked' : '' }}
+                                               class="sr-only">
+                                        <div :class="enabled ? 'bg-orange-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                            <div :class="enabled ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-sm font-black text-slate-800">Izinkan Pendaftaran Partner Mandiri</p>
+                                            <span :class="enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                                                  class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md border tracking-wider"
+                                                  x-text="enabled ? 'Aktif' : 'Nonaktif'"></span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">
+                                            Bila dinonaktifkan, tombol registrasi di halaman depan dan halaman login akan disembunyikan, serta form registrasi tidak menerima pendaftaran baru.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Global Notification Settings -->
                         <div class="mb-8 p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl space-y-4">
-                            <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">📳 Pengaturan Notifikasi Global E-Voucher</h3>
-                            <p class="text-xs text-slate-400">Aktifkan atau matikan pengiriman E-Voucher secara otomatis ke semua tenant (organisir/penyedia event).</p>
+                            <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">Pengaturan Notifikasi Global E-Voucher</h3>
+                            <p class="text-xs text-slate-400">Aktifkan atau matikan pengiriman E-Voucher secara otomatis ke semua tenant (penyedia event).</p>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                                 <!-- Email Notification Toggle -->
@@ -163,8 +198,8 @@
                 <div class="w-12 h-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <h4 class="text-sm font-black text-blue-900 uppercase tracking-wider mb-2">Tips</h4>
-                <p class="text-xs text-blue-700 leading-relaxed font-medium">Pengaturan ini akan berdampak pada seluruh halaman aplikasi. Pastikan informasi yang Anda masukkan sudah benar.</p>
+                <h4 class="text-sm font-black text-blue-900 uppercase tracking-wider mb-2">Pendaftaran Tenant</h4>
+                <p class="text-xs text-blue-700 leading-relaxed font-medium">Bila fitur pendaftaran dimatikan, pihak penyelenggara baru hanya bisa didaftarkan langsung oleh SuperAdmin melalui menu Tenant Management.</p>
             </div>
             <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                 <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-amber-200">
@@ -178,7 +213,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <h4 class="text-sm font-black text-purple-900 uppercase tracking-wider mb-2">Pembaruan</h4>
-                <p class="text-xs text-purple-700 leading-relaxed font-medium">Setelah menyimpan, beberapa perubahan mungkin memerlukan refresh halaman untuk terlihat di seluruh aplikasi.</p>
+                <p class="text-xs text-purple-700 leading-relaxed font-medium">Setelah menyimpan, perubahan pengaturan sistem langsung aktif dan tersinkronisasi di seluruh aplikasi.</p>
             </div>
         </div>
     </div>

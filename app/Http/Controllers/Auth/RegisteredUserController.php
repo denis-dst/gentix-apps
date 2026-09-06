@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Setting;
 use App\Models\Tenant;
-use Illuminate\Support\Str;
+use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -22,7 +23,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        $isRegistrationEnabled = (bool) (Setting::where('key', 'tenant_registration_enabled')->value('value') ?? true);
+
+        return view('auth.register', compact('isRegistrationEnabled'));
     }
 
     /**
@@ -32,6 +35,12 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $isRegistrationEnabled = (bool) (Setting::where('key', 'tenant_registration_enabled')->value('value') ?? true);
+
+        if (!$isRegistrationEnabled) {
+            return redirect()->route('login')->with('error', 'Pendaftaran partner/tenant mandiri saat ini sedang dinonaktifkan oleh administrator.');
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'organization_name' => ['required', 'string', 'max:255'],
