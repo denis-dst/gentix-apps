@@ -16,22 +16,27 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $paidTransactions = Transaction::where('payment_status', 'paid');
+
         $stats = [
             'total_tenants' => Tenant::count(),
             'total_events' => Event::count(),
-            'total_transactions' => Transaction::where('payment_status', 'paid')->count(),
-            'total_revenue' => Transaction::where('payment_status', 'paid')->sum('total_amount'),
+            'total_transactions' => (clone $paidTransactions)->count(),
+            'total_revenue' => (float) ((clone $paidTransactions)->sum('total_amount')),
             'total_tickets' => Ticket::count(),
             'total_users' => User::count(),
         ];
 
-        $recent_transactions = Transaction::with(['event', 'buyer'])
+        $recent_transactions = Transaction::with([
+                'event:id,name',
+                'buyer:id,name,email'
+            ])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
         $active_events = Event::where('status', 'published')
-            ->with('tenant')
+            ->with('tenant:id,name')
             ->withCount('tickets')
             ->orderBy('event_start_date', 'asc')
             ->take(5)
@@ -84,19 +89,34 @@ class DashboardController extends Controller
                     })
                     ->orWhere('gate_name', 'like', "%{$search}%");
                 });
-            })
-            ->with(['ticket.category', 'ticket.transaction', 'event.tenant', 'scanner']);
+            });
 
-        $totalScans = (clone $scanQuery)->count();
-        $totalCheckIn = (clone $scanQuery)->where('type', 'IN')->count();
-        $totalCheckOut = (clone $scanQuery)->where('type', 'OUT')->count();
+        // Single aggregate query for total scans, check-ins, and check-outs
+        $statsAggregate = (clone $scanQuery)
+            ->selectRaw("
+                COUNT(*) as total_scans,
+                SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as total_checkin,
+                SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as total_checkout
+            ")
+            ->first();
+
+        $totalScans = (int) ($statsAggregate->total_scans ?? 0);
+        $totalCheckIn = (int) ($statsAggregate->total_checkin ?? 0);
+        $totalCheckOut = (int) ($statsAggregate->total_checkout ?? 0);
 
         $earliestScan = GateLog::query()
             ->when($selectedTenantId, fn ($q) => $q->where('tenant_id', $selectedTenantId))
             ->when($selectedEventId, fn ($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedGate, fn ($q) => $q->where('gate_name', $selectedGate))
             ->where('type', 'IN')
-            ->with(['ticket.category', 'ticket.transaction', 'event.tenant', 'scanner'])
+            ->with([
+                'ticket:id,ticket_code,wristband_qr,visitor_data,transaction_id,ticket_category_id',
+                'ticket.category:id,name,hex_color',
+                'ticket.transaction:id,customer_name',
+                'event:id,tenant_id,name',
+                'event.tenant:id,name',
+                'scanner:id,name'
+            ])
             ->orderBy('scanned_at', 'asc')
             ->first();
 
@@ -106,7 +126,17 @@ class DashboardController extends Controller
             $scanQuery->orderBy('scanned_at', 'asc');
         }
 
-        $scanLogs = $scanQuery->paginate(10)->withQueryString();
+        $scanLogs = $scanQuery
+            ->with([
+                'ticket:id,ticket_code,wristband_qr,visitor_data,transaction_id,ticket_category_id',
+                'ticket.category:id,name,hex_color',
+                'ticket.transaction:id,customer_name,customer_email,customer_phone',
+                'event:id,tenant_id,name',
+                'event.tenant:id,name',
+                'scanner:id,name'
+            ])
+            ->paginate(10)
+            ->withQueryString();
 
         return view('superadmin.dashboard', compact(
             'stats',

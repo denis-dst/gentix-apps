@@ -14,14 +14,14 @@ class DashboardController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         
+        // Single query for tenant events
         $events = Event::withCount(['tickets', 'ticketCategories'])
             ->where('tenant_id', $tenantId)
             ->orderBy('event_start_date', 'desc')
             ->get();
 
-        $eventOptions = Event::where('tenant_id', $tenantId)
-            ->orderBy('event_start_date', 'desc')
-            ->get(['id', 'name']);
+        // Reuse in-memory events collection for dropdown options to eliminate duplicate query
+        $eventOptions = $events->map(fn ($e) => (object) ['id' => $e->id, 'name' => $e->name]);
 
         $selectedEventId = $request->get('event_id');
         $selectedGate = $request->get('gate_name');
@@ -29,6 +29,7 @@ class DashboardController extends Controller
         $sort = $request->get('sort', 'earliest');
         $search = $request->get('search');
 
+        // Distinct gates query
         $gateOptions = GateLog::where('tenant_id', $tenantId)
             ->when($selectedEventId, fn ($q) => $q->where('event_id', $selectedEventId))
             ->whereNotNull('gate_name')
@@ -63,18 +64,33 @@ class DashboardController extends Controller
                     })
                     ->orWhere('gate_name', 'like', "%{$search}%");
                 });
-            })
-            ->with(['ticket.category', 'ticket.transaction', 'event', 'scanner']);
+            });
 
-        $totalScans = (clone $scanQuery)->count();
-        $totalCheckIn = (clone $scanQuery)->where('type', 'IN')->count();
-        $totalCheckOut = (clone $scanQuery)->where('type', 'OUT')->count();
+        // Single aggregate query for total scans, check-ins, and check-outs
+        $statsAggregate = (clone $scanQuery)
+            ->selectRaw("
+                COUNT(*) as total_scans,
+                SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as total_checkin,
+                SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as total_checkout
+            ")
+            ->first();
 
+        $totalScans = (int) ($statsAggregate->total_scans ?? 0);
+        $totalCheckIn = (int) ($statsAggregate->total_checkin ?? 0);
+        $totalCheckOut = (int) ($statsAggregate->total_checkout ?? 0);
+
+        // Earliest attendee with specific eager columns
         $earliestScan = GateLog::where('tenant_id', $tenantId)
             ->when($selectedEventId, fn ($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedGate, fn ($q) => $q->where('gate_name', $selectedGate))
             ->where('type', 'IN')
-            ->with(['ticket.category', 'ticket.transaction', 'event', 'scanner'])
+            ->with([
+                'ticket:id,ticket_code,wristband_qr,visitor_data,transaction_id,ticket_category_id',
+                'ticket.category:id,name,hex_color',
+                'ticket.transaction:id,customer_name',
+                'event:id,name',
+                'scanner:id,name'
+            ])
             ->orderBy('scanned_at', 'asc')
             ->first();
 
@@ -84,7 +100,16 @@ class DashboardController extends Controller
             $scanQuery->orderBy('scanned_at', 'asc');
         }
 
-        $scanLogs = $scanQuery->paginate(10)->withQueryString();
+        $scanLogs = $scanQuery
+            ->with([
+                'ticket:id,ticket_code,wristband_qr,visitor_data,transaction_id,ticket_category_id',
+                'ticket.category:id,name,hex_color',
+                'ticket.transaction:id,customer_name,customer_email,customer_phone',
+                'event:id,name',
+                'scanner:id,name'
+            ])
+            ->paginate(10)
+            ->withQueryString();
 
         return view('organizer.dashboard', compact(
             'events',

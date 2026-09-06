@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Organizer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
-use App\Models\Ticket;
+use App\Models\Gate;
 use App\Models\GateLog;
+use App\Models\Ticket;
+use App\Models\TicketCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,7 +40,7 @@ class GateController extends Controller
         }
 
         session(['gate_event_id' => $event->id]);
-        session()->forget(['gate_name', 'gate_mode']); // Reset setup
+        session()->forget(['gate_name', 'gate_mode']);
 
         return redirect()->route('organizer.gate.setup', $event);
     }
@@ -49,8 +51,8 @@ class GateController extends Controller
             return redirect()->route('organizer.gate.verify', $event);
         }
 
-        $gates = $event->gates()->where('is_active', true)->get();
-        $categories = $event->ticketCategories; // Keep for legacy fallback if no gates defined
+        $gates = $event->gates()->where('is_active', true)->with('ticketCategories:id,name')->get();
+        $categories = $event->ticketCategories;
         return view('organizer.gate.setup', compact('event', 'gates', 'categories'));
     }
 
@@ -63,14 +65,13 @@ class GateController extends Controller
         ]);
 
         if ($request->gate_id) {
-            $gate = \App\Models\Gate::with('ticketCategories')->findOrFail($request->gate_id);
+            $gate = Gate::with('ticketCategories:id')->findOrFail($request->gate_id);
             session(['gate_id' => $gate->id]);
             session(['gate_name' => $gate->name]);
             session(['gate_allowed_categories' => $gate->ticketCategories->pluck('id')->toArray()]);
             session()->forget('gate_category_id');
         } else {
-            // Legacy fallback
-            $category = \App\Models\TicketCategory::findOrFail($request->gate_category_id);
+            $category = TicketCategory::findOrFail($request->gate_category_id);
             session(['gate_category_id' => $category->id]);
             session(['gate_name' => $category->name]);
             session(['gate_allowed_categories' => [$category->id]]);
@@ -88,9 +89,16 @@ class GateController extends Controller
             return redirect()->route('organizer.gate.setup', $event);
         }
 
-        // Get initial counts
-        $inCount = GateLog::where('event_id', $event->id)->where('type', 'IN')->count();
-        $outCount = GateLog::where('event_id', $event->id)->where('type', 'OUT')->count();
+        // Single optimized aggregate query for initial counts
+        $counts = GateLog::where('event_id', $event->id)
+            ->selectRaw("
+                SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as in_count,
+                SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as out_count
+            ")
+            ->first();
+
+        $inCount = (int) ($counts->in_count ?? 0);
+        $outCount = (int) ($counts->out_count ?? 0);
 
         return view('organizer.gate.scan', compact('event', 'inCount', 'outCount'));
     }
@@ -104,10 +112,19 @@ class GateController extends Controller
             'gate_name' => 'required|string'
         ]);
 
-        $event = Event::findOrFail($request->event_id);
-        $ticket = Ticket::where('event_id', $event->id)
-            ->where('ticket_code', $request->ticket_code)
-            ->with(['transaction', 'category'])
+        $scanCode = trim($request->ticket_code);
+
+        // Fetch ticket with event, transaction, and category in a single query
+        $ticket = Ticket::where('event_id', $request->event_id)
+            ->where(function ($q) use ($scanCode) {
+                $q->where('ticket_code', $scanCode)
+                  ->orWhere('wristband_qr', $scanCode);
+            })
+            ->with([
+                'category:id,name,hex_color',
+                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
+                'event:id,tenant_id,purchase_flow,name'
+            ])
             ->first();
 
         if (!$ticket) {
@@ -116,6 +133,8 @@ class GateController extends Controller
                 'message' => 'Tiket Tidak Valid!'
             ], 404);
         }
+
+        $event = $ticket->event;
 
         if (($event->purchase_flow ?? 'redeem') === 'redeem' && $ticket->status !== 'redeemed') {
             return response()->json([
@@ -141,14 +160,14 @@ class GateController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Kategori Tiket Salah! (Tidak diizinkan di Gate ' . session('gate_name') . ')',
-                'customer' => $ticket->transaction->customer_name,
-                'category' => $ticket->category->name
+                'customer' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-'
             ], 403);
         }
 
-        // Logic check for IN/OUT
+        // Fetch latest log with scanner info using indexed lookup
         $lastLog = GateLog::where('ticket_id', $ticket->id)
-            ->with('scanner')
+            ->with('scanner:id,name')
             ->orderBy('scanned_at', 'desc')
             ->first();
 
@@ -172,61 +191,59 @@ class GateController extends Controller
                 'success' => false,
                 'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
                 'customer' => $visitorName,
-                'category' => $ticket->category->name
+                'category' => $ticket->category->name ?? '-'
             ], 400);
         }
 
-        if ($request->mode === 'OUT') {
-            // Mode OUT: Check if ever IN
-            $hasIn = GateLog::where('ticket_id', $ticket->id)
-                ->where('type', 'IN')
-                ->exists();
+        if ($request->mode === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
+            return response()->json([
+                'success' => false,
+                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket sudah berada di luar area!' : 'Tiket belum pernah Check-in!',
+                'customer' => $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-'),
+                'category' => $ticket->category->name ?? '-'
+            ], 400);
+        }
 
-            if (!$hasIn) {
+        // Group checking: Load group tickets in a single eager query if transaction exists
+        $transaction = $ticket->transaction;
+        if ($transaction) {
+            $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
+                ->with([
+                    'category:id,name,hex_color',
+                    'gateLogs' => fn ($q) => $q->with('scanner:id,name')->orderBy('scanned_at', 'desc')
+                ])
+                ->get();
+
+            if ($ticketsInGroup->count() > 1) {
+                $attendeesList = $ticketsInGroup->map(function ($t) {
+                    $tLastLog = $t->gateLogs->first();
+                    $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
+                    return [
+                        'ticket_id' => $t->id,
+                        'ticket_code' => $t->ticket_code,
+                        'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
+                        'gender' => $t->visitor_data['gender'] ?? null,
+                        'is_checked_in' => $isCheckedIn,
+                        'category' => $t->category->name ?? '-',
+                        'checked_in_at' => ($isCheckedIn && $tLastLog->scanned_at) ? $tLastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                        'checked_in_by' => ($isCheckedIn && $tLastLog->scanner) ? $tLastLog->scanner->name : ($tLastLog->gate_name ?? null),
+                    ];
+                });
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Tiket belum pernah Check-in!',
-                    'customer' => $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-'),
-                    'category' => $ticket->category->name
-                ], 400);
+                    'success' => true,
+                    'is_group' => true,
+                    'message' => 'Detail grup ditemukan',
+                    'customer' => $transaction->customer_name,
+                    'category' => $ticket->category->name ?? '-',
+                    'attendees' => $attendeesList,
+                    'scanned_ticket_id' => $ticket->id
+                ]);
             }
         }
 
-        // For group checking (transactions with quantity > 1), we return the group details
-        $transaction = $ticket->transaction;
-        if ($transaction && $transaction->tickets()->count() > 1) {
-            $ticketsInGroup = $transaction->tickets()->with(['category', 'gateLogs' => function($q) {
-                $q->with('scanner')->orderBy('scanned_at', 'desc');
-            }])->get();
-
-            $attendeesList = $ticketsInGroup->map(function($t) {
-                $lastLog = $t->gateLogs->first();
-                $isCheckedIn = $lastLog && $lastLog->type === 'IN';
-                return [
-                    'ticket_id' => $t->id,
-                    'ticket_code' => $t->ticket_code,
-                    'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
-                    'gender' => $t->visitor_data['gender'] ?? null,
-                    'is_checked_in' => $isCheckedIn,
-                    'category' => $t->category->name,
-                    'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
-                    'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'is_group' => true,
-                'message' => 'Detail grup ditemukan',
-                'customer' => $transaction->customer_name,
-                'category' => $ticket->category->name,
-                'attendees' => $attendeesList,
-                'scanned_ticket_id' => $ticket->id
-            ]);
-        }
-
         try {
-            DB::transaction(function() use ($request, $ticket, $event) {
+            DB::transaction(function () use ($request, $ticket, $event) {
                 GateLog::create([
                     'tenant_id' => $event->tenant_id,
                     'event_id' => $event->id,
@@ -238,17 +255,25 @@ class GateController extends Controller
                 ]);
             });
 
-            $inCount = GateLog::where('event_id', $event->id)->where('type', 'IN')->count();
-            $outCount = GateLog::where('event_id', $event->id)->where('type', 'OUT')->count();
+            // Single aggregate query for live counts
+            $counts = GateLog::where('event_id', $event->id)
+                ->selectRaw("
+                    SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as in_count,
+                    SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as out_count
+                ")
+                ->first();
+
+            $inCount = (int) ($counts->in_count ?? 0);
+            $outCount = (int) ($counts->out_count ?? 0);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil ' . ($request->mode === 'IN' ? 'Check-in' : 'Check-out'),
                 'customer' => $ticket->visitor_data['name'] ?? $ticket->transaction->customer_name,
-                'category' => $ticket->category->name,
+                'category' => $ticket->category->name ?? '-',
                 'in_count' => $inCount,
                 'out_count' => $outCount,
-                'occupancy' => $inCount - $outCount
+                'occupancy' => max(0, $inCount - $outCount)
             ]);
 
         } catch (\Exception $e) {
@@ -269,44 +294,72 @@ class GateController extends Controller
         ]);
 
         try {
-            DB::transaction(function() use ($request, $event) {
-                foreach ($request->ticket_ids as $ticketId) {
-                    // Check logic status first to prevent duplicate active state
-                    $lastLog = GateLog::where('ticket_id', $ticketId)
-                        ->orderBy('scanned_at', 'desc')
-                        ->first();
+            $now = now();
+            $authId = auth()->id();
+            $ticketIds = array_unique($request->ticket_ids);
 
-                    $alreadyInState = $lastLog && $lastLog->type === $request->mode;
+            // Fetch latest logs for all tickets in a single batch query
+            $existingLogs = GateLog::whereIn('ticket_id', $ticketIds)
+                ->orderBy('scanned_at', 'desc')
+                ->get()
+                ->groupBy('ticket_id');
 
-                    // If checking in, make sure it's not already in. If checking out, make sure it's checked in first
-                    if ($request->mode === 'IN') {
-                        if ($alreadyInState) continue;
-                    } else {
-                        $hasIn = GateLog::where('ticket_id', $ticketId)->where('type', 'IN')->exists();
-                        if (!$hasIn || $alreadyInState) continue;
+            $insertRows = [];
+
+            foreach ($ticketIds as $ticketId) {
+                $ticketLogs = $existingLogs->get($ticketId);
+                $lastLog = $ticketLogs ? $ticketLogs->first() : null;
+                $alreadyInState = $lastLog && $lastLog->type === $request->mode;
+
+                if ($request->mode === 'IN') {
+                    if ($alreadyInState) {
+                        continue;
                     }
-
-                    GateLog::create([
-                        'tenant_id' => $event->tenant_id,
-                        'event_id' => $event->id,
-                        'ticket_id' => $ticketId,
-                        'gate_name' => $request->gate_name,
-                        'type' => $request->mode,
-                        'scanned_at' => now(),
-                        'scanned_by' => auth()->id()
-                    ]);
+                } else {
+                    $hasIn = $ticketLogs && $ticketLogs->contains('type', 'IN');
+                    if (!$hasIn || $alreadyInState) {
+                        continue;
+                    }
                 }
-            });
 
-            $inCount = GateLog::where('event_id', $event->id)->where('type', 'IN')->count();
-            $outCount = GateLog::where('event_id', $event->id)->where('type', 'OUT')->count();
+                $insertRows[] = [
+                    'tenant_id' => $event->tenant_id,
+                    'event_id' => $event->id,
+                    'ticket_id' => $ticketId,
+                    'gate_name' => $request->gate_name,
+                    'type' => $request->mode,
+                    'scanned_at' => $now,
+                    'device_id' => null,
+                    'scanned_by' => $authId,
+                    'meta' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if (!empty($insertRows)) {
+                DB::transaction(function () use ($insertRows) {
+                    GateLog::insert($insertRows);
+                });
+            }
+
+            // Single aggregate query for live counts
+            $counts = GateLog::where('event_id', $event->id)
+                ->selectRaw("
+                    SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as in_count,
+                    SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as out_count
+                ")
+                ->first();
+
+            $inCount = (int) ($counts->in_count ?? 0);
+            $outCount = (int) ($counts->out_count ?? 0);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil memproses check-in masal',
                 'in_count' => $inCount,
                 'out_count' => $outCount,
-                'occupancy' => $inCount - $outCount
+                'occupancy' => max(0, $inCount - $outCount)
             ]);
 
         } catch (\Exception $e) {
