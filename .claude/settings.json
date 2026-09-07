@@ -1,8 +1,7 @@
 {
-  "apiKeyHelper": "echo 'aero_live_70J1rZ-PddLF3OGkNYFhvi3lEzmi1QwdgwrGnJF-AUw'",
   "env": {
-    "ANTHROPIC_API_KEY": "aero_live_70J1rZ-PddLF3OGkNYFhvi3lEzmi1QwdgwrGnJF-AUw",
-    "ANTHROPIC_BASE_URL": "https://capi.aerolink.lat/",
+    "ANTHROPIC_API_KEY": "sk-ait-1d-6d78c97d2c73dac367dfece94de29e16a89aaeab62faf5e4c8c555fcf4e5d3c2",
+    "ANTHROPIC_BASE_URL": "https://router.bypfa.web.id/v1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
   "permissions": {
@@ -15,5 +14,5 @@
     ],
     "deny": []
   },
-  "model": "opus[1m]"
+  "model": "pfa/claude-sonnet-4.5"
 }

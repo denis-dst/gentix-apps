@@ -40,6 +40,10 @@ Route::get('/kontak', [App\Http\Controllers\PageController::class, 'contact'])->
 Route::get('/contact', function() { return redirect()->route('contact'); });
 Route::get('/contact-us', function() { return redirect()->route('contact'); });
 
+Route::get('/flow', [App\Http\Controllers\PageController::class, 'flow'])->name('flow');
+Route::get('/flow-bisnis', function() { return redirect()->route('flow'); });
+Route::get('/business-flow', function() { return redirect()->route('flow'); });
+
 Route::get('/p/{slug}', [App\Http\Controllers\PageController::class, 'show'])->name('pages.show');
 
 Route::get('/portofolio', function () {

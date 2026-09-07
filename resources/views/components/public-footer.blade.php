@@ -55,6 +55,7 @@
             <div class="space-y-4">
                 <h5 class="text-white font-bold text-sm font-outfit uppercase tracking-wider text-orange-400">Informasi & Bantuan</h5>
                 <ul class="space-y-2.5">
+                    <li><a href="{{ route('flow') }}" class="text-stone-400 hover:text-white transition text-sm flex items-center gap-1.5"><span class="text-orange-500">&rsaquo;</span> Alur Bisnis & Pembayaran</a></li>
                     <li><a href="{{ route('faq') }}" class="text-stone-400 hover:text-white transition text-sm flex items-center gap-1.5"><span class="text-orange-500">&rsaquo;</span> Pertanyaan Umum (FAQ)</a></li>
                     <li><a href="{{ route('terms') }}" class="text-stone-400 hover:text-white transition text-sm flex items-center gap-1.5"><span class="text-orange-500">&rsaquo;</span> Syarat & Ketentuan</a></li>
                     <li><a href="{{ route('refund') }}" class="text-stone-400 hover:text-white transition text-sm flex items-center gap-1.5"><span class="text-orange-500">&rsaquo;</span> Refund Policy</a></li>
@@ -106,6 +107,8 @@
                 {!! $footerText !!} &bull; {{ $appName }}
             </p>
             <div class="flex items-center gap-4 text-xs text-stone-500">
+                <a href="{{ route('flow') }}" class="hover:text-stone-300 transition">Alur Bisnis</a>
+                <span>&bull;</span>
                 <a href="{{ route('terms') }}" class="hover:text-stone-300 transition">Syarat</a>
                 <span>&bull;</span>
                 <a href="{{ route('refund') }}" class="hover:text-stone-300 transition">Refund</a>

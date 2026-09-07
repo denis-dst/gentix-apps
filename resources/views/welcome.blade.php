@@ -151,6 +151,7 @@
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="#events" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('Events') }}</a>
                     <a href="#how-it-works" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('How it Works') }}</a>
+                    <a href="{{ route('flow') }}" class="text-sm font-medium text-white/80 hover:text-white transition">Alur Bisnis</a>
                     <a href="#about" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('About') }}</a>
                 </div>
 
@@ -318,6 +319,13 @@
                     <h4 class="text-xl font-bold mb-3 text-white">{{ __('Get E-Ticket') }}</h4>
                     <p class="text-stone-400 text-sm font-light">{{ __('Your ticket will be sent to your email and Gentix wallet.') }}</p>
                 </div>
+            </div>
+
+            <div class="mt-14 text-center">
+                <a href="{{ route('flow') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-orange-500/20 text-stone-200 hover:text-orange-400 border border-white/10 hover:border-orange-500/30 text-sm font-semibold transition shadow-lg shadow-black/20">
+                    <span>Lihat Dokumentasi Lengkap Alur Bisnis & Integrasi iPaymu</span>
+                    <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </a>
             </div>
         </div>
     </section>

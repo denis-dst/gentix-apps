@@ -28,8 +28,17 @@ class PageController extends Controller
         return view('pages.contact');
     }
 
+    public function flow()
+    {
+        return view('pages.flow-bisnis');
+    }
+
     public function show($slug)
     {
+        if (in_array($slug, ['flow', 'flow-bisnis', 'business-flow'])) {
+            return view('pages.flow-bisnis');
+        }
+
         if (in_array($slug, ['faq', 'help-center'])) {
             return view('pages.faq');
         }
