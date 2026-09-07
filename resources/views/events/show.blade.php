@@ -66,6 +66,7 @@
             background-color: #3b82f6;
         }
     </style>
+    <meta name="wago-verification" content="WAGO-C2742A2D">
 </head>
 <body class="text-slate-800" x-data="{
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},

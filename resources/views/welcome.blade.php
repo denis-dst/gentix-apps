@@ -112,6 +112,7 @@
             background-color: #ea580c !important;
         }
     </style>
+    <meta name="wago-verification" content="WAGO-C2742A2D">
 </head>
 <body class="antialiased bg-[#111118] text-[#e8e4df] min-h-screen">
 
@@ -170,7 +171,10 @@
                         <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-semibold transition shadow-lg shadow-orange-500/20">Dashboard</a>
                     @else
                         <a href="{{ route('login') }}" class="text-sm font-medium text-white/80 hover:text-white transition">{{ __('Log in') }}</a>
-                        @if (Route::has('register'))
+                        @php
+                            $registrationOpen = (bool) (\App\Models\Setting::where('key', 'tenant_registration_enabled')->value('value') ?? true);
+                        @endphp
+                        @if (Route::has('register') && $registrationOpen)
                             <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-orange-600 text-white hover:bg-orange-700 text-sm font-semibold transition shadow-lg shadow-orange-500/20">{{ __('Partner with Us') }}</a>
                         @endif
                     @endauth

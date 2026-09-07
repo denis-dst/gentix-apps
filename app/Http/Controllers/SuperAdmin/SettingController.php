@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\Setting;
+use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
@@ -16,7 +15,9 @@ class SettingController extends Controller
             'email_notifications_enabled' => Setting::where('key', 'global_email_notifications_enabled')->value('value') ?? true,
             'wa_notifications_enabled' => Setting::where('key', 'global_wa_notifications_enabled')->value('value') ?? true,
         ];
-        return view('superadmin.settings.index', compact('settings', 'globalNotifications'));
+        $tenantRegistrationEnabled = (bool) (Setting::where('key', 'tenant_registration_enabled')->value('value') ?? true);
+
+        return view('superadmin.settings.index', compact('settings', 'globalNotifications', 'tenantRegistrationEnabled'));
     }
 
     public function update(Request $request)
@@ -29,6 +30,12 @@ class SettingController extends Controller
         Setting::updateOrCreate(
             ['key' => 'global_wa_notifications_enabled'],
             ['value' => $request->boolean('global_wa_notifications_enabled') ? '1' : '0', 'group' => 'notifications']
+        );
+
+        // Handle tenant self-registration toggle
+        Setting::updateOrCreate(
+            ['key' => 'tenant_registration_enabled'],
+            ['value' => $request->boolean('tenant_registration_enabled') ? '1' : '0', 'group' => 'features']
         );
         
         $fileKeys = ['app_logo', 'app_favicon', 'app_icon', 'wristband_league_logo'];
@@ -45,12 +52,22 @@ class SettingController extends Controller
             ]);
         }
 
-        foreach ($request->except(['_token', 'global_email_notifications_enabled', 'global_wa_notifications_enabled']) as $key => $value) {
+        $excludedKeys = [
+            '_token',
+            'global_email_notifications_enabled',
+            'global_wa_notifications_enabled',
+            'tenant_registration_enabled',
+        ];
+
+        foreach ($request->except($excludedKeys) as $key => $value) {
             if (!in_array($key, $fileKeys)) {
-                Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => Setting::where('key', $key)->value('group') ?? 'appearance']);
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $value, 'group' => Setting::where('key', $key)->value('group') ?? 'appearance']
+                );
             }
         }
 
-        return back()->with('success', 'Settings updated successfully!');
+        return back()->with('success', 'Pengaturan berhasil diperbarui!');
     }
 }

@@ -7,6 +7,12 @@
 <!-- Session Status -->
 <x-auth-session-status class="mb-4" :status="session('status')" />
 
+@if(session('error'))
+    <div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl text-xs font-bold">
+        {{ session('error') }}
+    </div>
+@endif
+
 <form method="POST" action="{{ route('login') }}" class="space-y-6">
     @csrf
 
@@ -48,13 +54,19 @@
         </x-primary-button>
     </div>
 
-    <div class="text-center mt-6">
-        <p class="text-sm text-slate-400">
-            Don't have a partner account? 
-            <a class="font-bold text-gentix-400 hover:text-gentix-300 transition underline decoration-2 underline-offset-4" href="{{ route('register') }}">
-                {{ __('Register here') }}
-            </a>
-        </p>
-    </div>
+    @php
+        $registrationEnabled = (bool) (\App\Models\Setting::where('key', 'tenant_registration_enabled')->value('value') ?? true);
+    @endphp
+
+    @if ($registrationEnabled)
+        <div class="text-center mt-6">
+            <p class="text-sm text-slate-400">
+                Don't have a partner account? 
+                <a class="font-bold text-gentix-400 hover:text-gentix-300 transition underline decoration-2 underline-offset-4" href="{{ route('register') }}">
+                    {{ __('Register here') }}
+                </a>
+            </p>
+        </div>
+    @endif
 </form>
 </x-guest-layout>
