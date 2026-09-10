@@ -43,6 +43,8 @@ return [
         'is_sandbox'      => (bool) env('WAGO_IS_SANDBOX', false),
         'api_base_url'    => env('WAGO_API_BASE_URL', 'https://api.wago-id.web.id'),
         'checkout_url'    => env('WAGO_CHECKOUT_URL', 'https://pay.wago-id.web.id/checkout'),
+        'payment_method'  => env('WAGO_PAYMENT_METHOD', 'QRIS'),
+        'payment_channel' => env('WAGO_PAYMENT_CHANNEL'),
     ],
 
 

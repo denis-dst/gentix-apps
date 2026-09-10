@@ -566,10 +566,13 @@ class PublicEventController extends Controller
             // WAGO Payment Gateway integration
             $wagoService = new \App\Services\WagoService();
             $wagoResult  = $wagoService->createPayment([
-                'order_id'       => $referenceNo,
-                'nominal'        => $totalAmount,
-                'callback_url'   => route('wago.notification'),
-                'payment_method' => 'QRIS',
+                'order_id'        => $referenceNo,
+                'nominal'         => $totalAmount,
+                'callback_url'    => route('wago.notification'),
+                'return_url'      => route('checkout.success', $referenceNo),
+                'redirect_url'    => route('checkout.success', $referenceNo),
+                'payment_method'  => config('services.wago.payment_method', 'QRIS'),
+                'payment_channel' => config('services.wago.payment_channel'),
             ], [
                 'name'  => $validated['name'],
                 'email' => $validated['email'],

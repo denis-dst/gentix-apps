@@ -76,17 +76,28 @@ class WagoService
             ];
         }
 
+        $paymentMethod  = $transactionDetails['payment_method'] 
+            ?? config('services.wago.payment_method') 
+            ?? 'QRIS';
+
+        $paymentChannel = $transactionDetails['payment_channel'] 
+            ?? config('services.wago.payment_channel');
+
         $payload = [
             'order_id'        => $orderId,
             'nominal'         => $nominal,
             'customer_name'   => (string) ($customerDetails['name'] ?? ''),
             'customer_email'  => (string) ($customerDetails['email'] ?? ''),
             'customer_phone'  => (string) ($customerDetails['phone'] ?? ''),
-            'payment_method'  => $transactionDetails['payment_method'] ?? 'QRIS',
+            'payment_method'  => $paymentMethod,
             'callback_url'    => $transactionDetails['callback_url'] ?? route('wago.notification'),
             'return_url'      => $transactionDetails['return_url'] ?? route('checkout.success', $orderId),
             'redirect_url'    => $transactionDetails['redirect_url'] ?? route('checkout.success', $orderId),
         ];
+
+        if (!empty($paymentChannel)) {
+            $payload['payment_channel'] = $paymentChannel;
+        }
 
         if ($this->isSandbox || !empty($transactionDetails['is_sandbox'])) {
             $payload['is_sandbox'] = true;
