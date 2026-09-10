@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alur Proses Bisnis & Integrasi Pembayaran iPaymu - Gentix Apps</title>
-    <meta name="description" content="Dokumentasi resmi alur proses bisnis platform ticketing Gentix Apps dan penjelasan integrasi gerbang pembayaran iPaymu untuk verifikasi merchant." />
+    <title>Alur Proses Bisnis & Integrasi Pembayaran WAGO Payment ID - Gentix Apps</title>
+    <meta name="description" content="Dokumentasi resmi alur proses bisnis platform ticketing Gentix Apps dan penjelasan integrasi gerbang pembayaran WAGO Payment ID." />
 
     <!-- Scripts & Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -124,10 +124,10 @@
                 Dokumentasi Resmi Alur Bisnis & Pembayaran
             </div>
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-black font-outfit mb-5 text-white tracking-tight leading-tight">
-                Alur Transaksi & Integrasi <span class="text-orange-400">iPaymu</span>
+                Alur Transaksi & Integrasi <span class="text-orange-400">WAGO Payment ID</span>
             </h1>
             <p class="text-stone-300 max-w-3xl mx-auto text-base sm:text-lg leading-relaxed font-normal">
-                Transparansi alur proses pemesanan tiket digital (E-Voucher) pada platform <strong>Gentix Apps</strong>, peran gerbang pembayaran <strong>iPaymu Payment Gateway</strong>, serta jaminan pengiriman produk digital secara instan dan aman.
+                Transparansi alur proses pemesanan tiket digital (E-Voucher) pada platform <strong>Gentix Apps</strong>, peran gerbang pembayaran <strong>WAGO Payment ID (Pay-Engine)</strong>, serta jaminan pengiriman produk digital secara instan dan aman.
             </p>
 
             <!-- Quick Badges -->
@@ -138,7 +138,7 @@
                 </div>
                 <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-stone-200 flex items-center gap-2">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    Gerbang Pembayaran Resmi: iPaymu API v2
+                    Gerbang Pembayaran Resmi: WAGO Payment ID
                 </div>
                 <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-stone-200 flex items-center gap-2">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
@@ -193,26 +193,26 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                        <strong class="text-white">Transparansi Penjualan:</strong> Seluruh harga tiket yang tertera di website sudah mencakup biaya layanan resmi, pajak berlaku, dan biaya pemrosesan gateway. Pembeli mendapatkan rincian tagihan secara rinci sebelum diarahkan ke halaman pembayaran iPaymu.
+                        <strong class="text-white">Transparansi Penjualan:</strong> Seluruh harga tiket yang tertera di website sudah mencakup biaya layanan resmi, pajak berlaku, dan biaya pemrosesan gateway. Pembeli mendapatkan rincian tagihan secara rinci sebelum diarahkan ke portal pembayaran WAGO.
                     </div>
                 </div>
             </div>
 
-            <!-- Section: HIGHLIGHT PENJELASAN IPAYMU (KHUSUS VERIFIKASI) -->
+            <!-- Section: HIGHLIGHT PENJELASAN WAGO (KHUSUS VERIFIKASI) -->
             <div class="glass bg-gradient-to-br from-orange-950/40 via-[#1a1824] to-[#16151e] border-2 border-orange-500/40 p-6 sm:p-10 rounded-[2.5rem] shadow-2xl shadow-orange-950/30 relative overflow-hidden">
                 <div class="absolute -top-24 -right-24 w-60 h-60 bg-orange-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div class="relative z-10">
                     <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-500 text-black text-xs font-black uppercase tracking-wider mb-4 shadow-md shadow-orange-500/30">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        Bagian Krusial Verifikasi iPaymu
+                        Bagian Krusial Verifikasi WAGO Payment ID
                     </div>
 
                     <h2 class="text-2xl sm:text-3xl font-black font-outfit text-white mb-3 tracking-tight">
-                        Di Bagian Flow Bisnis Mana <span class="text-orange-400 underline decoration-orange-400/50">iPaymu Digunakan?</span>
+                        Di Bagian Flow Bisnis Mana <span class="text-orange-400 underline decoration-orange-400/50">WAGO Digunakan?</span>
                     </h2>
                     <p class="text-stone-300 text-sm sm:text-base leading-relaxed mb-6">
-                        Gentix Apps menggunakan <strong>iPaymu Payment Gateway</strong> sebagai <strong>satu-satunya gerbang pemrosesan pembayaran online resmi</strong> untuk memfasilitasi transaksi aman antara Pembeli dan Penyelenggara Event. iPaymu aktif bekerja pada <strong>Tahap 3, 4, dan 5</strong> dalam siklus transaksi:
+                        Gentix Apps menggunakan <strong>WAGO Payment ID (Pay-Engine)</strong> sebagai <strong>gerbang pemrosesan pembayaran online resmi</strong> untuk memfasilitasi transaksi aman antara Pembeli dan Penyelenggara Event. WAGO aktif bekerja pada <strong>Tahap 3, 4, dan 5</strong> dalam siklus transaksi:
                     </p>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -224,7 +224,7 @@
                             </div>
                             <h4 class="text-sm font-bold text-white mb-2">Pembuatan Sesi Bayar</h4>
                             <p class="text-xs text-stone-300 leading-relaxed">
-                                Saat pembeli klik <em>"Bayar Sekarang"</em>, backend Gentix Apps memanggil API iPaymu v2 (<code class="text-orange-300">/api/v2/payment</code>) menggunakan VA & API Key resmi serta enkripsi SHA256 Signature untuk menghasilkan Payment Link aman.
+                                Saat pembeli klik <em>"Bayar Sekarang"</em>, backend Gentix Apps memanggil API WAGO (<code class="text-orange-300">/api/order</code>) menggunakan APP ID & API Key resmi untuk menghasilkan Order Token dan link Checkout aman.
                             </p>
                         </div>
 
@@ -236,7 +236,7 @@
                             </div>
                             <h4 class="text-sm font-bold text-white mb-2">Layanan Bayar Pelanggan</h4>
                             <p class="text-xs text-stone-300 leading-relaxed">
-                                Pembeli membayar melalui halaman hosted iPaymu dengan opsi: <strong>Virtual Account (BCA, Mandiri, BNI, BRI, Permata)</strong>, <strong>QRIS Real-time</strong>, <strong>E-Wallet</strong>, <strong>Retail Alfamart/Indomaret</strong>, & <strong>Kartu Kredit</strong>.
+                                Pembeli membayar melalui portal pembayaran WAGO dengan opsi: <strong>QRIS Real-Time (Scan via semua Mobile Banking & E-Wallet)</strong>, <strong>Virtual Account</strong>, serta <strong>E-Wallet Direct</strong>.
                             </p>
                         </div>
 
@@ -248,7 +248,7 @@
                             </div>
                             <h4 class="text-sm font-bold text-white mb-2">Verifikasi Instan 24/7</h4>
                             <p class="text-xs text-stone-300 leading-relaxed">
-                                Sesaat setelah dana diterima, server iPaymu mengirim HTTP POST Webhook ke <code class="text-orange-300">/ipaymu/notification</code>. Sistem Gentix otomatis mengubah status transaksi menjadi <strong>PAID</strong> tanpa konfirmasi manual.
+                                Sesaat setelah dana diterima, server WAGO mengirim HTTP POST Webhook ke <code class="text-orange-300">/wago/notification</code> dengan signature HMAC-SHA256. Sistem Gentix otomatis mengubah status transaksi menjadi <strong>PAID</strong> tanpa konfirmasi manual.
                             </p>
                         </div>
                     </div>
@@ -257,10 +257,10 @@
                     <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-stone-300 leading-relaxed flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
-                            <span><strong>Kepatuhan Transaksi:</strong> Gentix Apps tidak menyimpan data kartu atau kredensial perbankan pelanggan. Semua pemrosesan data keuangan ditangani di lingkungan tersertifikasi PCI-DSS iPaymu.</span>
+                            <span><strong>Kepatuhan Transaksi:</strong> Gentix Apps tidak menyimpan data kartu atau kredensial perbankan pelanggan. Semua pemrosesan data keuangan ditangani di lingkungan terenkripsi dan aman milik WAGO Payment ID.</span>
                         </div>
                         <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-400 border border-orange-500/30 whitespace-nowrap self-start sm:self-auto">
-                            Endpoint: /ipaymu/notification
+                            Endpoint: /wago/notification
                         </span>
                     </div>
                 </div>
@@ -315,7 +315,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 3 (iPaymu API Step) -->
+                    <!-- Step 3 (WAGO API Step) -->
                     <div class="glass-card p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row gap-4 sm:gap-6 items-start border-l-4 border-l-orange-500 bg-orange-500/[0.03]">
                         <div class="w-12 h-12 rounded-2xl bg-orange-500 text-black font-outfit font-black text-lg shrink-0 flex items-center justify-center shadow-md shadow-orange-500/25">
                             03
@@ -323,18 +323,18 @@
                         <div class="flex-1">
                             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                                 <h3 class="text-base sm:text-lg font-bold text-orange-400 flex items-center gap-2">
-                                    Checkout & Inisiasi Pembayaran ke iPaymu
-                                    <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold">iPaymu API</span>
+                                    Checkout & Inisiasi Pembayaran ke WAGO
+                                    <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold">WAGO API</span>
                                 </h3>
-                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi iPaymu</span>
+                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi WAGO</span>
                             </div>
                             <p class="text-stone-300 text-sm leading-relaxed mb-3">
                                 Saat tombol <strong>"Lanjutkan ke Pembayaran"</strong> diklik:
                             </p>
                             <ul class="space-y-1.5 text-xs text-stone-300 list-disc list-inside">
-                                <li>Sistem Gentix Apps membuat invoice transaksi unik dengan format referensi <code class="text-orange-300">GTX-XXXXXX</code> dengan status awal <span class="text-amber-400 font-bold">UNPAID / PENDING</span>.</li>
-                                <li>Backend Gentix Apps mengirim payload API ke endpoint <code class="text-orange-300">https://my.ipaymu.com/api/v2/payment</code> berisi rincian pesanan, total bayar, data pembeli, serta parameter URL callback (<code class="text-orange-300">notifyUrl</code>) dan redirect (<code class="text-orange-300">returnUrl</code> & <code class="text-orange-300">cancelUrl</code>).</li>
-                                <li>iPaymu merespons dengan URL checkout pembayaran resmi, dan browser pengguna langsung dialihkan ke halaman pembayaran iPaymu.</li>
+                                <li>Sistem Gentix Apps membuat invoice transaksi unik dengan format referensi <code class="text-orange-300">TX-XXXXXX</code> dengan status awal <span class="text-amber-400 font-bold">UNPAID / PENDING</span>.</li>
+                                <li>Backend Gentix Apps mengirim payload API ke endpoint <code class="text-orange-300">https://api.wago-id.web.id/api/order</code> berisi order_id, nominal, data pembeli, serta parameter callback_url (<code class="text-orange-300">notifyUrl</code>).</li>
+                                <li>WAGO merespons dengan Order Token resmi, dan browser pengguna langsung dialihkan ke portal pembayaran checkout WAGO (<code class="text-orange-300">https://pay.wago-id.web.id/checkout/...</code>).</li>
                             </ul>
                         </div>
                     </div>
@@ -347,30 +347,26 @@
                         <div class="flex-1">
                             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                                 <h3 class="text-base sm:text-lg font-bold text-orange-400 flex items-center gap-2">
-                                    Penyelesaian Pembayaran oleh Pembeli via iPaymu
-                                    <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold">Payment Gateway</span>
+                                    Penyelesaian Pembayaran oleh Pembeli via WAGO
+                                    <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold">Pay-Engine</span>
                                 </h3>
-                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi iPaymu</span>
+                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi WAGO</span>
                             </div>
                             <p class="text-stone-300 text-sm leading-relaxed mb-3">
-                                Pembeli memilih metode pembayaran yang didukung penuh oleh jaringan perbankan & mitra iPaymu:
+                                Pembeli memilih metode pembayaran yang didukung penuh oleh jaringan perbankan & mitra WAGO Payment ID:
                             </p>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs text-stone-200">
-                                <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-center">
-                                    <span class="block text-orange-400 font-bold mb-0.5">Virtual Account</span>
-                                    BCA, Mandiri, BNI, BRI, Permata
-                                </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs text-stone-200">
                                 <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-center">
                                     <span class="block text-orange-400 font-bold mb-0.5">QRIS Real-Time</span>
-                                    Scan via semua E-Wallet & M-Banking
+                                    Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana
+                                </div>
+                                <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-center">
+                                    <span class="block text-orange-400 font-bold mb-0.5">Virtual Account</span>
+                                    Transfer otomatis antar bank terverifikasi
                                 </div>
                                 <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-center">
                                     <span class="block text-orange-400 font-bold mb-0.5">E-Wallet Direct</span>
-                                    OVO, DANA, ShopeePay, LinkAja
-                                </div>
-                                <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-center">
-                                    <span class="block text-orange-400 font-bold mb-0.5">Gerai Retail</span>
-                                    Indomaret & Alfamart Group
+                                    Pembayaran instan tanpa verifikasi manual
                                 </div>
                             </div>
                             <p class="text-[11px] text-stone-400 mt-2.5">
@@ -390,14 +386,14 @@
                                     Verifikasi Pembayaran Otomatis (Webhook Callback)
                                     <span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[11px] font-mono font-bold">Instant IPN</span>
                                 </h3>
-                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi iPaymu</span>
+                                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold">Integrasi WAGO</span>
                             </div>
                             <p class="text-stone-300 text-sm leading-relaxed mb-2">
                                 Begitu pembeli berhasil menyelesaikan transfer/pembayaran:
                             </p>
                             <ul class="space-y-1.5 text-xs text-stone-300 list-disc list-inside">
-                                <li>Server iPaymu mengirimkan HTTP POST Callback ke webhook endpoint Gentix Apps: <code class="text-orange-300">https://gentix-apps.com/ipaymu/notification</code>.</li>
-                                <li>Sistem Gentix memvalidasi data transaksi, status code iPaymu (<code class="text-orange-300">status_code: 1 / berhasil / PAID</code>).</li>
+                                <li>Server WAGO mengirimkan HTTP POST Callback ke webhook endpoint Gentix Apps: <code class="text-orange-300">https://gentix-apps.com/wago/notification</code>.</li>
+                                <li>Sistem Gentix memvalidasi signature HMAC-SHA256 data transaksi dan status pembayaran (<code class="text-orange-300">status: SUCCESS / PAID</code>).</li>
                                 <li>Status transaksi dalam database Gentix Apps seketika diperbarui menjadi <span class="text-emerald-400 font-bold">PAID</span> secara otomatis tanpa perlu intervensi atau upload bukti transfer manual.</li>
                             </ul>
                         </div>
@@ -475,7 +471,7 @@
                             Waktu Pengiriman
                         </h4>
                         <p class="text-stone-300 text-xs leading-relaxed">
-                            Pengiriman produk digital (E-Voucher) diproses secara instan seketika dalam kurun waktu <strong>kurang dari 1 sampai 3 menit</strong> setelah notifikasi pembayaran diterima dari sistem iPaymu.
+                            Pengiriman produk digital (E-Voucher) diproses secara instan seketika dalam kurun waktu <strong>kurang dari 1 sampai 3 menit</strong> setelah notifikasi pembayaran diterima dari sistem WAGO Payment ID.
                         </p>
                     </div>
 
@@ -512,7 +508,7 @@
                     </div>
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold font-outfit text-white">4. Informasi Legalitas Merchant & Layanan Kontak Resmi</h2>
-                        <p class="text-xs sm:text-sm text-stone-400">Data entitas pemilik platform Gentix Apps untuk verifikasi iPaymu</p>
+                        <p class="text-xs sm:text-sm text-stone-400">Data entitas pemilik platform Gentix Apps untuk verifikasi merchant WAGO Payment ID</p>
                     </div>
                 </div>
 
@@ -532,7 +528,7 @@
                         </div>
                         <div class="flex items-start gap-3">
                             <span class="text-stone-500 font-medium w-36 shrink-0">Mitra Gateway:</span>
-                            <span class="text-stone-200">PT Inti Pembayaran Elektronik (iPaymu)</span>
+                            <span class="text-stone-200">WAGO Payment ID (PT WAGO Digital Multi)</span>
                         </div>
                     </div>
 

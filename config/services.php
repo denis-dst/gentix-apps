@@ -35,14 +35,16 @@ return [
         ],
     ],
 
-    'ipaymu' => [
-        'va' => env('IPAYMU_VA'),
-        'api_key' => env('IPAYMU_API_KEY'),
-        'is_production' => (bool) env('IPAYMU_IS_PRODUCTION', false),
-        'api_url' => env('IPAYMU_IS_PRODUCTION', false) 
-            ? 'https://my.ipaymu.com/api/v2' 
-            : 'https://sandbox.ipaymu.com/api/v2',
+    'wago' => [
+        'app_id'          => env('WAGO_APP_ID', 'GENTIXAPPS'),
+        'api_key'         => env('WAGO_API_KEY'),
+        'callback_secret' => env('WAGO_CALLBACK_SECRET'),
+        'is_production'   => (bool) env('WAGO_IS_PRODUCTION', true),
+        'is_sandbox'      => (bool) env('WAGO_IS_SANDBOX', false),
+        'api_base_url'    => env('WAGO_API_BASE_URL', 'https://api.wago-id.web.id'),
+        'checkout_url'    => env('WAGO_CHECKOUT_URL', 'https://pay.wago-id.web.id/checkout'),
     ],
+
 
     'fonnte' => [
         'token' => env('FONNTE_TOKEN', 'v4f115WxN2saJKmqQkAg'),

@@ -67,6 +67,78 @@ class PublicEventController extends Controller
         ]);
     }
 
+    public function handleWagoNotification(Request $request)
+    {
+        \Log::info('WAGO notification received', [
+            'headers' => $request->headers->all(),
+            'body'    => $request->all(),
+        ]);
+
+        $body        = $request->all();
+        $orderId     = (string) $request->input('order_id');
+        $status      = strtoupper(trim((string) $request->input('status', '')));
+        $nominalUnik = $request->input('nominal_unik');
+        $sn          = (string) $request->input('sn', '');
+
+        $signature = $request->header('X-WAGO-Signature') ?: (string) $request->input('sig', '');
+        $timestamp = $request->header('X-WAGO-Timestamp') ?: (string) $request->input('t', '');
+
+        if (empty($orderId)) {
+            \Log::warning('WAGO notification received without order_id', $body);
+            return response()->json(['status' => 'error', 'message' => 'Missing order_id'], 400);
+        }
+
+        $wagoService = new \App\Services\WagoService();
+
+        // Verify HMAC-SHA256 signature if callback secret is configured
+        if (!empty(config('services.wago.callback_secret')) && !empty($signature)) {
+            $isValid = $wagoService->verifyWebhookSignature($body, $signature, $timestamp);
+            if (!$isValid) {
+                \Log::warning("WAGO notification signature mismatch for order_id: {$orderId}");
+                return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 403);
+            }
+        }
+
+        $dbTransaction = Transaction::where('reference_no', $orderId)->first();
+
+        if (!$dbTransaction) {
+            \Log::warning("Transaction not found for WAGO order_id: {$orderId}");
+            return response()->json(['status' => 'error', 'message' => 'Transaction not found'], 404);
+        }
+
+        $paymentMethod = 'WAGO (QRIS / Payment Gateway)';
+
+        if ($status === 'SUCCESS' || $status === 'PAID') {
+            if ($dbTransaction->payment_status !== 'paid') {
+                $dbTransaction->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => $paymentMethod,
+                    'paid_at'        => now(),
+                ]);
+
+                // Finalize transaction: generate tickets & send E-Voucher ONLY on confirmed payment
+                $this->finalizeTransaction($dbTransaction);
+
+                \Log::info("WAGO transaction {$orderId} marked as PAID. Tickets generated & Evoucher sent.");
+            }
+        } elseif ($status === 'FAILED') {
+            $dbTransaction->update([
+                'payment_status' => 'failed',
+                'payment_method' => $paymentMethod,
+            ]);
+            \Log::info("WAGO transaction {$orderId} marked as FAILED.");
+        } elseif ($status === 'EXPIRED') {
+            $dbTransaction->update([
+                'payment_status' => 'expired',
+                'payment_method' => $paymentMethod,
+            ]);
+            \Log::info("WAGO transaction {$orderId} marked as EXPIRED.");
+        }
+
+        // Response format as per WAGO docs: HTTP 200 JSON {"status": "ok"}
+        return response()->json(['status' => 'ok'], 200);
+    }
+
     public function handleIPaymuNotification(Request $request)
     {
         \Log::info('iPaymu notification received', $request->all());
@@ -341,7 +413,7 @@ class PublicEventController extends Controller
             $totalAmount = max(0, $subtotal - $discount);
             $referenceNo = 'TX-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
-            // If 100% Promo Discount or 0 Rupiah, issue E-Voucher directly without iPaymu Payment Gateway
+            // If 100% Promo Discount or 0 Rupiah, issue E-Voucher directly without payment gateway
             if ($totalAmount <= 0) {
                 $transaction = Transaction::create([
                     'tenant_id'          => $event->tenant_id,
@@ -397,7 +469,7 @@ class PublicEventController extends Controller
                 'discount_amount' => $discount,
                 'total_amount' => $totalAmount,
                 'payment_status'       => 'pending', // Initial status
-                'payment_method'       => 'iPaymu',
+                'payment_method'       => 'WAGO',
                 'channel'              => 'online',
             ]);
 
@@ -405,42 +477,32 @@ class PublicEventController extends Controller
                 $promo->increment('used_count', $validated['quantity']);
             }
 
-            // iPaymu payment gateway integration
-            $ipaymuService = new \App\Services\IPaymuService();
-            $ipaymuResult  = $ipaymuService->createPaymentLink([
-                'amount'         => $totalAmount,
-                'invoice_number' => $referenceNo,
-                'callback_url'   => route('checkout.success', $referenceNo),
-                'notify_url'     => route('ipaymu.notification'),
-                'failed_url'     => route('events.show', $event->slug),
-                'line_items'     => [
-                    [
-                        'id'          => (string) $category->id,
-                        'price'       => (int)($totalAmount / $validated['quantity']),
-                        'quantity'    => $validated['quantity'],
-                        'name'        => $category->name . ' - ' . $event->name,
-                        'description' => 'Tiket ' . $category->name . ' - ' . $event->name,
-                    ]
-                ]
+            // WAGO Payment Gateway integration
+            $wagoService = new \App\Services\WagoService();
+            $wagoResult  = $wagoService->createPayment([
+                'order_id'       => $referenceNo,
+                'nominal'        => $totalAmount,
+                'callback_url'   => route('wago.notification'),
+                'payment_method' => 'QRIS',
             ], [
                 'name'  => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
             ]);
 
-            if ($ipaymuResult['success']) {
+            if ($wagoResult['success']) {
                 if (request()->ajax() || request()->wantsJson()) {
                     return response()->json([
                         'success'      => true,
-                        'redirect_url' => $ipaymuResult['payment_url'],
+                        'redirect_url' => $wagoResult['payment_url'],
                         'reference_no' => $referenceNo
                     ]);
                 }
-                return redirect($ipaymuResult['payment_url']);
+                return redirect($wagoResult['payment_url']);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => $ipaymuResult['message'] ?? 'Gagal memproses pembayaran iPaymu.'
+                    'message' => $wagoResult['message'] ?? 'Gagal memproses pembayaran WAGO.'
                 ], 400);
             }
         });
@@ -733,34 +795,41 @@ class PublicEventController extends Controller
 
         // If tickets are not generated yet, check status
         if ($transaction->tickets->isEmpty()) {
-            $statusParam     = strtolower((string) request()->query('status', ''));
-            $statusCodeParam = (string) (request()->query('status_code', request()->query('transaction_status_code', '')));
-            $trxIdParam      = (string) request()->query('trx_id', '');
+            $statusParam = strtoupper(trim((string) request()->query('status', '')));
 
-            // Parse status from URL query parameters if present
-            $hasQueryStatus = !empty($statusCodeParam) || !empty($statusParam);
-            $parsedQuery = $hasQueryStatus ? \App\Services\IPaymuService::parseStatusCode($statusCodeParam, '', $statusParam) : null;
-
-            if ($parsedQuery && $parsedQuery['is_failed']) {
-                $transaction->update(['payment_status' => $parsedQuery['internal_status']]);
-                $transaction->refresh();
-            } elseif ($transaction->payment_status === 'paid' || ($parsedQuery && $parsedQuery['is_paid'])) {
-                $transaction->update(['payment_status' => 'paid']);
+            if ($transaction->payment_status === 'paid' || $statusParam === 'SUCCESS' || $statusParam === 'PAID') {
+                $transaction->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => 'WAGO (QRIS / Payment Gateway)',
+                    'paid_at'        => $transaction->paid_at ?: now(),
+                ]);
                 $this->finalizeTransaction($transaction);
                 $transaction->refresh();
                 $transaction->load('tickets.category', 'event');
-            } elseif (!empty($trxIdParam) && !empty(config('services.ipaymu.va')) && !empty(config('services.ipaymu.api_key'))) {
-                // If we have trx_id from return URL, verify status directly with iPaymu /transaction API
-                $ipaymuService = new \App\Services\IPaymuService();
-                $checkResult = $ipaymuService->checkTransactionStatus($trxIdParam);
-                if ($checkResult['success'] && $checkResult['is_paid']) {
-                    $transaction->update(['payment_status' => 'paid']);
-                    $this->finalizeTransaction($transaction);
-                    $transaction->refresh();
-                    $transaction->load('tickets.category', 'event');
-                } elseif ($checkResult['success'] && $checkResult['is_failed']) {
-                    $transaction->update(['payment_status' => $checkResult['internal_status']]);
-                    $transaction->refresh();
+            } elseif ($statusParam === 'FAILED') {
+                $transaction->update(['payment_status' => 'failed']);
+                $transaction->refresh();
+            } elseif ($statusParam === 'EXPIRED') {
+                $transaction->update(['payment_status' => 'expired']);
+                $transaction->refresh();
+            } else {
+                // Check status directly with WAGO API
+                if (!empty(config('services.wago.api_key'))) {
+                    $wagoService = new \App\Services\WagoService();
+                    $checkResult = $wagoService->checkTransactionStatus($reference);
+                    if ($checkResult['success'] && $checkResult['is_paid']) {
+                        $transaction->update([
+                            'payment_status' => 'paid',
+                            'payment_method' => 'WAGO (QRIS / Payment Gateway)',
+                            'paid_at'        => $transaction->paid_at ?: now(),
+                        ]);
+                        $this->finalizeTransaction($transaction);
+                        $transaction->refresh();
+                        $transaction->load('tickets.category', 'event');
+                    } elseif ($checkResult['success'] && $checkResult['is_failed']) {
+                        $transaction->update(['payment_status' => $checkResult['internal_status']]);
+                        $transaction->refresh();
+                    }
                 }
             }
         }

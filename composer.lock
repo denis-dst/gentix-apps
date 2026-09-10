@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1065b81c92051b9fe0f0e60840f730de",
+    "content-hash": "2709ee498e246b09eb891389e480b85c",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -7887,6 +7887,43 @@
                 }
             ],
             "time": "2026-04-26T05:33:54+00:00"
+        },
+        {
+            "name": "wago-id/php-sdk",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/wagopaymentid/wago-php-sdk.git",
+                "reference": "10fec86ce2a5cc225ddcd4262ab26052930d4c50"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/wagopaymentid/wago-php-sdk/zipball/10fec86ce2a5cc225ddcd4262ab26052930d4c50",
+                "reference": "10fec86ce2a5cc225ddcd4262ab26052930d4c50",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=7.4"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Wago\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Official PHP SDK for WAGO Payment ID",
+            "support": {
+                "issues": "https://github.com/wagopaymentid/wago-php-sdk/issues",
+                "source": "https://github.com/wagopaymentid/wago-php-sdk/tree/main"
+            },
+            "time": "2026-07-15T10:55:11+00:00"
         }
     ],
     "packages-dev": [
@@ -10090,7 +10127,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "wago-id/php-sdk": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
