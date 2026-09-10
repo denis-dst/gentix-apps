@@ -67,6 +67,13 @@
         }
     </style>
     <meta name="wago-verification" content="WAGO-C2742A2D">
+@php
+    $emailSetting = $globalEmailEnabled ?? \App\Models\Setting::where('key', 'global_email_notifications_enabled')->value('value');
+    $isEmailNotifEnabled = $emailSetting === null || ($emailSetting !== '0' && $emailSetting !== false);
+
+    $waSetting = $globalWaEnabled ?? \App\Models\Setting::where('key', 'global_wa_notifications_enabled')->value('value');
+    $isWaNotifEnabled = $waSetting === null || ($waSetting !== '0' && $waSetting !== false);
+@endphp
 </head>
 <body class="text-slate-800" x-data="{
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},
@@ -84,8 +91,8 @@
     attendees: [],
     currentAttendee: 0,
     paymentMethod: 'qris',
-    notifWA: true,
-    notifEmail: true,
+    notifWA: {{ $isWaNotifEnabled ? 'true' : 'false' }},
+    notifEmail: {{ $isEmailNotifEnabled ? 'true' : 'false' }},
     lang: '{{ app()->getLocale() === 'en' ? 'en' : 'id' }}',
     showModalSK: false,
     promoCode: '',
@@ -927,16 +934,22 @@
                                                 class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                     </div>
 
-                                    <div class="space-y-2 pt-2">
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                            <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
-                                        </label>
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                            <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
-                                        </label>
-                                    </div>
+                                    @if($isWaNotifEnabled || $isEmailNotifEnabled)
+                                        <div class="space-y-2 pt-2">
+                                            @if($isWaNotifEnabled)
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                                    <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
+                                                </label>
+                                            @endif
+                                            @if($isEmailNotifEnabled)
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                                    <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
+                                                </label>
+                                            @endif
+                                        </div>
+                                    @endif
 
                                     <div class="pt-4">
                                         <div class="flex justify-between items-center mb-4 p-4 bg-slate-50 rounded-2xl">

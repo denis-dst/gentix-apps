@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'wago/notification',
+            'wago/webhook',
+            'api/wago-webhook',
             'ipaymu/notification',
         ]);
         

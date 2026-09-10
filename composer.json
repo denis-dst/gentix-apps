@@ -16,8 +16,7 @@
         "maatwebsite/excel": "^3.1",
         "pusher/pusher-php-server": "^7.2",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "spatie/laravel-permission": "^7.3",
-        "wago-id/php-sdk": "dev-main"
+        "spatie/laravel-permission": "^7.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

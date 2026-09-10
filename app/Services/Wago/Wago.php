@@ -1,12 +1,12 @@
 <?php
 
-namespace Wago;
+namespace App\Services\Wago;
 
 use Exception;
 
 /**
- * WAGO Payment ID PHP SDK (Bundled Fallback)
- * Ensures availability even if vendor/wago-id is not installed via Composer on production servers.
+ * WAGO Payment ID PHP SDK (Bundled Native Service)
+ * Ensures full compatibility without needing external composer repository dependencies.
  */
 class Wago {
     private $appId;
@@ -75,14 +75,19 @@ class Wago {
             throw new Exception("webhookSecret is required to verify webhooks.");
         }
 
-        $order_id = $body['order_id'] ?? '';
-        $status = $body['status'] ?? '';
-        $nominal_unik = $body['nominal_unik'] ?? '';
-        $sn = $body['sn'] ?? '';
+        $order_id = $body['order_id'] ?? $body['data']['order_id'] ?? $body['data']['id'] ?? $body['id'] ?? '';
+        $status = $body['status'] ?? $body['data']['status'] ?? '';
+        $nominal_unik = $body['nominal_unik'] ?? $body['data']['nominal_unik'] ?? '';
+        $sn = $body['sn'] ?? $body['data']['sn'] ?? '';
 
         $rawPayload = "{$order_id}:{$status}:{$nominal_unik}:{$sn}:{$timestamp}";
         $expectedSignature = hash_hmac('sha256', $rawPayload, $this->webhookSecret);
 
         return hash_equals($expectedSignature, $signature);
     }
+}
+
+// Global alias for compatibility if referenced as \Wago\Wago
+if (!class_exists(\Wago\Wago::class, false)) {
+    class_alias(Wago::class, \Wago\Wago::class);
 }

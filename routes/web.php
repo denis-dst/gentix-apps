@@ -22,6 +22,8 @@ Route::get('/event/{slug}', [PublicEventController::class, 'show'])->name('event
 Route::get('/promo/validate', [PublicEventController::class, 'validatePromo'])->name('promo.validate');
 Route::post('/event/{slug}/checkout', [PublicEventController::class, 'checkout'])->name('checkout.process');
 Route::post('/wago/notification', [PublicEventController::class, 'handleWagoNotification'])->name('wago.notification');
+Route::post('/api/wago-webhook', [PublicEventController::class, 'handleWagoNotification'])->name('wago.webhook.api');
+Route::post('/wago/webhook', [PublicEventController::class, 'handleWagoNotification'])->name('wago.webhook');
 Route::post('/ipaymu/notification', [PublicEventController::class, 'handleIPaymuNotification'])->name('ipaymu.notification');
 Route::get('/checkout/success/{reference}', [App\Http\Controllers\PublicEventController::class, 'success'])->name('checkout.success');
 Route::get('/evoucher/{reference}', [App\Http\Controllers\PublicEventController::class, 'evoucher'])->name('evoucher.public');

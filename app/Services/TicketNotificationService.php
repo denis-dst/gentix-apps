@@ -45,6 +45,12 @@ class TicketNotificationService
                 return;
             }
 
+            // Check customer preference
+            if (isset($ticket->visitor_data['notif_email']) && !$ticket->visitor_data['notif_email']) {
+                Log::info("sendEmail skipped: Customer opted out for ticket {$ticket->ticket_code}");
+                return;
+            }
+
             $email = $ticket->visitor_data['email'] ?? $ticket->transaction->customer_email ?? null;
 
             if ($email) {
@@ -71,6 +77,12 @@ class TicketNotificationService
             // Check global setting first
             $globalWaEnabled = Setting::where('key', 'global_wa_notifications_enabled')->value('value');
             if ($globalWaEnabled === '0' || $globalWaEnabled === false) {
+                return;
+            }
+
+            // Check customer preference
+            if (isset($ticket->visitor_data['notif_wa']) && !$ticket->visitor_data['notif_wa']) {
+                Log::info("sendWhatsApp skipped: Customer opted out for ticket {$ticket->ticket_code}");
                 return;
             }
         }

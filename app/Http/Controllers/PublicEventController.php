@@ -74,18 +74,72 @@ class PublicEventController extends Controller
             'body'    => $request->all(),
         ]);
 
-        $body        = $request->all();
-        $orderId     = (string) $request->input('order_id');
-        $status      = strtoupper(trim((string) $request->input('status', '')));
-        $nominalUnik = $request->input('nominal_unik');
-        $sn          = (string) $request->input('sn', '');
+        $body  = $request->all();
+        $event = strtolower(trim((string) ($request->input('event') ?? $request->input('action') ?? '')));
 
-        $signature = $request->header('X-WAGO-Signature') ?: (string) $request->input('sig', '');
-        $timestamp = $request->header('X-WAGO-Timestamp') ?: (string) $request->input('t', '');
+        // Order ID could be directly at root, nested under 'data', or query param
+        $orderId = (string) (
+            $request->input('order_id')
+            ?? $request->input('data.order_id')
+            ?? $request->input('data.id')
+            ?? $request->input('id')
+            ?? ''
+        );
+
+        // Status could be direct, under data, or inferred from event
+        $rawStatus = (string) (
+            $request->input('status')
+            ?? $request->input('data.status')
+            ?? ''
+        );
+        $status = strtoupper(trim($rawStatus));
+
+        if (empty($status) && !empty($event)) {
+            if ($event === 'transaction.success' || $event === 'success' || $event === 'payment.success') {
+                $status = 'SUCCESS';
+            } elseif ($event === 'transaction.expired' || $event === 'expired') {
+                $status = 'EXPIRED';
+            } elseif ($event === 'transaction.canceled' || $event === 'transaction.failed' || $event === 'canceled' || $event === 'cancelled') {
+                $status = 'FAILED';
+            }
+        }
+
+        $nominalUnik = $request->input('nominal_unik') ?? $request->input('data.nominal_unik');
+        $sn          = (string) ($request->input('sn') ?? $request->input('data.sn') ?? '');
+
+        // Support various header casings (X-Wago-Signature, X-WAGO-Signature, etc.)
+        $signature = $request->header('x-wago-signature')
+            ?: $request->header('X-Wago-Signature')
+            ?: $request->header('X-WAGO-Signature')
+            ?: (string) $request->input('sig', '');
+
+        $timestamp = $request->header('x-wago-timestamp')
+            ?: $request->header('X-Wago-Timestamp')
+            ?: $request->header('X-WAGO-Timestamp')
+            ?: (string) $request->input('t', '');
+
+        // Handle "Test Webhook" ping from WAGO dashboard
+        $isTestPing = $event === 'test' 
+            || $event === 'ping' 
+            || $request->boolean('test') 
+            || empty($body) 
+            || $orderId === 'test'
+            || $orderId === 'ping';
+
+        if ($isTestPing) {
+            \Log::info('WAGO Webhook test ping successfully handled', ['body' => $body]);
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'Webhook test ping received successfully',
+            ], 200);
+        }
 
         if (empty($orderId)) {
             \Log::warning('WAGO notification received without order_id', $body);
-            return response()->json(['status' => 'error', 'message' => 'Missing order_id'], 400);
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'Notification acknowledged (no order_id provided)',
+            ], 200);
         }
 
         $wagoService = new \App\Services\WagoService();
@@ -99,11 +153,16 @@ class PublicEventController extends Controller
             }
         }
 
-        $dbTransaction = Transaction::where('reference_no', $orderId)->first();
+        $dbTransaction = Transaction::where('reference_no', $orderId)
+            ->orWhere('payment_reference', $orderId)
+            ->first();
 
         if (!$dbTransaction) {
             \Log::warning("Transaction not found for WAGO order_id: {$orderId}");
-            return response()->json(['status' => 'error', 'message' => 'Transaction not found'], 404);
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'Transaction not found or already processed',
+            ], 200);
         }
 
         $paymentMethod = 'WAGO (QRIS / Payment Gateway)';
@@ -121,7 +180,7 @@ class PublicEventController extends Controller
 
                 \Log::info("WAGO transaction {$orderId} marked as PAID. Tickets generated & Evoucher sent.");
             }
-        } elseif ($status === 'FAILED') {
+        } elseif ($status === 'FAILED' || $status === 'CANCELED' || $status === 'CANCELLED') {
             $dbTransaction->update([
                 'payment_status' => 'failed',
                 'payment_method' => $paymentMethod,
@@ -250,6 +309,14 @@ class PublicEventController extends Controller
 
             $category = $transaction->category;
 
+            $notifPrefs = [];
+            if (!empty($transaction->payment_reference)) {
+                $decoded = json_decode($transaction->payment_reference, true);
+                if (is_array($decoded)) {
+                    $notifPrefs = $decoded;
+                }
+            }
+
             for ($i = 0; $i < $transaction->quantity; $i++) {
                 $ticket = \App\Models\Ticket::create([
                     'tenant_id' => $transaction->tenant_id,
@@ -258,6 +325,12 @@ class PublicEventController extends Controller
                     'ticket_category_id' => $transaction->ticket_category_id,
                     'ticket_code' => 'GTX-' . strtoupper(\Illuminate\Support\Str::random(10)),
                     'status' => 'sold',
+                    'visitor_data' => array_merge([
+                        'name' => $transaction->customer_name,
+                        'email' => $transaction->customer_email,
+                        'phone' => $transaction->customer_phone,
+                        'nik' => $transaction->customer_nik,
+                    ], $notifPrefs),
                 ]);
 
                 $createdTickets[] = $ticket;
@@ -290,7 +363,13 @@ class PublicEventController extends Controller
             }, 'tenant'])
             ->firstOrFail();
 
-        return view('events.show', compact('event'));
+        $emailSetting = \App\Models\Setting::where('key', 'global_email_notifications_enabled')->value('value');
+        $globalEmailEnabled = $emailSetting === null || ($emailSetting !== '0' && $emailSetting !== false);
+
+        $waSetting = \App\Models\Setting::where('key', 'global_wa_notifications_enabled')->value('value');
+        $globalWaEnabled = $waSetting === null || ($waSetting !== '0' && $waSetting !== false);
+
+        return view('events.show', compact('event', 'globalEmailEnabled', 'globalWaEnabled'));
     }
 
     public function checkout(Request $request, $slug)
@@ -413,6 +492,11 @@ class PublicEventController extends Controller
             $totalAmount = max(0, $subtotal - $discount);
             $referenceNo = 'TX-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
+            $notifPrefs = [
+                'notif_wa'    => filter_var($validated['notif_wa'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'notif_email' => filter_var($validated['notif_email'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            ];
+
             // If 100% Promo Discount or 0 Rupiah, issue E-Voucher directly without payment gateway
             if ($totalAmount <= 0) {
                 $transaction = Transaction::create([
@@ -430,6 +514,7 @@ class PublicEventController extends Controller
                     'total_amount'       => 0,
                     'payment_status'     => 'paid',
                     'payment_method'     => 'promo',
+                    'payment_reference'  => json_encode($notifPrefs),
                     'paid_at'            => now(),
                     'channel'            => 'online',
                 ]);
@@ -470,6 +555,7 @@ class PublicEventController extends Controller
                 'total_amount' => $totalAmount,
                 'payment_status'       => 'pending', // Initial status
                 'payment_method'       => 'WAGO',
+                'payment_reference'    => json_encode($notifPrefs),
                 'channel'              => 'online',
             ]);
 

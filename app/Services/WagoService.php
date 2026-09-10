@@ -2,19 +2,12 @@
 
 namespace App\Services;
 
+use App\Services\Wago\Wago;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
-
-// Ensure WAGO class exists even if composer vendor was not updated on production
-if (!class_exists(\Wago\Wago::class)) {
-    $fallbackFile = __DIR__ . '/Wago/Wago.php';
-    if (file_exists($fallbackFile)) {
-        require_once $fallbackFile;
-    }
-}
 
 class WagoService
 {
@@ -38,20 +31,16 @@ class WagoService
         $this->checkoutUrl    = (string) (config('services.wago.checkout_url') ?: 'https://pay.wago-id.web.id/checkout');
 
         if (!empty($this->appId) && !empty($this->apiKey)) {
-            if (class_exists(\Wago\Wago::class)) {
-                try {
-                    $this->wagoSdk = new \Wago\Wago([
-                        'appId'         => $this->appId,
-                        'apiKey'        => $this->apiKey,
-                        'webhookSecret' => $this->callbackSecret,
-                        'isProduction'  => $this->isProduction,
-                    ]);
-                } catch (Throwable $e) {
-                    Log::warning('WagoService: Failed to initialize WAGO SDK: ' . $e->getMessage() . '. Using native HTTP client.');
-                    $this->wagoSdk = null;
-                }
-            } else {
-                Log::info('WagoService: Wago class not found in autoloader, using native Laravel HTTP client.');
+            try {
+                $this->wagoSdk = new Wago([
+                    'appId'         => $this->appId,
+                    'apiKey'        => $this->apiKey,
+                    'webhookSecret' => $this->callbackSecret,
+                    'isProduction'  => $this->isProduction,
+                ]);
+            } catch (Throwable $e) {
+                Log::warning('WagoService: Failed to initialize WAGO SDK: ' . $e->getMessage() . '. Using native HTTP client.');
+                $this->wagoSdk = null;
             }
         }
     }
@@ -267,10 +256,10 @@ class WagoService
                 return $this->wagoSdk->verifyWebhook($body, $signature, $timestamp);
             }
 
-            $orderId     = $body['order_id'] ?? '';
-            $status      = $body['status'] ?? '';
-            $nominalUnik = $body['nominal_unik'] ?? '';
-            $sn          = $body['sn'] ?? '';
+            $orderId     = $body['order_id'] ?? $body['data']['order_id'] ?? $body['data']['id'] ?? $body['id'] ?? '';
+            $status      = $body['status'] ?? $body['data']['status'] ?? '';
+            $nominalUnik = $body['nominal_unik'] ?? $body['data']['nominal_unik'] ?? '';
+            $sn          = $body['sn'] ?? $body['data']['sn'] ?? '';
 
             $rawPayload        = "{$orderId}:{$status}:{$nominalUnik}:{$sn}:{$timestamp}";
             $expectedSignature = hash_hmac('sha256', $rawPayload, $this->callbackSecret);
