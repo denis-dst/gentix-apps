@@ -18,8 +18,8 @@ class CheckTenantStatus
     {
         $user = $request->user();
 
-        // Superadmins are exempt
-        if ($user && $user->hasRole('Superadmin')) {
+        // Superadmins or active impersonator sessions are exempt
+        if ($user && ($user->hasRole('Superadmin') || $request->session()->has('impersonator_id'))) {
             return $next($request);
         }
 

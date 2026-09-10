@@ -84,8 +84,9 @@
 @php
     $shouldHideNav = isset($hideNav) && trim($hideNav->toHtml()) === '1';
 @endphp
-<body class="h-full bg-slate-50 text-slate-900 antialiased font-sans" x-data="{ sidebarOpen: false }">
-    <div class="flex h-full overflow-hidden">
+<body class="h-full bg-slate-50 text-slate-900 antialiased font-sans flex flex-col overflow-hidden" x-data="{ sidebarOpen: false }">
+    <x-impersonate-banner />
+    <div class="flex flex-1 overflow-hidden">
         @if(!$shouldHideNav)
         <!-- Desktop Sidebar -->
         <aside class="hidden lg:flex w-72 bg-[#0f172a] text-slate-300 flex-col shrink-0 border-r border-white/5">

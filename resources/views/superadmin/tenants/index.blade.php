@@ -73,13 +73,26 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-2">
-                                <a href="{{ route('superadmin.tenants.edit', $tenant) }}" class="p-2 bg-orange-50 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition shadow-sm border border-orange-100">
+                                @php
+                                    $targetUser = $tenant->owner ?? $tenant->users()->role('Penyedia Event')->first() ?? $tenant->users()->first();
+                                @endphp
+                                @if($targetUser)
+                                    <form action="{{ route('impersonate.start', $targetUser) }}" method="POST" class="inline" onsubmit="return confirm('Masuk sebagai {{ addslashes($tenant->name) }} ({{ addslashes($targetUser->name) }})?')">
+                                        @csrf
+                                        <button type="submit" class="p-2 bg-purple-50 text-purple-600 hover:text-white hover:bg-purple-600 rounded-lg transition shadow-sm border border-purple-100" title="Login Sebagai Tenant Ini">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @endif
+                                <a href="{{ route('superadmin.tenants.edit', $tenant) }}" class="p-2 bg-orange-50 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition shadow-sm border border-orange-100" title="Edit Tenant">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </a>
                                 <form action="{{ route('superadmin.tenants.destroy', $tenant) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this tenant?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="p-2 bg-orange-50 text-orange-500 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition shadow-sm border border-orange-100">
+                                    <button type="submit" class="p-2 bg-orange-50 text-orange-500 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition shadow-sm border border-orange-100" title="Hapus Tenant">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     </button>
                                 </form>

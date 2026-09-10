@@ -63,6 +63,9 @@ Route::post('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationContr
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
+    // User & Staff Management (Directory & Impersonation)
+    Route::get('users', [App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('users.index');
+
     // Tenants Trash & Resource
     Route::get('tenants/trash', [App\Http\Controllers\SuperAdmin\TenantController::class, 'trash'])->name('tenants.trash');
     Route::post('tenants/{id}/restore', [App\Http\Controllers\SuperAdmin\TenantController::class, 'restore'])->name('tenants.restore');
@@ -134,6 +137,12 @@ Route::get('/dashboard', function () {
     // Fallback for other roles or unassigned
     return redirect('/');
 })->middleware(['auth'])->name('dashboard');
+
+// Impersonation Routes
+Route::middleware('auth')->group(function () {
+    Route::post('/impersonate/{user}', [App\Http\Controllers\ImpersonateController::class, 'impersonate'])->name('impersonate.start');
+    Route::match(['GET', 'POST'], '/impersonate/leave', [App\Http\Controllers\ImpersonateController::class, 'leave'])->name('impersonate.leave');
+});
 
 Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas Gate', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Organizer\DashboardController::class, 'index'])->name('dashboard');

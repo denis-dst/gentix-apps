@@ -49,13 +49,25 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <form action="{{ route('organizer.crews.destroy', $crew) }}" method="POST" onsubmit="return confirm('Hapus crew ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 transition">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        </button>
-                                    </form>
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if(auth()->user()->hasRole('Superadmin') || session()->has('impersonator_id'))
+                                            <form action="{{ route('impersonate.start', $crew) }}" method="POST" class="inline" onsubmit="return confirm('Masuk sebagai {{ addslashes($crew->name) }} ({{ addslashes($role) }})?')">
+                                                @csrf
+                                                <button type="submit" class="p-2 text-orange-600 bg-orange-50 hover:bg-orange-600 hover:text-white rounded-lg transition border border-orange-100 shadow-sm" title="Login Sebagai Petugas Ini">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <form action="{{ route('organizer.crews.destroy', $crew) }}" method="POST" onsubmit="return confirm('Hapus crew ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Hapus Crew">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

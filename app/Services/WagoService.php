@@ -6,7 +6,15 @@ use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Wago\Wago;
+use Throwable;
+
+// Ensure WAGO class exists even if composer vendor was not updated on production
+if (!class_exists(\Wago\Wago::class)) {
+    $fallbackFile = __DIR__ . '/Wago/Wago.php';
+    if (file_exists($fallbackFile)) {
+        require_once $fallbackFile;
+    }
+}
 
 class WagoService
 {
@@ -17,7 +25,7 @@ class WagoService
     protected bool $isSandbox;
     protected string $apiBaseUrl;
     protected string $checkoutUrl;
-    protected ?Wago $wagoSdk = null;
+    protected $wagoSdk = null;
 
     public function __construct()
     {
@@ -30,15 +38,20 @@ class WagoService
         $this->checkoutUrl    = (string) (config('services.wago.checkout_url') ?: 'https://pay.wago-id.web.id/checkout');
 
         if (!empty($this->appId) && !empty($this->apiKey)) {
-            try {
-                $this->wagoSdk = new Wago([
-                    'appId'         => $this->appId,
-                    'apiKey'        => $this->apiKey,
-                    'webhookSecret' => $this->callbackSecret,
-                    'isProduction'  => $this->isProduction,
-                ]);
-            } catch (Exception $e) {
-                Log::error('WagoService: Failed to initialize WAGO SDK: ' . $e->getMessage());
+            if (class_exists(\Wago\Wago::class)) {
+                try {
+                    $this->wagoSdk = new \Wago\Wago([
+                        'appId'         => $this->appId,
+                        'apiKey'        => $this->apiKey,
+                        'webhookSecret' => $this->callbackSecret,
+                        'isProduction'  => $this->isProduction,
+                    ]);
+                } catch (Throwable $e) {
+                    Log::warning('WagoService: Failed to initialize WAGO SDK: ' . $e->getMessage() . '. Using native HTTP client.');
+                    $this->wagoSdk = null;
+                }
+            } else {
+                Log::info('WagoService: Wago class not found in autoloader, using native Laravel HTTP client.');
             }
         }
     }

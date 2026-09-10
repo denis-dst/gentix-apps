@@ -33,9 +33,10 @@
 @php
     $shouldHideNav = isset($hideNav) && trim($hideNav->toHtml()) === '1';
 @endphp
-<body class="h-full bg-slate-50 text-slate-900 antialiased font-sans overflow-hidden" x-data="{ sidebarOpen: false }">
+<body class="h-full bg-slate-50 text-slate-900 antialiased font-sans overflow-hidden flex flex-col" x-data="{ sidebarOpen: false }">
+    <x-impersonate-banner />
     <!-- Desktop Layout -->
-    <div class="hidden lg:flex h-full overflow-hidden">
+    <div class="hidden lg:flex flex-1 overflow-hidden">
         @if(!$shouldHideNav)
         <!-- Persistent Sidebar -->
         <aside class="w-72 bg-[#0f172a] text-slate-300 flex flex-col shrink-0 border-r border-white/5">
@@ -86,7 +87,7 @@
     </div>
 
     <!-- Mobile Layout -->
-    <div class="lg:hidden flex flex-col h-full overflow-hidden">
+    <div class="lg:hidden flex flex-col flex-1 overflow-hidden">
         @if(!$shouldHideNav && !auth()->user()->hasRole('Petugas Gate'))
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-30">
             <button @click="sidebarOpen = true" class="p-2 -ml-2 text-slate-500 hover:text-orange-600">

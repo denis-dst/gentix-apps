@@ -11,7 +11,7 @@ class TenantController extends Controller
 {
     public function index()
     {
-        $tenants = Tenant::withCount('events')->paginate(10);
+        $tenants = Tenant::withCount('events')->with('owner')->paginate(10);
         return view('superadmin.tenants.index', compact('tenants'));
     }
 
