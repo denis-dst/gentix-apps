@@ -55,7 +55,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('fan.register.store', $tenant->slug) }}" method="POST" class="space-y-4">
+            <form action="{{ url()->current() }}" method="POST" class="space-y-4">
                 @csrf
 
                 <div>

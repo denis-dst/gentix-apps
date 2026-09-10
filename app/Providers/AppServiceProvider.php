@@ -20,10 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS scheme based on APP_URL setting
-        // If APP_URL starts with https://, force HTTPS for all generated URLs
-        // This respects the deployment environment - Laragon uses http://, production uses https://
-        if (str_starts_with(config('app.url'), 'https://')) {
+        // Force HTTPS scheme based on APP_URL setting or incoming request
+        if (str_starts_with(config('app.url'), 'https://') || request()->isSecure() || request()->header('X-Forwarded-Proto') === 'https') {
             URL::forceScheme('https');
         }
 
