@@ -136,6 +136,9 @@ class PublicEventController extends Controller
 
         if (empty($orderId)) {
             \Log::warning('WAGO notification received without order_id', $body);
+            if ($request->isMethod('GET') || $request->acceptsHtml()) {
+                return redirect('/');
+            }
             return response()->json([
                 'status'  => 'ok',
                 'message' => 'Notification acknowledged (no order_id provided)',
@@ -144,8 +147,8 @@ class PublicEventController extends Controller
 
         $wagoService = new \App\Services\WagoService();
 
-        // Verify HMAC-SHA256 signature if callback secret is configured
-        if (!empty(config('services.wago.callback_secret')) && !empty($signature)) {
+        // Verify HMAC-SHA256 signature if callback secret is configured (strictly on POST webhook)
+        if ($request->isMethod('POST') && !empty(config('services.wago.callback_secret')) && !empty($signature)) {
             $isValid = $wagoService->verifyWebhookSignature($body, $signature, $timestamp);
             if (!$isValid) {
                 \Log::warning("WAGO notification signature mismatch for order_id: {$orderId}");
@@ -159,6 +162,9 @@ class PublicEventController extends Controller
 
         if (!$dbTransaction) {
             \Log::warning("Transaction not found for WAGO order_id: {$orderId}");
+            if ($request->isMethod('GET') || $request->acceptsHtml()) {
+                return redirect()->route('checkout.success', $orderId);
+            }
             return response()->json([
                 'status'  => 'ok',
                 'message' => 'Transaction not found or already processed',
@@ -194,7 +200,12 @@ class PublicEventController extends Controller
             \Log::info("WAGO transaction {$orderId} marked as EXPIRED.");
         }
 
-        // Response format as per WAGO docs: HTTP 200 JSON {"status": "ok"}
+        // If accessed via browser (GET redirect from Wago payment page), direct to checkout success popup
+        if ($request->isMethod('GET') || $request->acceptsHtml()) {
+            return redirect()->route('checkout.success', $dbTransaction->reference_no);
+        }
+
+        // Response format as per WAGO docs for server-to-server webhook: HTTP 200 JSON {"status": "ok"}
         return response()->json(['status' => 'ok'], 200);
     }
 

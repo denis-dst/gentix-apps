@@ -39,4 +39,19 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Tenant::class);
     }
+
+    public function tenantMembers()
+    {
+        return $this->hasMany(TenantMember::class);
+    }
+
+    public function tenantMember()
+    {
+        return $this->hasOne(TenantMember::class);
+    }
+
+    public function seasonPasses()
+    {
+        return $this->hasMany(SeasonPass::class);
+    }
 }

@@ -45,4 +45,29 @@ class Tenant extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function membershipTiers()
+    {
+        return $this->hasMany(MembershipTier::class);
+    }
+
+    public function members()
+    {
+        return $this->hasMany(TenantMember::class);
+    }
+
+    public function seasonPasses()
+    {
+        return $this->hasMany(SeasonPass::class);
+    }
+
+    public function korwils()
+    {
+        return $this->hasMany(Korwil::class);
+    }
+
+    public function fanQuizzes()
+    {
+        return $this->hasMany(FanQuiz::class);
+    }
 }

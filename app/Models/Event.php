@@ -16,6 +16,9 @@ class Event extends Model
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
         'is_free', 'max_tickets_per_transaction', 'umroh_question_enabled', 'evoucher_info',
         'purchase_flow', 'thermal_paper_width_mm', 'thermal_paper_height_mm',
+        'season_name', 'home_team_name', 'away_team_name', 'home_team_logo', 'away_team_logo',
+        'home_score', 'away_score', 'allow_season_pass', 'season_pass_claim_days_before',
+        'is_member_priority_sale', 'member_priority_start_at', 'general_sale_start_at',
     ];
 
     protected $casts = [
@@ -23,8 +26,13 @@ class Event extends Model
         'event_end_date' => 'datetime',
         'gate_open_at' => 'datetime',
         'gate_close_at' => 'datetime',
+        'member_priority_start_at' => 'datetime',
+        'general_sale_start_at' => 'datetime',
         'meta' => 'array',
         'is_free' => 'boolean',
+        'allow_season_pass' => 'boolean',
+        'is_member_priority_sale' => 'boolean',
+        'season_pass_claim_days_before' => 'integer',
         'max_tickets_per_transaction' => 'integer',
         'umroh_question_enabled' => 'boolean',
         'thermal_paper_width_mm' => 'integer',
@@ -54,6 +62,21 @@ class Event extends Model
     public function gates()
     {
         return $this->hasMany(Gate::class);
+    }
+
+    public function seasonPassClaims()
+    {
+        return $this->hasMany(SeasonPassClaim::class);
+    }
+
+    public function matchPredictions()
+    {
+        return $this->hasMany(MatchPrediction::class);
+    }
+
+    public function korwilAllocations()
+    {
+        return $this->hasMany(KorwilAllocation::class);
     }
 
     // Current occupancy calculation
