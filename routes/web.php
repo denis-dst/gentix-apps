@@ -61,6 +61,11 @@ Route::get('/portfolio', function () {
 Route::get('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'index'])->name('ranger.register');
 Route::post('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationController::class, 'store'])->name('ranger.store');
 
+// Football Club Fan Membership Public Registration
+Route::get('/join/{slug}', [App\Http\Controllers\Fan\FanRegistrationController::class, 'show'])->name('fan.register.show');
+Route::post('/join/{slug}', [App\Http\Controllers\Fan\FanRegistrationController::class, 'store'])->name('fan.register.store');
+
+
 
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
