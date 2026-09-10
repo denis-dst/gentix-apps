@@ -216,6 +216,54 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::post('invoices/{invoice}/upload-proof', [App\Http\Controllers\Organizer\InvoiceController::class, 'uploadProof'])->name('invoices.upload-proof');
     Route::get('invoices/{invoice}/download-pdf', [App\Http\Controllers\Organizer\InvoiceController::class, 'downloadPdf'])->name('invoices.download-pdf');
     Route::post('invoices/dismiss-modal', [App\Http\Controllers\Organizer\InvoiceController::class, 'dismissModal'])->name('invoices.dismiss-modal');
+
+    // Football Club Membership & Fan CRM
+    Route::prefix('membership')->name('membership.')->group(function () {
+        Route::get('tiers', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersIndex'])->name('tiers.index');
+        Route::get('tiers/create', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersCreate'])->name('tiers.create');
+        Route::post('tiers', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersStore'])->name('tiers.store');
+        Route::get('tiers/{tier}/edit', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersEdit'])->name('tiers.edit');
+        Route::put('tiers/{tier}', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersUpdate'])->name('tiers.update');
+        Route::delete('tiers/{tier}', [App\Http\Controllers\Organizer\MembershipController::class, 'tiersDestroy'])->name('tiers.destroy');
+
+        Route::get('members', [App\Http\Controllers\Organizer\MembershipController::class, 'membersIndex'])->name('members.index');
+        Route::get('members/{member}', [App\Http\Controllers\Organizer\MembershipController::class, 'membersShow'])->name('members.show');
+        Route::post('members/{member}/verify-kyc', [App\Http\Controllers\Organizer\MembershipController::class, 'verifyKyc'])->name('members.verify-kyc');
+    });
+
+    // Season Pass (Tiket Terusan)
+    Route::prefix('season-passes')->name('season-passes.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Organizer\SeasonPassController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Organizer\SeasonPassController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Organizer\SeasonPassController::class, 'store'])->name('store');
+    });
+
+    // Gamifikasi & Tebak Skor
+    Route::prefix('gamification')->name('gamification.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Organizer\GamificationController::class, 'index'])->name('index');
+        Route::post('/matches/{event}/score', [App\Http\Controllers\Organizer\GamificationController::class, 'updateMatchScore'])->name('update-score');
+        Route::post('/quizzes', [App\Http\Controllers\Organizer\GamificationController::class, 'storeQuiz'])->name('store-quiz');
+    });
+
+    // Korwil Suporter
+    Route::prefix('korwil')->name('korwil.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Organizer\KorwilManagementController::class, 'index'])->name('index');
+        Route::post('/store-korwil', [App\Http\Controllers\Organizer\KorwilManagementController::class, 'storeKorwil'])->name('store-korwil');
+        Route::post('/store-allocation', [App\Http\Controllers\Organizer\KorwilManagementController::class, 'storeAllocation'])->name('store-allocation');
+    });
+});
+
+// Fan Portal (Suporter Club Zone & KYC)
+Route::middleware('auth')->prefix('fan')->name('fan.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Fan\FanPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('/kyc', [App\Http\Controllers\Fan\FanPortalController::class, 'showKyc'])->name('kyc');
+    Route::post('/kyc', [App\Http\Controllers\Fan\FanPortalController::class, 'submitKyc'])->name('kyc.submit');
+    Route::get('/season-pass', [App\Http\Controllers\Fan\FanPortalController::class, 'seasonPass'])->name('season-pass');
+    Route::post('/season-pass/{event}/{seasonPass}/claim', [App\Http\Controllers\Fan\FanPortalController::class, 'claimTicket'])->name('season-pass.claim');
+    Route::get('/game-zone', [App\Http\Controllers\Fan\FanPortalController::class, 'gameZone'])->name('game-zone');
+    Route::post('/game-zone/predict/{event}', [App\Http\Controllers\Fan\FanPortalController::class, 'submitPrediction'])->name('game-zone.predict');
+    Route::post('/game-zone/quiz/{quiz}', [App\Http\Controllers\Fan\FanPortalController::class, 'submitQuiz'])->name('game-zone.quiz');
+    Route::post('/korwil-consent/{consent}/respond', [App\Http\Controllers\Fan\FanPortalController::class, 'respondKorwilConsent'])->name('korwil-consent.respond');
 });
 
 Route::middleware('auth')->group(function () {

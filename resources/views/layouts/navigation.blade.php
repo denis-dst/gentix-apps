@@ -15,6 +15,9 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('fan.dashboard')" :active="request()->routeIs('fan.*')">
+                        {{ __('Fan Zone & Kartu Member') }}
+                    </x-nav-link>
                 </div>
             </div>
 
