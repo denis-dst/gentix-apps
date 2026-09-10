@@ -84,6 +84,8 @@ class WagoService
             'customer_phone'  => (string) ($customerDetails['phone'] ?? ''),
             'payment_method'  => $transactionDetails['payment_method'] ?? 'QRIS',
             'callback_url'    => $transactionDetails['callback_url'] ?? route('wago.notification'),
+            'return_url'      => $transactionDetails['return_url'] ?? route('checkout.success', $orderId),
+            'redirect_url'    => $transactionDetails['redirect_url'] ?? route('checkout.success', $orderId),
         ];
 
         if ($this->isSandbox || !empty($transactionDetails['is_sandbox'])) {

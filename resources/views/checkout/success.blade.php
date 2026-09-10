@@ -58,16 +58,16 @@
         $purchaseFlow = $transaction->event->purchase_flow ?? 'redeem';
     @endphp
 
-    {{-- Modal: Terima Kasih (Free event, Promo 100% & Paid) --}}
-    @if($isFree && $isPaid)
+    {{-- Modal: Terima Kasih (Free event, Promo 100% & Paid Transactions) --}}
+    @if($isPaid)
     <div id="thankYouModal"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
          style="background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);">
 
-        <div class="modal-card bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden">
-            <div class="h-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500"></div>
+        <div class="modal-card bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="h-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 shrink-0"></div>
 
-            <div class="p-8">
+            <div class="p-8 overflow-y-auto">
                 <div class="flex justify-center mb-5">
                     <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center success-pulse">
                         <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,9 +80,9 @@
                     🎉 Terima Kasih!
                 </h2>
                 <p class="text-center text-slate-500 text-sm font-medium mb-6">
-                    Pemesanan Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
+                    {{ $isFree ? 'Pendaftaran' : 'Pembayaran' }} Anda untuk <span class="font-bold text-emerald-600">{{ $transaction->event->name }}</span> telah berhasil!
                     <br>
-                    Silakan periksa Email anda pada folder Inbox/SPAM untuk mendapatkan E-Voucher atau ikuti petunjuk di bawah ini.
+                    Silakan periksa WhatsApp atau Email Anda untuk mendapatkan E-Voucher atau ikuti petunjuk di bawah ini.
                 </p>
 
                 <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-5 space-y-3">
@@ -119,8 +119,11 @@
                     </ol>
                 </div>
 
-                @forelse($transaction->tickets->take(1) as $ticket)
-                <div class="mb-3">
+                @forelse($transaction->tickets as $ticket)
+                <div class="mb-4">
+                    @if($transaction->tickets->count() > 1)
+                        <div class="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1">Tiket #{{ $loop->iteration }} - {{ $ticket->category->name ?? 'Tiket' }}</div>
+                    @endif
                     <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-2">
                         <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -360,6 +363,19 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         Segarkan Status Pembayaran
                     </button>
+                    <script>
+                        // Auto-refresh setiap 3.5 detik untuk mengecek status pembayaran secara realtime
+                        let pollAttempt = 0;
+                        const maxPoll = 40;
+                        const pollTimer = setInterval(() => {
+                            pollAttempt++;
+                            if (pollAttempt > maxPoll) {
+                                clearInterval(pollTimer);
+                                return;
+                            }
+                            window.location.reload();
+                        }, 3500);
+                    </script>
                 </div>
             @else
                 <div class="p-8 bg-rose-50/50 rounded-[2rem] border border-rose-200 text-center space-y-4">
