@@ -1,23 +1,14 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    Tingkatan Keanggotaan (Membership Tiers)
-                </h2>
-                <p class="text-sm text-slate-500 font-medium">
-                    Atur kategori membership suporter, benefit diskon tiket, dan masa aktif keanggotaan klub.
-                </p>
-            </div>
-            <a href="{{ route('organizer.membership.tiers.create') }}" class="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-bold shadow transition focus:ring-2 focus:ring-orange-500">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Tambah Tier Baru
-            </a>
-        </div>
+    <x-slot name="title">Tingkatan Keanggotaan (Membership Tiers)</x-slot>
+    <x-slot name="header">Tingkatan Keanggotaan (Membership Tiers)</x-slot>
+    <x-slot name="actions">
+        <a href="{{ route('organizer.membership.tiers.create') }}" class="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-bold shadow transition focus:ring-2 focus:ring-orange-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Tambah Tier Baru
+        </a>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="space-y-6">
 
             @if(session('success'))
                 <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl flex items-center gap-3 font-semibold text-sm">

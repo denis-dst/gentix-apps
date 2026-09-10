@@ -1,20 +1,14 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('fan.dashboard') }}" class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-xl transition focus:ring-2 focus:ring-orange-500">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
-            <div>
-                <h2 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    Tiket Terusan (Season Pass)
-                </h2>
-                <p class="text-sm text-slate-500 font-medium">Akses tiket seluruh pertandingan kandang resmi klub selama 1 musim penuh.</p>
-            </div>
-        </div>
+    <x-slot name="title">Tiket Terusan (Season Pass)</x-slot>
+    <x-slot name="header">Tiket Terusan (Season Pass)</x-slot>
+    <x-slot name="actions">
+        <a href="{{ route('fan.dashboard') }}" class="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition focus:ring-2 focus:ring-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Kembali ke Dashboard
+        </a>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="space-y-8">
 
             @if(session('success'))
                 <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center gap-3 font-semibold text-sm">

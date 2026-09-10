@@ -1,20 +1,15 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('organizer.membership.members.index') }}" class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-xl transition focus:ring-2 focus:ring-orange-500">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
-            <div>
-                <h2 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    Detail Profil & Verifikasi KYC Suporter
-                </h2>
-                <p class="text-sm text-slate-500 font-medium">{{ $member->member_number }} · {{ $member->full_name_ktp ?: $member->user->name }}</p>
-            </div>
-        </div>
+    <x-slot name="title">Detail Profil & Verifikasi KYC Suporter</x-slot>
+    <x-slot name="header">Detail Profil & Verifikasi KYC Suporter</x-slot>
+    <x-slot name="actions">
+        <a href="{{ route('organizer.membership.members.index') }}" class="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition focus:ring-2 focus:ring-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Kembali ke Database
+        </a>
     </x-slot>
 
-    <div class="py-8" x-data="{ showRejectModal: false }">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="space-y-6" x-data="{ showRejectModal: false }">
+        <div class="max-w-7xl mx-auto space-y-6">
 
             @if(session('success'))
                 <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl flex items-center gap-3 font-semibold text-sm">
@@ -28,13 +23,13 @@
                 <!-- Left Column: Member Card & Profile -->
                 <div class="space-y-6">
                     <!-- Digital Card Preview -->
-                    <div class="bg-slate-950 text-white rounded-2xl p-6 shadow-md border border-slate-800 relative">
+                    <div class="rounded-2xl p-6 shadow-xl border border-slate-700 relative overflow-hidden" style="background: linear-gradient(145deg, #090d16 0%, #0f172a 60%, #1e293b 100%); color: #ffffff;">
                         <div class="flex items-center justify-between mb-6">
                             <div class="flex items-center gap-2">
                                 <div class="w-7 h-7 bg-orange-600 rounded-lg flex items-center justify-center font-black text-xs text-white">G</div>
-                                <span class="font-outfit font-black tracking-wider text-sm">{{ $member->tenant->name ?? 'GENTIX CLUB' }}</span>
+                                <span class="font-outfit font-black tracking-wider text-sm text-white uppercase">{{ $member->tenant->name ?? 'GENTIX CLUB' }}</span>
                             </div>
-                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white" style="background-color: {{ $member->tier->badge_color ?? '#f97316' }}">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-sm" style="background-color: {{ $member->tier->badge_color ?? '#ea580c' }}; color: #ffffff;">
                                 {{ $member->tier->name ?? 'Free Fan' }}
                             </span>
                         </div>

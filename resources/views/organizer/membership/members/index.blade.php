@@ -1,19 +1,8 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    Database Suporter & Verifikasi KYC
-                </h2>
-                <p class="text-sm text-slate-500 font-medium">
-                    Manajemen data keanggotaan suporter, verifikasi NIK KTP, dan kepatuhan Single Fan Identity PSSI.
-                </p>
-            </div>
-        </div>
-    </x-slot>
+    <x-slot name="title">Database Suporter & Verifikasi KYC</x-slot>
+    <x-slot name="header">Database Suporter & Verifikasi KYC</x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="space-y-6">
 
             @if(session('success'))
                 <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl flex items-center gap-3 font-semibold text-sm">

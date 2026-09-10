@@ -1,19 +1,8 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-black text-slate-900 font-outfit uppercase tracking-tight">
-                    Basis Komunitas Suporter (Korwil) & Alokasi Kuota
-                </h2>
-                <p class="text-sm text-slate-500 font-medium">
-                    Manajemen koordinator wilayah suporter, alokasi kuota matchday, dan monitoring persetujuan NIK rombongan.
-                </p>
-            </div>
-        </div>
-    </x-slot>
+    <x-slot name="title">Basis Komunitas Suporter (Korwil) & Alokasi Kuota</x-slot>
+    <x-slot name="header">Basis Komunitas Suporter (Korwil) & Alokasi Kuota</x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8" x-data="{ showKorwilModal: false, showAllocModal: false }">
+    <div class="space-y-8" x-data="{ showKorwilModal: false, showAllocModal: false }">
 
             @if(session('success'))
                 <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl flex items-center gap-3 font-semibold text-sm">
