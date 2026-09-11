@@ -262,24 +262,38 @@
 
                         <!-- Success Overlay -->
                         <div x-show="status === 'success'"
-                            class="bg-[#065f46] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in fade-in duration-200 z-50">
-                            <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-8 shadow-2xl animate-bounce">
-                                <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
+                            class="bg-[#065f46] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in fade-in duration-200 z-50 pointer-events-auto cursor-pointer select-none"
+                            @click="dismissResult()">
+                            <div class="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-6 shadow-2xl animate-bounce">
+                                <svg class="w-16 h-16 sm:w-20 sm:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <h3 class="text-4xl sm:text-6xl font-black text-white uppercase tracking-tight text-center mb-4 font-outfit" x-text="result.customer"></h3>
-                            <div class="px-8 py-2 bg-white text-emerald-900 rounded-full font-black text-sm uppercase tracking-[0.2em]" x-text="result.category"></div>
-                            <p class="mt-12 text-2xl sm:text-3xl font-black uppercase tracking-[0.5em] text-white/50">BERHASIL</p>
+                            <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-3 font-outfit px-4" x-text="result.customer"></h3>
+                            <div class="px-6 py-2 bg-white text-emerald-900 rounded-full font-black text-xs sm:text-sm uppercase tracking-[0.2em] mb-3" x-text="result.category"></div>
+                            <p class="text-lg sm:text-2xl font-black uppercase tracking-[0.4em] text-emerald-200/90 mb-6">BERHASIL</p>
+
+                            <!-- Confirm OK Button (especially useful in manual OK mode, or to dismiss immediately) -->
+                            <button type="button" @click.stop="dismissResult()"
+                                class="px-8 py-3.5 bg-white text-emerald-900 hover:bg-emerald-50 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition shadow-2xl active:scale-95 flex items-center gap-2">
+                                <span>OK / Scan Berikutnya</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
                         </div>
 
                         <!-- Error Overlay -->
                         <div x-show="status === 'error'"
-                            class="bg-[#9f1239] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in shake duration-300 z-50">
-                            <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center text-rose-600 mb-8 shadow-2xl">
-                                <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" /></svg>
+                            class="bg-[#9f1239] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in shake duration-300 z-50 pointer-events-auto cursor-pointer select-none"
+                            @click="dismissResult()">
+                            <div class="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center text-rose-600 mb-6 shadow-2xl">
+                                <svg class="w-16 h-16 sm:w-20 sm:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" /></svg>
                             </div>
-                            <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-8 font-outfit">AKSES DITOLAK</h3>
-                            <div class="bg-black/40 px-8 py-6 rounded-3xl border border-white/20 text-xl sm:text-2xl font-black text-center max-w-lg leading-relaxed" x-text="errorMessage"></div>
-                            <p class="mt-12 text-white/40 font-bold uppercase tracking-[0.3em] text-sm" x-text="'CODE: ' + lastScannedCode"></p>
+                            <h3 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight text-center mb-4 font-outfit">AKSES DITOLAK</h3>
+                            <div class="bg-black/40 px-6 py-4 rounded-2xl border border-white/20 text-base sm:text-xl font-black text-center max-w-lg leading-relaxed mb-3" x-text="errorMessage"></div>
+                            <p class="text-white/40 font-bold uppercase tracking-[0.3em] text-xs mb-6" x-text="'CODE: ' + lastScannedCode"></p>
+
+                            <button type="button" @click.stop="dismissResult()"
+                                class="px-8 py-3.5 bg-white text-rose-900 hover:bg-rose-50 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition shadow-2xl active:scale-95 flex items-center gap-2">
+                                <span>Tutup / Coba Lagi (OK)</span>
+                            </button>
                         </div>
 
                         <!-- Processing Overlay -->
@@ -425,6 +439,8 @@
                 mode: '{{ session('gate_mode', 'IN') }}',
                 inputType: 'camera',
                 status: 'idle',
+                gateAutoTimer: {{ session('gate_auto_timer', true) ? 'true' : 'false' }},
+                autoResetTimer: null,
                 cameraError: false,
                 cameraErrorMessage: '',
                 cameraDevices: [],
@@ -464,6 +480,24 @@
                     });
                     document.addEventListener('click', () => { if (this.inputType === 'auto' && !this.isGroupScan) this.focusInput(); });
                     setInterval(() => { if (this.inputType === 'auto' && this.status === 'idle' && !this.isGroupScan) this.focusInput(); }, 1000);
+                    
+                    // Allow dismiss by Space, Enter, or Escape key
+                    window.addEventListener('keydown', (e) => {
+                        if ((e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') && (this.status === 'success' || this.status === 'error')) {
+                            e.preventDefault();
+                            this.dismissResult();
+                        }
+                    });
+                },
+
+                dismissResult() {
+                    if (this.autoResetTimer) {
+                        clearTimeout(this.autoResetTimer);
+                        this.autoResetTimer = null;
+                    }
+                    if (this.status === 'success' || this.status === 'error') {
+                        this.status = 'idle';
+                    }
                 },
 
                 focusInput() { if (this.$refs.ticketInput) this.$refs.ticketInput.focus(); },
@@ -780,7 +814,11 @@
                     this.inCount = d.in_count; this.outCount = d.out_count;
                     this.history.unshift({ success: true, type: this.mode, name: d.customer, category: d.category, time: new Date().toLocaleTimeString() });
                     this.playSound('sound-success');
-                    setTimeout(() => { if (this.status === 'success') this.status = 'idle'; }, 2000);
+
+                    if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
+                    if (this.gateAutoTimer) {
+                        this.autoResetTimer = setTimeout(() => { if (this.status === 'success') this.status = 'idle'; }, 3000);
+                    }
                 },
 
                 handleError(msg) {
@@ -788,7 +826,11 @@
                     this.errorMessage = msg;
                     this.history.unshift({ success: false, type: this.mode, code: this.lastScannedCode, time: new Date().toLocaleTimeString() });
                     this.playSound('sound-error');
-                    setTimeout(() => { if (this.status === 'error') this.status = 'idle'; }, 2500);
+
+                    if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
+                    if (this.gateAutoTimer) {
+                        this.autoResetTimer = setTimeout(() => { if (this.status === 'error') this.status = 'idle'; }, 4500);
+                    }
                 },
 
                 closeGroupModal() {

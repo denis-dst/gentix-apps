@@ -53,32 +53,55 @@ class GateController extends Controller
 
         $gates = $event->gates()->where('is_active', true)->with('ticketCategories:id,name')->get();
         $categories = $event->ticketCategories;
-        return view('organizer.gate.setup', compact('event', 'gates', 'categories'));
+
+        $currentGateId = session('gate_id') ? (string) session('gate_id') : (session('gate_category_id') ? 'cat_' . session('gate_category_id') : 'all');
+        $currentMode = session('gate_mode', 'IN');
+        $currentAutoTimer = session('gate_auto_timer', true);
+
+        return view('organizer.gate.setup', compact('event', 'gates', 'categories', 'currentGateId', 'currentMode', 'currentAutoTimer'));
     }
 
     public function setup(Request $request, Event $event)
     {
         $request->validate([
-            'gate_id' => 'nullable|exists:gates,id',
-            'gate_category_id' => 'nullable|exists:ticket_categories,id',
+            'gate_id' => 'nullable|string',
+            'gate_category_id' => 'nullable',
             'gate_mode' => 'required|in:IN,OUT',
+            'gate_auto_timer' => 'nullable',
         ]);
 
-        if ($request->gate_id) {
-            $gate = Gate::with('ticketCategories:id')->findOrFail($request->gate_id);
+        $gateId = $request->input('gate_id');
+        $categoryId = $request->input('gate_category_id');
+
+        if ($gateId === 'all' || $gateId === '0' || (empty($gateId) && empty($categoryId))) {
+            // All Gate: matches Flutter mobile app (GateModel id: 0, name: 'All Gate', allowedCategoryIds: [])
+            session(['gate_id' => null]);
+            session(['gate_name' => 'All Gate']);
+            session(['gate_allowed_categories' => []]);
+            session()->forget('gate_category_id');
+        } elseif (is_string($gateId) && str_starts_with($gateId, 'cat_')) {
+            $catId = (int) str_replace('cat_', '', $gateId);
+            $category = TicketCategory::findOrFail($catId);
+            session(['gate_category_id' => $category->id]);
+            session(['gate_name' => $category->name]);
+            session(['gate_allowed_categories' => [$category->id]]);
+            session()->forget('gate_id');
+        } elseif (!empty($gateId)) {
+            $gate = Gate::with('ticketCategories:id')->findOrFail($gateId);
             session(['gate_id' => $gate->id]);
             session(['gate_name' => $gate->name]);
             session(['gate_allowed_categories' => $gate->ticketCategories->pluck('id')->toArray()]);
             session()->forget('gate_category_id');
-        } else {
-            $category = TicketCategory::findOrFail($request->gate_category_id);
+        } elseif (!empty($categoryId)) {
+            $category = TicketCategory::findOrFail($categoryId);
             session(['gate_category_id' => $category->id]);
             session(['gate_name' => $category->name]);
             session(['gate_allowed_categories' => [$category->id]]);
             session()->forget('gate_id');
         }
 
-        session(['gate_mode' => $request->gate_mode]);
+        session(['gate_mode' => $request->input('gate_mode', 'IN')]);
+        session(['gate_auto_timer' => filter_var($request->input('gate_auto_timer', true), FILTER_VALIDATE_BOOLEAN)]);
 
         return redirect()->route('organizer.gate.scan', $event);
     }
