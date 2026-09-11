@@ -147,10 +147,10 @@ Route::get('/dashboard', function () {
 
 // Impersonation Routes
 Route::middleware('auth')->group(function () {
-    Route::post('/impersonate/{user}', [App\Http\Controllers\ImpersonateController::class, 'impersonate'])->name('impersonate.start');
+    Route::match(['GET', 'POST'], '/impersonate/leave', [App\Http\Controllers\ImpersonateController::class, 'leave'])->name('impersonate.leave');
     Route::post('/impersonate/tenant/{tenant}/{role}', [App\Http\Controllers\ImpersonateController::class, 'impersonateTenantRole'])->name('impersonate.tenant.role');
     Route::post('/impersonate/event/{event}/{role}', [App\Http\Controllers\ImpersonateController::class, 'impersonateEventRole'])->name('impersonate.event.role');
-    Route::match(['GET', 'POST'], '/impersonate/leave', [App\Http\Controllers\ImpersonateController::class, 'leave'])->name('impersonate.leave');
+    Route::post('/impersonate/{user}', [App\Http\Controllers\ImpersonateController::class, 'impersonate'])->name('impersonate.start')->whereNumber('user');
 });
 
 Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas Gate', 'tenant.status'])->prefix('organizer')->name('organizer.')->group(function () {
