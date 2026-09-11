@@ -15,8 +15,26 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
     </noscript>
 
-    <!-- Styles / Scripts -->
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    <!-- Styles / Scripts (Non-Blocking Optimized Delivery) -->
+    @if (file_exists(public_path('build/manifest.json')))
+        @php
+            $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
+            $cssFile = $manifest['resources/css/app.css']['file'] ?? null;
+            $jsFile = $manifest['resources/js/app.js']['file'] ?? null;
+        @endphp
+        @if($cssFile)
+            <link rel="preload" as="style" href="{{ asset('build/' . $cssFile) }}">
+            <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}" media="print" onload="this.media='all'">
+            <noscript><link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}"></noscript>
+        @else
+            @vite(['resources/css/app.css'])
+        @endif
+        @if($jsFile)
+            <script type="module" src="{{ asset('build/' . $jsFile) }}" defer></script>
+        @else
+            @vite(['resources/js/app.js'])
+        @endif
+    @elseif(file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
         <script src="https://cdn.tailwindcss.com"></script>
@@ -55,6 +73,7 @@
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #111118;
             color: #e8e4df;
+            line-height: 1.5;
         }
         .font-outfit {
             font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -129,7 +148,7 @@
             <div class="flex justify-between h-20 items-center">
                 <div class="flex items-center gap-2">
                     @if(isset($settings['app_logo']) && $settings['app_logo'])
-                        <img src="{{ asset('storage/' . $settings['app_logo']) }}" alt="Logo" class="h-10 w-auto">
+                        <img src="{{ asset('storage/' . $settings['app_logo']) }}" alt="Logo" width="160" height="40" class="h-10 w-auto">
                     @else
                         <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +212,7 @@
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="/images/hero.png" alt="Hero Background" fetchpriority="high" decoding="async" class="w-full h-full object-cover opacity-30">
+            <img src="/images/hero.png" alt="Hero Background" width="1920" height="1080" fetchpriority="high" decoding="async" class="w-full h-full object-cover opacity-30">
             <div class="absolute inset-0 hero-overlay"></div>
         </div>
         
@@ -241,12 +260,9 @@
                     $bgImg = $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : asset('images/concert.png');
                 @endphp
                 <div class="glass-card rounded-3xl overflow-hidden group transition-all flex flex-col h-full">
-                    <div class="relative aspect-[16/10] overflow-hidden bg-[#181824] flex items-center justify-center">
-                        <!-- Ambient blurred backdrop to match poster tones without blank space -->
-                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-125 pointer-events-none">
-                        
+                    <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#181824] to-[#12121c] flex items-center justify-center">
                         <!-- Main contained poster image (100% visible, fully responsive without cropping) -->
-                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-contain p-1 transition duration-500 group-hover:scale-105">
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" width="600" height="375" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-cover transition duration-500 group-hover:scale-105">
                         
                         <div class="absolute inset-0 bg-gradient-to-t from-[#13131b]/80 via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute top-4 left-4 z-20 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">

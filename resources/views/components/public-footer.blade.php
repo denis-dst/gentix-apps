@@ -21,7 +21,7 @@
             <!-- Column 1: Brand & Bio -->
             <div class="space-y-4">
                 @if(!empty($st['app_logo']) && file_exists(public_path('storage/' . $st['app_logo'])))
-                    <img src="{{ asset('storage/' . $st['app_logo']) }}" alt="{{ $appName }}" class="h-10 w-auto">
+                    <img src="{{ asset('storage/' . $st['app_logo']) }}" alt="{{ $appName }}" width="160" height="40" class="h-10 w-auto">
                 @else
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
