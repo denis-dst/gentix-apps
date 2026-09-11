@@ -26,15 +26,14 @@
                 </div>
             </div>
             
-            <form action="{{ route('impersonate.leave') }}" method="POST" class="shrink-0 flex items-center">
-                @csrf
-                <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-orange-800 font-extrabold text-[11px] shadow-md hover:bg-orange-50 hover:text-orange-900 active:scale-95 transition-all">
+            <div class="shrink-0 flex items-center">
+                <a href="{{ route('impersonate.leave') }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-orange-800 font-extrabold text-[11px] shadow-md hover:bg-orange-50 hover:text-orange-900 active:scale-95 transition-all cursor-pointer">
                     <svg class="w-3.5 h-3.5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                     <span>Kembali ke Super Admin</span>
-                </button>
-            </form>
+                </a>
+            </div>
         </div>
     </div>
 @endif

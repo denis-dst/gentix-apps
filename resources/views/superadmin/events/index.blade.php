@@ -89,7 +89,23 @@
                                 <a href="{{ route('organizer.events.gates.index', $event) }}" class="p-2 bg-orange-50 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition shadow-sm border border-orange-100" title="Kelola Gate">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                 </a>
-                                <a href="{{ route('superadmin.events.edit', $event) }}" class="p-2 bg-orange-50 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition shadow-sm border border-orange-100">
+                                {{-- Impersonate Gate Event --}}
+                                <form action="{{ route('impersonate.event.role', [$event, 'gate']) }}" method="POST" class="inline" onsubmit="return confirm('Buka Scanner Gate untuk event {{ addslashes($event->name) }}?')">
+                                    @csrf
+                                    <button type="submit" class="p-2 bg-emerald-50 text-emerald-600 hover:text-white hover:bg-emerald-600 rounded-lg transition shadow-sm border border-emerald-100" title="Buka Scanner Gate (Impersonate Gate)">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                    </button>
+                                </form>
+
+                                {{-- Impersonate Checkin Event --}}
+                                <form action="{{ route('impersonate.event.role', [$event, 'checkin']) }}" method="POST" class="inline" onsubmit="return confirm('Buka Check-in / Redeem untuk event {{ addslashes($event->name) }}?')">
+                                    @csrf
+                                    <button type="submit" class="p-2 bg-blue-50 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition shadow-sm border border-blue-100" title="Buka Check-in / Redeem (Impersonate Loket)">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                                    </button>
+                                </form>
+
+                                <a href="{{ route('superadmin.events.edit', $event) }}" class="p-2 bg-orange-50 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition shadow-sm border border-orange-100" title="Edit Event">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </a>
                                 <form action="{{ route('superadmin.events.destroy', $event) }}" method="POST" onsubmit="return confirm('Pindahkan event ini ke sampah?')">
