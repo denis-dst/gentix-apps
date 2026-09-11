@@ -6,10 +6,14 @@
     <title>{{ $settings['app_name'] ?? 'GenTix' }} - {{ $settings['app_tagline'] ?? 'Connecting Generations' }}</title>
     <meta name="description" content="{{ $settings['meta_description'] ?? '' }}">
 
-    <!-- Fonts -->
+    <!-- Fonts (High Performance Non-Blocking Loading) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    </noscript>
 
     <!-- Styles / Scripts -->
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
@@ -22,8 +26,8 @@
                 theme: {
                     extend: {
                         fontFamily: {
-                            sans: ['Plus Jakarta Sans', 'sans-serif'],
-                            outfit: ['Outfit', 'sans-serif'],
+                            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+                            outfit: ['"Outfit"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
                         },
                         colors: {
                             gentix: {
@@ -48,9 +52,12 @@
 
     <style>
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #111118;
             color: #e8e4df;
+        }
+        .font-outfit {
+            font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
         }
         .glass {
             background: rgba(30, 28, 35, 0.75);
@@ -186,13 +193,13 @@
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="/images/hero.png" alt="Hero Background" class="w-full h-full object-cover opacity-30">
+            <img src="/images/hero.png" alt="Hero Background" fetchpriority="high" decoding="async" class="w-full h-full object-cover opacity-30">
             <div class="absolute inset-0 hero-overlay"></div>
         </div>
         
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="inline-flex items-center px-4 py-2 rounded-full glass mb-8 animate-bounce border border-white/10">
-                <span class="w-2 h-2 bg-orange-400 rounded-full mr-2 animate-pulse"></span>
+            <div class="inline-flex items-center px-4 py-2 rounded-full glass mb-8 border border-white/10 shadow-sm">
+                <span class="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
                 <span class="text-xs font-semibold tracking-wider uppercase text-orange-300/80">{{ __('Live your best moments') }}</span>
             </div>
             <h1 class="text-5xl lg:text-8xl font-extrabold font-outfit mb-8 leading-tight text-white">
@@ -236,10 +243,10 @@
                 <div class="glass-card rounded-3xl overflow-hidden group transition-all flex flex-col h-full">
                     <div class="relative aspect-[16/10] overflow-hidden bg-[#181824] flex items-center justify-center">
                         <!-- Ambient blurred backdrop to match poster tones without blank space -->
-                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-125 pointer-events-none">
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-125 pointer-events-none">
                         
                         <!-- Main contained poster image (100% visible, fully responsive without cropping) -->
-                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" class="relative z-10 w-full h-full object-contain p-1 transition duration-500 group-hover:scale-105">
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-contain p-1 transition duration-500 group-hover:scale-105">
                         
                         <div class="absolute inset-0 bg-gradient-to-t from-[#13131b]/80 via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute top-4 left-4 z-20 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
@@ -383,7 +390,7 @@
                 <div class="relative">
                     <div class="absolute inset-0 bg-orange-500/10 blur-[100px] rounded-full"></div>
                     <div class="glass p-2 rounded-[2.5rem] relative overflow-hidden border border-white/10">
-                        <img src="/images/hero.png" alt="GenTix Vision" class="rounded-[2.2rem] w-full h-full object-cover opacity-80 mix-blend-lighten">
+                        <img src="/images/hero.png" alt="GenTix Vision" loading="lazy" decoding="async" class="rounded-[2.2rem] w-full h-full object-cover opacity-80 mix-blend-lighten">
                         <div class="absolute inset-0 bg-gradient-to-t from-[#13131b] via-transparent to-transparent"></div>
                         <div class="absolute bottom-10 left-10 right-10">
                             <div class="text-4xl font-bold font-outfit mb-2">GenTix</div>
