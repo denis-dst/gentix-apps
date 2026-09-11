@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'wago/webhook',
             'api/wago-webhook',
             'ipaymu/notification',
+            'impersonate/leave',
         ]);
         
         $middleware->web(append: [
