@@ -99,43 +99,103 @@
                         x-model="scannedCode" autocomplete="off"
                         x-show="inputType === 'auto'">
 
-                    <!-- Camera Container -->
-                    <div x-show="inputType === 'camera'" id="reader"
-                        class="absolute inset-0 w-full h-full object-cover bg-black">
-                        <!-- Fallback video if html5-qrcode doesn't inject visible video -->
-                        <video id="fallback-camera" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <!-- Camera Container & Tap-to-Refocus Wrapper -->
+                    <div x-show="inputType === 'camera'" 
+                        class="absolute inset-0 w-full h-full bg-black overflow-hidden select-none cursor-pointer"
+                        @click="triggerRefocus($event)">
+                        
+                        <div id="reader" class="w-full h-full relative"></div>
+
+                        <!-- Tap to Focus Reticle / Ring Indicator -->
+                        <div x-show="focusRing.visible" x-cloak
+                            class="absolute pointer-events-none transition-all duration-200 transform -translate-x-1/2 -translate-y-1/2 z-30"
+                            :style="`left: ${focusRing.x}px; top: ${focusRing.y}px;`">
+                            <div class="w-16 h-16 border-2 border-amber-400 rounded-2xl animate-ping duration-500 opacity-60"></div>
+                            <div class="w-16 h-16 border-2 border-amber-400 rounded-2xl -mt-16 shadow-[0_0_15px_rgba(251,191,36,0.9)] flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
+                            </div>
+                        </div>
+
+                        <!-- Floating Camera Toolbar (Top) -->
+                        <div x-show="cameraStarted && status === 'idle'" 
+                            class="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-auto"
+                            @click.stop>
+                            
+                            <!-- Switch Camera Button -->
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="switchCamera()" 
+                                    x-show="cameraDevices && cameraDevices.length > 1"
+                                    class="flex items-center gap-2 bg-black/70 hover:bg-black/90 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 text-white text-xs font-bold transition shadow-lg active:scale-95"
+                                    title="Ganti Lensa Kamera">
+                                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-slate-200" x-text="getCameraShortName()"></span>
+                                </button>
+                                
+                                <div x-show="!cameraDevices || cameraDevices.length <= 1"
+                                    class="bg-black/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                    <span x-text="getCameraShortName()"></span>
+                                </div>
+                            </div>
+
+                            <!-- Right Controls: Zoom & Torch -->
+                            <div class="flex items-center gap-2">
+                                <!-- Zoom Toggle (if supported by device) -->
+                                <template x-if="hasZoom && maxZoom > 1">
+                                    <div class="flex bg-black/70 backdrop-blur-md p-1 rounded-xl border border-white/15">
+                                        <button type="button" @click="setZoom(1)" 
+                                            :class="currentZoom <= 1.2 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'"
+                                            class="px-2.5 py-1 rounded-lg text-[9px] font-black transition">1x</button>
+                                        <button type="button" @click="setZoom(2)" 
+                                            :class="currentZoom > 1.2 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'"
+                                            class="px-2.5 py-1 rounded-lg text-[9px] font-black transition">2x</button>
+                                    </div>
+                                </template>
+
+                                <!-- Torch / Flashlight Toggle (if supported by device) -->
+                                <button type="button" @click="toggleTorch()" 
+                                    x-show="hasTorch"
+                                    :class="torchOn ? 'bg-amber-500 text-black border-amber-400 shadow-amber-500/40' : 'bg-black/70 text-slate-300 border-white/15 hover:bg-black/90'"
+                                    class="flex items-center gap-1.5 px-3 py-2 rounded-xl border backdrop-blur-md text-xs font-bold transition shadow-lg active:scale-95"
+                                    title="Nyalakan/Matikan Flashlight">
+                                    <svg class="w-4 h-4" :class="torchOn ? 'text-black' : 'text-amber-400'" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                                    </svg>
+                                    <span class="text-[10px] font-black" x-text="torchOn ? 'FLASH ON' : 'FLASH'"></span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Camera Error / Retry -->
-                    <div x-show="cameraError" x-cloak class="absolute inset-0 flex items-center justify-center z-40 pointer-events-auto">
-                        <div class="bg-black/90 p-6 rounded-xl border border-white/10 text-center max-w-lg">
-                            <div class="text-sm font-black text-rose-400 uppercase">Kamera tidak tersedia</div>
-                            <p class="text-xs text-slate-300 mt-2" x-text="cameraErrorMessage || 'Periksa izin kamera atau pilih kamera lain pada pengaturan browser.'"></p>
+                    <!-- Camera Error / Retry Modal -->
+                    <div x-show="cameraError" x-cloak class="absolute inset-0 flex items-center justify-center z-40 pointer-events-auto p-4">
+                        <div class="bg-black/95 p-6 sm:p-8 rounded-2xl border border-white/10 text-center max-w-md w-full shadow-2xl backdrop-blur-xl">
+                            <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="text-base font-black text-white uppercase tracking-wider">Kamera Bermasalah</div>
+                            <p class="text-xs text-slate-300 mt-2 leading-relaxed" x-text="cameraErrorMessage || 'Periksa izin kamera pada browser atau pilih lensa kamera lain.'"></p>
 
                             <template x-if="cameraDevices && cameraDevices.length">
-                                <div class="mt-4 text-left">
-                                    <label class="text-xs font-bold text-slate-300">Pilih Kamera</label>
-                                    <select x-model="selectedCameraId" class="w-full mt-2 p-2 rounded bg-white/5 border border-white/10 text-sm">
+                                <div class="mt-5 text-left">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pilih Lensa Kamera</label>
+                                    <select x-model="selectedCameraId" class="w-full mt-1.5 p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white focus:ring-indigo-500 focus:border-indigo-500">
                                         <template x-for="dev in cameraDevices" :key="dev.id">
-                                            <option :value="dev.id" x-text="dev.label || dev.id"></option>
+                                            <option :value="dev.id" x-text="dev.label || dev.id" class="bg-slate-900 text-white"></option>
                                         </template>
                                     </select>
                                 </div>
                             </template>
 
-                            <div class="mt-4 flex gap-2 justify-center">
-                                <button @click="startCamera()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Coba Ulang</button>
-                                <button @click="startSelectedCamera()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold">Start Selected</button>
-                                <button @click="setInputType('manual')" class="px-4 py-2 bg-white text-black rounded-lg font-bold">Gunakan Manual</button>
+                            <div class="mt-6 flex flex-col sm:flex-row gap-2.5 justify-center">
+                                <button @click="startCamera(true)" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">Coba Kamera Utama</button>
+                                <button @click="switchCamera(selectedCameraId)" x-show="selectedCameraId" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition">Pakai Lensa Terpilih</button>
+                                <button @click="setInputType('manual')" class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition">Gunakan Manual</button>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Camera debug badge -->
-                    <div class="absolute left-4 bottom-4 z-50 text-xs" x-show="cameraDevices.length || cameraStarted">
-                        <div class="bg-black/60 text-white px-3 py-2 rounded-lg border border-white/10 flex items-center gap-3">
-                            <div class="text-[10px] font-bold">Camera:</div>
-                            <div class="text-[10px] font-medium text-slate-200" x-text="(cameraDevices.find(d => d.id === selectedCameraId)?.label) || (cameraDevices[0]?.label) || (cameraStarted ? 'started' : 'none')"></div>
                         </div>
                     </div>
 
@@ -183,12 +243,21 @@
 
                         <!-- Idle Overlay (Camera Mode) -->
                         <div x-show="status === 'idle' && inputType === 'camera'"
-                            class="flex flex-col items-center justify-center w-full h-full pointer-events-none">
-                            <div class="w-64 h-64 sm:w-80 sm:h-80 border-2 border-indigo-500/50 rounded-[3rem] relative">
-                                <div class="absolute inset-0 bg-indigo-500/10 rounded-[3rem] animate-pulse"></div>
-                                <div class="absolute top-1/2 left-6 right-6 h-1 bg-red-500/50 blur-[2px] animate-scan-line"></div>
+                            class="flex flex-col items-center justify-center w-full h-full pointer-events-none z-20">
+                            <div class="w-64 h-64 sm:w-80 sm:h-80 border border-white/20 rounded-[2.5rem] relative">
+                                <!-- Corner target accents -->
+                                <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-2xl"></div>
+                                <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-2xl"></div>
+                                <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-2xl"></div>
+                                <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-2xl"></div>
+                                
+                                <div class="absolute inset-0 bg-indigo-500/5 rounded-[2.5rem]"></div>
+                                <div class="absolute top-1/2 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_12px_rgba(239,68,68,0.9)] animate-scan-line"></div>
                             </div>
-                            <p class="mt-10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Camera Active</p>
+                            <div class="mt-8 flex flex-col items-center gap-1">
+                                <p class="text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Arahkan QR ke Tengah Kotak</p>
+                                <p class="text-[9px] font-semibold text-slate-400 tracking-wider">Ketuk layar jika kamera buram untuk fokus ulang</p>
+                            </div>
                         </div>
 
                         <!-- Success Overlay -->
@@ -361,9 +430,15 @@
                 cameraDevices: [],
                 selectedCameraId: null,
                 cameraStarted: false,
-                cameraErrorMessage: '',
-                cameraDevices: [],
-                selectedCameraId: null,
+                isStartingCamera: false,
+                lastScanTime: 0,
+                hasTorch: false,
+                torchOn: false,
+                hasZoom: false,
+                currentZoom: 1,
+                minZoom: 1,
+                maxZoom: 1,
+                focusRing: { visible: false, x: 0, y: 0, timer: null },
                 scannedCode: '',
                 manualCode: '',
                 lastScannedCode: '',
@@ -382,8 +457,7 @@
                 init() {
                     this.$nextTick(() => {
                         if (this.inputType === 'camera') {
-                            // start camera automatically when opening the page
-                            setTimeout(() => this.startCamera(), 300);
+                            setTimeout(() => this.startCamera(true), 300);
                         } else {
                             this.focusInput();
                         }
@@ -397,117 +471,263 @@
                 setMode(val) { this.mode = val; this.status = 'idle'; },
 
                 setInputType(val) {
-                    if (this.inputType === 'camera') this.stopCamera();
+                    if (this.inputType === 'camera' && val !== 'camera') {
+                        this.stopCamera();
+                    }
                     this.inputType = val;
                     if (val === 'camera') {
-                        setTimeout(() => this.startCamera(), 300); // Give time for x-show to render
+                        this.status = 'idle';
+                        setTimeout(() => this.startCamera(true), 300);
                     }
-                    if (val === 'auto') this.$nextTick(() => this.focusInput());
+                    if (val === 'auto') {
+                        this.$nextTick(() => this.focusInput());
+                    }
                 },
 
-                startCamera() {
-                    if (this.html5QrCode) this.stopCamera();
+                playSound(id) {
+                    try {
+                        const audio = document.getElementById(id);
+                        if (audio) {
+                            audio.currentTime = 0;
+                            audio.play().catch(() => {});
+                        }
+                    } catch (e) {}
+                },
 
+                async startCamera(preferFacingMode = true) {
+                    if (this.isStartingCamera) return;
+                    this.isStartingCamera = true;
                     this.cameraError = false;
-                    this.html5QrCode = new Html5Qrcode("reader");
-                    const config = { fps: 20, qrbox: { width: 250, height: 250 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+                    this.cameraErrorMessage = '';
 
-                    // Prefer querying available cameras and select rear/back if possible
+                    if (this.html5QrCode) {
+                        await this.stopCamera();
+                    }
+
+                    this.html5QrCode = new Html5Qrcode("reader");
+
+                    const config = {
+                        fps: 15,
+                        qrbox: (viewfinderWidth, viewfinderHeight) => {
+                            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                            const size = Math.max(220, Math.floor(minEdge * 0.75));
+                            return { width: Math.min(size, 380), height: Math.min(size, 380) };
+                        },
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true
+                        }
+                    };
+
+                    // Enumerate available cameras in background
                     Html5Qrcode.getCameras().then(devices => {
                         this.cameraDevices = devices || [];
-                        if (!devices || devices.length === 0) {
-                            this.cameraError = true;
-                            this.cameraErrorMessage = 'No camera devices found';
-                            console.error('No camera devices found');
-                            return;
+                        if (!this.selectedCameraId && devices && devices.length > 0) {
+                            const mainBack = devices.find(d => /back|rear|environment/i.test(d.label) && !/wide|ultra|0\.5|tele|macro/i.test(d.label));
+                            const anyBack = devices.find(d => /back|rear|environment/i.test(d.label));
+                            this.selectedCameraId = (mainBack || anyBack || devices[0]).id;
                         }
+                    }).catch(e => {
+                        console.warn('getCameras warning:', e);
+                    });
 
-                        // Choose a back-facing camera when label suggests so
-                        let cameraId = devices[0].id;
-                        const back = devices.find(d => /back|rear|environment/i.test(d.label));
-                        if (back) cameraId = back.id;
-                        this.selectedCameraId = cameraId;
-
-                        // prefer passing deviceId constraint to Html5Qrcode
-                        const cameraConstraint = (typeof cameraId === 'string') ? { deviceId: { exact: cameraId } } : cameraId;
-                        this.html5QrCode.start(
-                            cameraConstraint,
-                            config,
-                            (text) => {
-                                if (this.status !== 'processing' && !this.isGroupScan) {
-                                    this.scannedCode = text;
-                                    this.processScan();
-                                }
-                            },
-                            (err) => {
-                                // per-frame error callback (ignored)
+                    const onScanSuccess = (text) => {
+                        // CRITICAL: Only scan when idle to prevent infinite error/shake loop
+                        if (this.status === 'idle' && !this.isGroupScan) {
+                            const now = Date.now();
+                            // Debounce exact duplicate scans within 2.5 seconds
+                            if (text === this.lastScannedCode && (now - this.lastScanTime) < 2500) {
+                                return;
                             }
-                        ).then(() => {
+                            this.lastScanTime = now;
+                            this.scannedCode = text;
+                            this.processScan();
+                        }
+                    };
+
+                    const onScanFailure = (err) => {
+                        // per-frame decode failure ignored
+                    };
+
+                    // Prefer standard { facingMode: "environment" } by default so browser picks primary 1x rear camera with autofocus
+                    let cameraConstraint = { facingMode: "environment" };
+                    if (!preferFacingMode && this.selectedCameraId) {
+                        cameraConstraint = { deviceId: { exact: this.selectedCameraId } };
+                    }
+
+                    try {
+                        await this.html5QrCode.start(cameraConstraint, config, onScanSuccess, onScanFailure);
+                        this.cameraStarted = true;
+                        this.cameraError = false;
+                        this.status = 'idle';
+                        this.isStartingCamera = false;
+                        setTimeout(() => this.updateCameraCapabilities(), 500);
+                    } catch (err) {
+                        console.warn("Camera start with facingMode failed, falling back to deviceId:", err);
+                        try {
+                            const devices = await Html5Qrcode.getCameras();
+                            this.cameraDevices = devices || [];
+                            if (!devices || devices.length === 0) {
+                                throw new Error("Tidak ada perangkat kamera ditemukan.");
+                            }
+
+                            const mainBack = devices.find(d => /back|rear|environment/i.test(d.label) && !/wide|ultra|0\.5|tele|macro/i.test(d.label));
+                            const anyBack = devices.find(d => /back|rear|environment/i.test(d.label));
+                            const target = mainBack || anyBack || devices[0];
+                            this.selectedCameraId = target.id;
+
+                            await this.html5QrCode.start(
+                                { deviceId: { exact: target.id } },
+                                config,
+                                onScanSuccess,
+                                onScanFailure
+                            );
                             this.cameraStarted = true;
                             this.cameraError = false;
-                            // ensure status idle so overlays don't block
                             this.status = 'idle';
-                        }).catch(err => {
+                            this.isStartingCamera = false;
+                            setTimeout(() => this.updateCameraCapabilities(), 500);
+                        } catch (err2) {
                             this.cameraError = true;
-                            this.cameraErrorMessage = (err && err.message) ? err.message : String(err);
-                            console.error('Camera Error:', err);
-                            // fallback: try attaching stream directly to fallback video
-                            try {
-                                navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: cameraId } } }).then(stream => {
-                                    const v = document.getElementById('fallback-camera');
-                                    if (v) {
-                                        v.srcObject = stream;
-                                        v.play().catch(()=>{});
-                                        this.cameraStarted = true;
-                                        this.cameraError = false;
-                                    }
-                                }).catch(e=>console.error('fallback getUserMedia failed', e));
-                            } catch (e) {}
-                        });
-                    }).catch(err => {
-                        this.cameraError = true;
-                        this.cameraErrorMessage = (err && err.message) ? err.message : String(err);
-                        console.error('getCameras Error:', err);
-                    });
+                            this.cameraErrorMessage = (err2 && err2.message) ? err2.message : String(err2);
+                            this.isStartingCamera = false;
+                            console.error("All camera start attempts failed:", err2);
+                        }
+                    }
                 },
 
-                startSelectedCamera() {
-                    const camId = this.selectedCameraId;
-                    if (!camId) return this.startCamera();
-                    try {
-                        if (this.html5QrCode) this.stopCamera();
-                        this.cameraError = false;
-                        this.html5QrCode = new Html5Qrcode("reader");
-                        const config = { fps: 20, qrbox: { width: 250, height: 250 } };
-                        const camConstraint = { deviceId: { exact: camId } };
-                        this.html5QrCode.start(camConstraint, config, (text) => {
-                            if (this.status !== 'processing' && !this.isGroupScan) {
-                                this.scannedCode = text;
-                                this.processScan();
+                async switchCamera(deviceId = null) {
+                    if (this.isStartingCamera) return;
+
+                    if (deviceId) {
+                        this.selectedCameraId = deviceId;
+                    } else if (this.cameraDevices && this.cameraDevices.length > 1) {
+                        const currentIndex = this.cameraDevices.findIndex(d => d.id === this.selectedCameraId);
+                        const nextIndex = (currentIndex + 1) % this.cameraDevices.length;
+                        this.selectedCameraId = this.cameraDevices[nextIndex].id;
+                    }
+
+                    await this.startCamera(false);
+                },
+
+                async stopCamera() {
+                    this.torchOn = false;
+                    if (this.html5QrCode) {
+                        try {
+                            if (this.html5QrCode.isScanning) {
+                                await this.html5QrCode.stop();
                             }
-                        }).catch(err => {
-                            this.cameraError = true;
-                            this.cameraErrorMessage = err && err.message ? err.message : String(err);
-                            console.error('startSelectedCamera Error:', err);
-                            // fallback attach
-                            navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: camId } } }).then(stream => {
-                                const v = document.getElementById('fallback-camera');
-                                if (v) { v.srcObject = stream; v.play().catch(()=>{}); this.cameraStarted = true; this.cameraError = false; }
-                            }).catch(e => console.error('startSelectedCamera fallback failed', e));
+                            this.html5QrCode.clear();
+                        } catch (e) {
+                            console.warn("stopCamera warning:", e);
+                        }
+                    }
+                    this.cameraStarted = false;
+                },
+
+                updateCameraCapabilities() {
+                    try {
+                        const video = document.querySelector('#reader video');
+                        if (!video || !video.srcObject) return;
+                        const track = video.srcObject.getVideoTracks()[0];
+                        if (!track || !track.getCapabilities) return;
+
+                        const caps = track.getCapabilities();
+                        const settings = track.getSettings ? track.getSettings() : {};
+                        if (settings.deviceId) {
+                            this.selectedCameraId = settings.deviceId;
+                        }
+
+                        this.hasTorch = !!caps.torch;
+                        this.hasZoom = !!caps.zoom;
+                        if (caps.zoom) {
+                            this.minZoom = caps.zoom.min || 1;
+                            this.maxZoom = caps.zoom.max || 1;
+                            this.currentZoom = settings.zoom || 1;
+                        }
+
+                        // Ensure continuous autofocus is enabled on track
+                        if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                            track.applyConstraints({
+                                advanced: [{ focusMode: 'continuous' }]
+                            }).catch(() => {});
+                        }
+                    } catch (e) {
+                        console.warn('updateCameraCapabilities error:', e);
+                    }
+                },
+
+                triggerRefocus(e) {
+                    if (this.inputType !== 'camera' || this.status !== 'idle') return;
+
+                    // Animate tap-to-focus indicator
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    this.focusRing.x = e.clientX - rect.left;
+                    this.focusRing.y = e.clientY - rect.top;
+                    this.focusRing.visible = true;
+                    clearTimeout(this.focusRing.timer);
+                    this.focusRing.timer = setTimeout(() => {
+                        this.focusRing.visible = false;
+                    }, 900);
+
+                    // Re-trigger autofocus constraint on video track
+                    try {
+                        const video = document.querySelector('#reader video');
+                        if (video && video.srcObject) {
+                            const track = video.srcObject.getVideoTracks()[0];
+                            if (track && track.getCapabilities) {
+                                const caps = track.getCapabilities();
+                                if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                                    track.applyConstraints({
+                                        advanced: [{ focusMode: 'continuous' }]
+                                    }).catch(() => {});
+                                }
+                            }
+                        }
+                    } catch (err) {}
+                },
+
+                async toggleTorch() {
+                    try {
+                        const video = document.querySelector('#reader video');
+                        if (!video || !video.srcObject) return;
+                        const track = video.srcObject.getVideoTracks()[0];
+                        if (!track) return;
+
+                        this.torchOn = !this.torchOn;
+                        await track.applyConstraints({
+                            advanced: [{ torch: this.torchOn }]
                         });
                     } catch (e) {
-                        this.cameraError = true;
-                        this.cameraErrorMessage = e && e.message ? e.message : String(e);
-                        console.error('startSelectedCamera Exception:', e);
+                        console.warn('Torch toggle failed:', e);
+                        this.torchOn = false;
                     }
                 },
 
-                stopCamera() { 
-                    if (this.html5QrCode && this.html5QrCode.isScanning) {
-                        this.html5QrCode.stop().then(() => {
-                            this.html5QrCode.clear();
-                        }).catch(err => console.error("Stop Error:", err));
+                async setZoom(level) {
+                    try {
+                        const video = document.querySelector('#reader video');
+                        if (!video || !video.srcObject) return;
+                        const track = video.srcObject.getVideoTracks()[0];
+                        if (!track || !track.applyConstraints) return;
+
+                        const target = Math.min(Math.max(level, this.minZoom), this.maxZoom);
+                        this.currentZoom = target;
+                        await track.applyConstraints({
+                            advanced: [{ zoom: target }]
+                        });
+                    } catch (e) {
+                        console.warn('Set zoom failed:', e);
                     }
+                },
+
+                getCameraShortName() {
+                    const active = this.cameraDevices.find(d => d.id === this.selectedCameraId);
+                    const label = active?.label || (this.cameraStarted ? 'Kamera Belakang' : 'Kamera');
+                    if (/front|user/i.test(label)) return 'Kamera Depan';
+                    if (/ultra|wide.*0\.5/i.test(label)) return 'Kamera Wide';
+                    if (/tele/i.test(label)) return 'Kamera Tele';
+                    if (/back|rear|environment/i.test(label)) return 'Kamera Belakang';
+                    return label.length > 18 ? label.substring(0, 16) + '...' : label;
                 },
 
                 processManualScan() { if (!this.manualCode) return; this.scannedCode = this.manualCode; this.manualCode = ''; this.processScan(); },
@@ -541,11 +761,9 @@
                         this.groupData = d;
                         this.isGroupScan = true;
                         
-                        // Default check only unchecked tickets when checking-in, or checked tickets when checking-out
                         this.selectedTicketIds = d.attendees
                             .filter(a => {
                                 if (this.mode === 'IN') {
-                                    // Highlight currently scanned ticket as selected by default
                                     return !a.is_checked_in || a.ticket_id === d.scanned_ticket_id;
                                 } else {
                                     return a.is_checked_in || a.ticket_id === d.scanned_ticket_id;
@@ -553,7 +771,7 @@
                             })
                             .map(a => a.ticket_id);
                         
-                        document.getElementById('sound-success').play();
+                        this.playSound('sound-success');
                         return;
                     }
 
@@ -561,7 +779,7 @@
                     this.result = { customer: d.customer, category: d.category };
                     this.inCount = d.in_count; this.outCount = d.out_count;
                     this.history.unshift({ success: true, type: this.mode, name: d.customer, category: d.category, time: new Date().toLocaleTimeString() });
-                    document.getElementById('sound-success').play();
+                    this.playSound('sound-success');
                     setTimeout(() => { if (this.status === 'success') this.status = 'idle'; }, 2000);
                 },
 
@@ -569,8 +787,8 @@
                     this.status = 'error';
                     this.errorMessage = msg;
                     this.history.unshift({ success: false, type: this.mode, code: this.lastScannedCode, time: new Date().toLocaleTimeString() });
-                    document.getElementById('sound-error').play();
-                    setTimeout(() => { if (this.status === 'error') this.status = 'idle'; }, 3000);
+                    this.playSound('sound-error');
+                    setTimeout(() => { if (this.status === 'error') this.status = 'idle'; }, 2500);
                 },
 
                 closeGroupModal() {
@@ -645,13 +863,20 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
         .animate-scan-line { animation: scan-line 2s ease-in-out infinite; }
-        @keyframes scan-line { 0%, 100% { top: 5%; } 50% { top: 95%; } }
-        /* Ensure camera video inside #reader is visible and covers area */
+        @keyframes scan-line { 0%, 100% { top: 8%; } 50% { top: 92%; } }
+
+        /* Ensure camera container fills screen cleanly */
         #reader {
-            background: transparent !important;
+            background: #000 !important;
             overflow: hidden !important;
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
         }
-        #reader video, #reader canvas, #reader .html5-qrcode-video, #reader .html5-qrcode-camera-stream, #fallback-camera {
+
+        /* Camera video stream */
+        #reader video {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
@@ -659,14 +884,26 @@
             top: 0 !important;
             left: 0 !important;
             z-index: 1 !important;
-            opacity: 1 !important;
             display: block !important;
             visibility: visible !important;
-            transform: none !important;
-            clip: auto !important;
+            transform: translateZ(0) !important;
+            backface-visibility: hidden !important;
         }
-        /* Ensure overlays (scan decorative UI) sit above video but are mostly transparent */
-        .absolute.inset-0.flex.items-center.justify-center.pointer-events-none { z-index: 20; }
+
+        /* CRITICAL: Hide internal decoding canvas from viewport so it NEVER flickers/shakes over video */
+        #reader canvas {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Hide built-in shaded region in favor of custom modern UI reticle */
+        #reader #qr-shaded-region {
+            display: none !important;
+        }
+
+        /* Ensure overlays (scan decorative UI) sit above video */
         .shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
     </style>
