@@ -466,18 +466,22 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="flex gap-2">
-                                            @if($category->sold_count < $category->quota)
-                                                @php $remaining = $category->quota - $category->sold_count; @endphp
-                                                <a href="{{ route('organizer.categories.print-wristbands', $category) }}?generate_offline=1&count={{ $remaining }}" target="_blank" class="p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-500 hover:text-emerald-700 hover:border-emerald-300 transition shadow-sm" title="Generate & Print {{ $remaining }} Stock Wristbands">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                </a>
+                                        <div class="flex gap-2 items-center">
+                                            @php
+                                                $hasDummyOffline = $category->tickets()->whereHas('transaction', fn($q) => $q->where('customer_name', 'OFFLINE STOCK'))->exists();
+                                            @endphp
+                                            @if($hasDummyOffline)
+                                                <form action="{{ route('organizer.categories.reset-offline-stock', $category) }}" method="POST" class="inline" onsubmit="return confirm('Reset stok dummy offline untuk kategori {{ addslashes($category->name) }}? Seluruh kuota akan dipulihkan untuk penjualan online.')">
+                                                    @csrf
+                                                    <button type="submit" class="p-2 bg-amber-50 rounded-lg border border-amber-300 text-amber-600 hover:text-amber-800 hover:bg-amber-100 transition shadow-sm" title="Reset Stok Dummy Offline & Pulihkan Kuota Online">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                    </button>
+                                                </form>
                                             @endif
-                                            @if($category->sold_count > 0)
-                                                <a href="{{ route('organizer.categories.print-wristbands', $category) }}" target="_blank" class="p-2 bg-blue-50 rounded-lg border border-blue-200 text-blue-500 hover:text-blue-700 hover:border-blue-300 transition shadow-sm" title="Print Sold Wristbands">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                                </a>
-                                            @endif
+
+                                            <a href="{{ route('organizer.categories.print-wristbands', $category) }}" target="_blank" class="p-2 bg-blue-50 rounded-lg border border-blue-200 text-blue-600 hover:text-blue-800 hover:border-blue-300 transition shadow-sm" title="Cetak Gelang Penukaran (Wristbands)">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                            </a>
                                             <a href="{{ route('organizer.events.categories.edit', [$event, $category]) }}" class="p-2 bg-orange-50 rounded-lg border border-orange-200 text-orange-500 hover:text-orange-700 hover:border-orange-300 transition shadow-sm">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                             </a>

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\TicketCategory;
 use App\Models\Ticket;
+use App\Models\Transaction;
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class WristbandPrintController extends Controller
 {
@@ -17,70 +19,49 @@ class WristbandPrintController extends Controller
         // Check authorization
         $this->authorizeAccess($category->event);
 
-        $status = $request->get('status', 'sold'); 
-        
-        $query = Ticket::where('ticket_category_id', $category->id)
-            ->with([
-                'transaction',
-                'category' => function ($q) {
-                    $q->select('id', 'name', 'hex_color');
-                },
-                'event'
-            ]);
+        $type = $request->get('type'); // 'sold', 'redeem', 'blank', or null
+        $count = (int) $request->get('count', $category->quota ?: 50);
+        $count = max(1, min($count, 5000)); // sane limit
 
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
+        // If explicitly requested 'sold'
+        if ($type === 'sold') {
+            $tickets = Ticket::where('ticket_category_id', $category->id)
+                ->where('status', 'sold')
+                ->with([
+                    'transaction',
+                    'category' => function ($q) {
+                        $q->select('id', 'name', 'hex_color');
+                    },
+                    'event'
+                ])
+                ->orderBy('ticket_code', 'asc')
+                ->get();
 
-        $tickets = $query->orderBy('ticket_code', 'asc')->get();
-
-        if ($tickets->isEmpty()) {
-            // Jika user minta generate tiket stok (offline)
-            if ($request->has('generate_offline')) {
-                $count = (int) $request->get('count', 10); // Default 10 tiket
-                $limit = min($count, $category->quota - $category->tickets()->count());
-                
-                if ($limit <= 0) {
-                    return back()->with('error', 'Kuota tidak mencukupi untuk generate tiket tambahan.');
-                }
-
-                \Illuminate\Support\Facades\DB::transaction(function() use ($category, $limit) {
-                    // Create a dummy transaction for offline stock
-                    $transaction = \App\Models\Transaction::create([
-                        'tenant_id' => $category->tenant_id,
-                        'event_id' => $category->event_id,
-                        'ticket_category_id' => $category->id,
-                        'quantity' => $limit,
-                        'reference_no' => 'STOCK-' . strtoupper(\Illuminate\Support\Str::random(10)),
-                        'customer_name' => 'OFFLINE STOCK',
-                        'customer_email' => 'offline@gentix.id',
-                        'customer_phone' => '-',
-                        'customer_nik' => '0000000000000000',
-                        'total_amount' => $category->price * $limit,
-                        'payment_status' => 'paid',
-                        'channel' => 'pos',
-                        'payment_method' => 'OFFLINE STOCK',
-                        'paid_at' => now(),
-                    ]);
-
-                    for ($i = 0; $i < $limit; $i++) {
-                        Ticket::create([
-                            'tenant_id' => $category->tenant_id,
-                            'event_id' => $category->event_id,
-                            'transaction_id' => $transaction->id,
-                            'ticket_category_id' => $category->id,
-                            'ticket_code' => 'GTX-OFF-' . strtoupper(\Illuminate\Support\Str::random(10)),
-                            'status' => 'sold', // Set to sold so it appears in print
-                        ]);
-                    }
-
-                    $category->increment('sold_count', $limit);
-                });
-                
-                return redirect()->route('organizer.categories.print-wristbands', $category);
+            if ($tickets->isEmpty()) {
+                return back()->with('error', 'Belum ada tiket terjual untuk kategori ini.');
             }
 
-            return back()->with('error', 'Tidak ada tiket untuk dicetak. Jika ingin cetak tiket stok untuk penjualan offline, silakan generate tiket terlebih dahulu.');
+            return view('wristbands.print', [
+                'tickets' => $tickets,
+                'category' => $category,
+                'event' => $category->event
+            ]);
+        }
+
+        // Default / Redeem Wristbands: Generate virtual wristbands on-the-fly
+        // This does NOT affect online sale quota and does NOT create fake transactions.
+        $tickets = collect();
+        $catPrefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $category->name), 0, 4)) ?: 'CAT';
+
+        for ($i = 1; $i <= $count; $i++) {
+            $uniqueCode = sprintf('WB-%s-%s%04d', $catPrefix, strtoupper(Str::random(3)), $i);
+            $ticket = new Ticket([
+                'ticket_code' => $uniqueCode,
+                'status' => 'sold',
+            ]);
+            $ticket->setRelation('category', $category);
+            $ticket->setRelation('event', $category->event);
+            $tickets->push($ticket);
         }
 
         return view('wristbands.print', [
@@ -88,6 +69,41 @@ class WristbandPrintController extends Controller
             'category' => $category,
             'event' => $category->event
         ]);
+    }
+
+    /**
+     * Reset/clear dummy offline stock from category.
+     */
+    public function resetOfflineStock(TicketCategory $category)
+    {
+        $this->authorizeAccess($category->event);
+
+        $offlineTransactions = Transaction::where('ticket_category_id', $category->id)
+            ->where(function($q) {
+                $q->where('customer_name', 'OFFLINE STOCK')
+                  ->orWhere('payment_method', 'OFFLINE STOCK')
+                  ->orWhere('reference_no', 'like', 'STOCK-%');
+            })
+            ->get();
+
+        $deletedTicketsCount = 0;
+        foreach ($offlineTransactions as $tx) {
+            $deletedTicketsCount += $tx->tickets()->delete();
+            $tx->delete();
+        }
+
+        // Recalculate real sold count from legitimate transactions
+        $realSoldCount = Ticket::where('ticket_category_id', $category->id)
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->whereHas('transaction', function($q) {
+                $q->where('customer_name', '!=', 'OFFLINE STOCK')
+                  ->where('payment_status', 'paid');
+            })
+            ->count();
+
+        $category->update(['sold_count' => $realSoldCount]);
+
+        return back()->with('success', "Berhasil mereset {$deletedTicketsCount} tiket stok dummy offline. Kuota penjualan online untuk kategori {$category->name} telah dipulihkan!");
     }
 
     private function authorizeAccess(Event $event)
@@ -101,3 +117,4 @@ class WristbandPrintController extends Controller
         }
     }
 }
+
