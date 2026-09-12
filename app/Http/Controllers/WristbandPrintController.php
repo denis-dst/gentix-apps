@@ -19,49 +19,65 @@ class WristbandPrintController extends Controller
         // Check authorization
         $this->authorizeAccess($category->event);
 
-        $type = $request->get('type'); // 'sold', 'redeem', 'blank', or null
-        $count = (int) $request->get('count', $category->quota ?: 50);
-        $count = max(1, min($count, 5000)); // sane limit
-
-        // If explicitly requested 'sold'
-        if ($type === 'sold') {
-            $tickets = Ticket::where('ticket_category_id', $category->id)
-                ->where('status', 'sold')
-                ->with([
-                    'transaction',
-                    'category' => function ($q) {
-                        $q->select('id', 'name', 'hex_color');
-                    },
-                    'event'
-                ])
-                ->orderBy('ticket_code', 'asc')
-                ->get();
-
-            if ($tickets->isEmpty()) {
-                return back()->with('error', 'Belum ada tiket terjual untuk kategori ini.');
-            }
-
-            return view('wristbands.print', [
-                'tickets' => $tickets,
-                'category' => $category,
-                'event' => $category->event
+        $status = $request->get('status', 'all'); 
+        
+        $query = Ticket::where('ticket_category_id', $category->id)
+            ->with([
+                'transaction',
+                'category' => function ($q) {
+                    $q->select('id', 'name', 'hex_color');
+                },
+                'event'
             ]);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        } else {
+            $query->whereIn('status', ['sold', 'redeemed']);
         }
 
-        // Default / Redeem Wristbands: Generate virtual wristbands on-the-fly
-        // This does NOT affect online sale quota and does NOT create fake transactions.
-        $tickets = collect();
-        $catPrefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $category->name), 0, 4)) ?: 'CAT';
+        $tickets = $query->orderBy('ticket_code', 'asc')->get();
 
-        for ($i = 1; $i <= $count; $i++) {
-            $uniqueCode = sprintf('WB-%s-%s%04d', $catPrefix, strtoupper(Str::random(3)), $i);
-            $ticket = new Ticket([
-                'ticket_code' => $uniqueCode,
-                'status' => 'sold',
-            ]);
-            $ticket->setRelation('category', $category);
-            $ticket->setRelation('event', $category->event);
-            $tickets->push($ticket);
+        // If no tickets exist in DB yet, handle generation if requested
+        if ($tickets->isEmpty()) {
+            if ($request->has('generate_offline')) {
+                $count = (int) $request->get('count', 10);
+                $limit = max(1, min($count, 2000));
+
+                \Illuminate\Support\Facades\DB::transaction(function() use ($category, $limit) {
+                    $transaction = Transaction::create([
+                        'tenant_id' => $category->tenant_id,
+                        'event_id' => $category->event_id,
+                        'ticket_category_id' => $category->id,
+                        'quantity' => $limit,
+                        'reference_no' => 'STOCK-' . strtoupper(Str::random(10)),
+                        'customer_name' => 'OFFLINE STOCK',
+                        'customer_email' => 'offline@gentix.id',
+                        'customer_phone' => '-',
+                        'customer_nik' => '0000000000000000',
+                        'total_amount' => $category->price * $limit,
+                        'payment_status' => 'paid',
+                        'channel' => 'pos',
+                        'payment_method' => 'OFFLINE STOCK',
+                        'paid_at' => now(),
+                    ]);
+
+                    for ($i = 0; $i < $limit; $i++) {
+                        Ticket::create([
+                            'tenant_id' => $category->tenant_id,
+                            'event_id' => $category->event_id,
+                            'transaction_id' => $transaction->id,
+                            'ticket_category_id' => $category->id,
+                            'ticket_code' => 'GTX-OFF-' . strtoupper(Str::random(10)),
+                            'status' => 'sold',
+                        ]);
+                    }
+                });
+
+                return redirect()->route('organizer.categories.print-wristbands', $category);
+            }
+
+            return back()->with('error', 'Belum ada tiket untuk dicetak pada kategori ini.');
         }
 
         return view('wristbands.print', [
