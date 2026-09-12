@@ -85,6 +85,24 @@
             default => 88,
         };
         $groupGridClass = $groupTicketCount >= 5 ? 'grid-cols-3' : 'grid-cols-2';
+
+        $ticketEventImg = asset('images/concert.webp');
+        if ($ticket->event->background_image) {
+            if (str_starts_with($ticket->event->background_image, 'http')) {
+                if (str_contains($ticket->event->background_image, 'unsplash.com')) {
+                    $ticketEventImg = preg_replace('/(\?.*)?$/', '?auto=format&fit=crop&w=600&q=75', $ticket->event->background_image);
+                } else {
+                    $ticketEventImg = $ticket->event->background_image;
+                }
+            } else {
+                $webpCandidate = preg_replace('/\.(png|jpe?g)$/i', '.webp', $ticket->event->background_image);
+                if (file_exists(public_path('storage/' . $webpCandidate))) {
+                    $ticketEventImg = asset('storage/' . $webpCandidate);
+                } else {
+                    $ticketEventImg = asset('storage/' . $ticket->event->background_image);
+                }
+            }
+        }
     @endphp
 
     @if($isFree)
@@ -181,25 +199,6 @@
                     <!-- Event Section -->
                     <div class="flex gap-8 items-start">
                         <div class="w-1/3 shrink-0">
-                            @php
-                                $ticketEventImg = asset('images/concert.webp');
-                                if ($ticket->event->background_image) {
-                                    if (str_starts_with($ticket->event->background_image, 'http')) {
-                                        if (str_contains($ticket->event->background_image, 'unsplash.com')) {
-                                            $ticketEventImg = preg_replace('/(\?.*)?$/', '?auto=format&fit=crop&w=600&q=75', $ticket->event->background_image);
-                                        } else {
-                                            $ticketEventImg = $ticket->event->background_image;
-                                        }
-                                    } else {
-                                        $webpCandidate = preg_replace('/\.(png|jpe?g)$/i', '.webp', $ticket->event->background_image);
-                                        if (file_exists(public_path('storage/' . $webpCandidate))) {
-                                            $ticketEventImg = asset('storage/' . $webpCandidate);
-                                        } else {
-                                            $ticketEventImg = asset('storage/' . $ticket->event->background_image);
-                                        }
-                                    }
-                                }
-                            @endphp
                             <img src="{{ $ticketEventImg }}" 
                                  width="400" height="300" loading="lazy" decoding="async"
                                  class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm border border-slate-100" alt="Banner">

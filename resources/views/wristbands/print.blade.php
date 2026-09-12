@@ -12,13 +12,19 @@
 
         * {
             box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
         }
 
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #f3f4f6;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
         }
 
         .page {
@@ -258,9 +264,26 @@
         }
 
         @media print {
-            body { background: none; }
-            .page { margin: 0; border: none; }
-            .no-print { display: none; }
+            html, body { 
+                background: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .page { 
+                margin: 0 !important; 
+                border: none !important; 
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .wristband, .ticket-band, .league-logo, .qr-section, .event-section, .category-section, .club-logo, .sponsor-section {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .no-print { display: none !important; }
         }
 
         .controls {
@@ -288,10 +311,12 @@
 <body>
     <div class="controls no-print">
         <button class="btn" onclick="window.print()">Print Wristbands</button>
-        <p style="font-size: 8pt; color: #666; margin-top: 10px;">
-            Set printer to F4 size,<br>
-            Margins: None,<br>
-            Scale: 100%
+        <p style="font-size: 8pt; color: #475569; margin-top: 10px; line-height: 1.4;">
+            <strong>Setting Cetak Browser:</strong><br>
+            • Ukuran Kertas: <strong>F4 / Folio</strong> (215 x 330 mm)<br>
+            • Margins: <strong>None / Minimum</strong><br>
+            • Centang: <strong>Background graphics</strong> (Grafis Latar Belakang)<br>
+            • Skala (Scale): <strong>100% / Default</strong>
         </p>
     </div>
 
