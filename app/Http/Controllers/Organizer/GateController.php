@@ -177,9 +177,29 @@ class GateController extends Controller
                                 'event:id,tenant_id,purchase_flow,name'
                             ]);
                         } else {
+                            $stockTx = \App\Models\Transaction::firstOrCreate(
+                                [
+                                    'reference_no' => 'WB-' . $category->id . '-' . $wristbandIndex,
+                                ],
+                                [
+                                    'tenant_id' => $category->tenant_id,
+                                    'event_id' => $category->event_id,
+                                    'ticket_category_id' => $category->id,
+                                    'customer_name' => 'Gelang Fisik #' . $wristbandIndex . ' (' . $category->name . ')',
+                                    'customer_email' => 'wristband@gentix-apps.com',
+                                    'customer_phone' => '-',
+                                    'quantity' => 1,
+                                    'total_amount' => $category->price ?? 0,
+                                    'payment_status' => 'paid',
+                                    'payment_method' => 'OFFLINE_WRISTBAND',
+                                    'paid_at' => now(),
+                                ]
+                            );
+
                             $newTicket = Ticket::create([
                                 'tenant_id' => $category->tenant_id,
                                 'event_id' => $category->event_id,
+                                'transaction_id' => $stockTx->id,
                                 'ticket_category_id' => $category->id,
                                 'ticket_code' => 'GTX-WB-' . strtoupper(\Illuminate\Support\Str::random(8)),
                                 'wristband_qr' => $scanCode,
