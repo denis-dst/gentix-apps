@@ -283,7 +283,7 @@ class EventController extends Controller
                 if (!empty($meta[$input])) {
                     Storage::disk('public')->delete($meta[$input]);
                 }
-                $meta[$input] = $request->file($input)->store('wristbands/logos', 'public');
+                $meta[$input] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file($input), 'wristbands/logos', 300, 85);
             }
         }
 
@@ -294,7 +294,7 @@ class EventController extends Controller
 
             $meta['wristband_sponsor_logos'] = collect($request->file('wristband_sponsor_logos'))
                 ->filter()
-                ->map(fn ($file) => $file->store('wristbands/sponsors', 'public'))
+                ->map(fn ($file) => \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'wristbands/sponsors', 300, 85))
                 ->values()
                 ->all();
         }

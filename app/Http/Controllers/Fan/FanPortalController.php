@@ -111,11 +111,17 @@ class FanPortalController extends Controller
         ];
 
         if ($request->hasFile('ktp_photo')) {
-            $updateData['ktp_photo'] = $request->file('ktp_photo')->store('kyc/ktp', 'public');
+            if ($member->ktp_photo) {
+                Storage::disk('public')->delete($member->ktp_photo);
+            }
+            $updateData['ktp_photo'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('ktp_photo'), 'kyc/ktp', 1200, 80);
         }
 
         if ($request->hasFile('face_photo')) {
-            $updateData['face_photo'] = $request->file('face_photo')->store('kyc/face', 'public');
+            if ($member->face_photo) {
+                Storage::disk('public')->delete($member->face_photo);
+            }
+            $updateData['face_photo'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('face_photo'), 'kyc/face', 800, 80);
         }
 
         $member->update($updateData);

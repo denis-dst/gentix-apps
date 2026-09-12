@@ -37,7 +37,7 @@ class TenantController extends Controller
 
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('tenants/logos', 'public');
+            $validated['logo'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('logo'), 'tenants/logos', 400, 85);
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
@@ -109,7 +109,7 @@ class TenantController extends Controller
             if ($tenant->logo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($tenant->logo);
             }
-            $validated['logo'] = $request->file('logo')->store('tenants/logos', 'public');
+            $validated['logo'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('logo'), 'tenants/logos', 400, 85);
         }
 
         $tenant->update($validated);

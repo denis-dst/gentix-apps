@@ -38,7 +38,7 @@ class ProfileController extends Controller
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
             }
-            $path = $request->file('avatar')->store('avatars', 'public');
+            $path = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('avatar'), 'avatars', 256, 85);
             $user->avatar = $path;
         }
 

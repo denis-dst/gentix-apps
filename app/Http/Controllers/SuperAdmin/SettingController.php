@@ -67,7 +67,9 @@ class SettingController extends Controller
                     ['value' => $value, 'group' => Setting::where('key', $key)->value('group') ?? 'appearance']
                 );
             }
-        }
+        \Illuminate\Support\Facades\Cache::forget('public_settings_map');
+        \Illuminate\Support\Facades\Cache::forget('setting.global_email_notifications_enabled');
+        \Illuminate\Support\Facades\Cache::forget('setting.global_wa_notifications_enabled');
 
         return back()->with('success', 'Pengaturan berhasil diperbarui!');
     }

@@ -68,7 +68,7 @@ class EventController extends Controller
         );
 
         if ($request->hasFile('banner_image')) {
-            $validated['banner_image'] = $request->file('banner_image')->store('events/banners', 'public');
+            $validated['banner_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('banner_image'), 'events/banners', 1200, 80);
         }
 
         Event::create($validated);
@@ -124,7 +124,7 @@ class EventController extends Controller
             if ($event->banner_image) {
                 Storage::disk('public')->delete($event->banner_image);
             }
-            $validated['banner_image'] = $request->file('banner_image')->store('events/banners', 'public');
+            $validated['banner_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('banner_image'), 'events/banners', 1200, 80);
         }
 
         $event->update($validated);
@@ -195,7 +195,7 @@ class EventController extends Controller
                 if (!empty($meta[$input])) {
                     Storage::disk('public')->delete($meta[$input]);
                 }
-                $meta[$input] = $request->file($input)->store('wristbands/logos', 'public');
+                $meta[$input] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file($input), 'wristbands/logos', 300, 85);
             }
         }
 
@@ -206,7 +206,7 @@ class EventController extends Controller
 
             $meta['wristband_sponsor_logos'] = collect($request->file('wristband_sponsor_logos'))
                 ->filter()
-                ->map(fn ($file) => $file->store('wristbands/sponsors', 'public'))
+                ->map(fn ($file) => \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'wristbands/sponsors', 300, 85))
                 ->values()
                 ->all();
         }

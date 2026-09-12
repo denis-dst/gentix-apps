@@ -53,7 +53,14 @@ class InvoiceController extends Controller
             Storage::disk('public')->delete($invoice->payment_proof);
         }
 
-        $path = $request->file('payment_proof')->store('invoices/proofs', 'public');
+        $file = $request->file('payment_proof');
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
+            $path = \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'invoices/proofs', 1200, 80);
+        } else {
+            $path = $file->store('invoices/proofs', 'public');
+        }
 
         $invoice->update([
             'payment_proof'              => $path,

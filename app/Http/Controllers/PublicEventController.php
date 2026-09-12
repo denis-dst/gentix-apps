@@ -374,11 +374,15 @@ class PublicEventController extends Controller
             }, 'tenant'])
             ->firstOrFail();
 
-        $emailSetting = \App\Models\Setting::where('key', 'global_email_notifications_enabled')->value('value');
-        $globalEmailEnabled = $emailSetting === null || ($emailSetting !== '0' && $emailSetting !== false);
+        $globalEmailEnabled = \Illuminate\Support\Facades\Cache::remember('setting.global_email_notifications_enabled', 3600, function() {
+            $val = \App\Models\Setting::where('key', 'global_email_notifications_enabled')->value('value');
+            return $val === null || ($val !== '0' && $val !== false);
+        });
 
-        $waSetting = \App\Models\Setting::where('key', 'global_wa_notifications_enabled')->value('value');
-        $globalWaEnabled = $waSetting === null || ($waSetting !== '0' && $waSetting !== false);
+        $globalWaEnabled = \Illuminate\Support\Facades\Cache::remember('setting.global_wa_notifications_enabled', 3600, function() {
+            $val = \App\Models\Setting::where('key', 'global_wa_notifications_enabled')->value('value');
+            return $val === null || ($val !== '0' && $val !== false);
+        });
 
         return view('events.show', compact('event', 'globalEmailEnabled', 'globalWaEnabled'));
     }
@@ -638,10 +642,10 @@ class PublicEventController extends Controller
         $messages = [];
         foreach ($proofs as $proof) {
             $key = 'proofs.' . $proof['id'];
-            $rules[$key] = ($proof['is_required'] ? 'required|' : 'nullable|') . 'file|max:1024|mimes:jpeg,jpg,png';
+            $rules[$key] = ($proof['is_required'] ? 'required|' : 'nullable|') . 'file|max:2048|mimes:jpeg,jpg,png,webp';
             $messages[$key . '.required'] = "Upload " . $proof['label'] . " wajib diisi.";
-            $messages[$key . '.max'] = "Ukuran " . $proof['label'] . " maksimal 1 MB.";
-            $messages[$key . '.mimes'] = "Format " . $proof['label'] . " harus JPG atau PNG.";
+            $messages[$key . '.max'] = "Ukuran " . $proof['label'] . " maksimal 2 MB.";
+            $messages[$key . '.mimes'] = "Format " . $proof['label'] . " harus JPG, PNG, atau WebP.";
         }
 
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules, $messages);
@@ -808,59 +812,33 @@ class PublicEventController extends Controller
             ], 422);
         }
 
-        if (($file->getSize() ?: 0) > 1024 * 1024) {
+        if (($file->getSize() ?: 0) > 2048 * 1024) {
             return response()->json([
                 'success' => false,
-                'message' => "Ukuran {$label} maksimal 1 MB.",
+                'message' => "Ukuran {$label} maksimal 2 MB.",
             ], 422);
         }
 
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = strtolower((string) $file->getMimeType());
-        $allowedExtensions = ['jpg', 'jpeg', 'png'];
-        $allowedMimeTypes = ['image/jpeg', 'image/png'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
         if (!in_array($extension, $allowedExtensions, true) || !in_array($mimeType, $allowedMimeTypes, true)) {
             return response()->json([
                 'success' => false,
-                'message' => "Format {$label} harus JPG atau PNG.",
+                'message' => "Format {$label} harus JPG, PNG, atau WebP.",
             ], 422);
         }
-
-        $sourcePath = $file->getPathname();
-        if (!$sourcePath) {
-            return response()->json([
-                'success' => false,
-                'message' => "Upload {$label} gagal dibaca. Silakan pilih ulang file.",
-            ], 422);
-        }
-
-        $fileName = Str::uuid() . '.' . ($extension === 'jpeg' ? 'jpg' : $extension);
-        $path = 'registration-proofs/' . $fileName;
 
         try {
-            $stream = fopen($sourcePath, 'r');
-
-            if ($stream === false) {
-                throw new \RuntimeException('Unable to open uploaded file stream.');
-            }
-
-            $stored = Storage::disk('public')->put($path, $stream);
-
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
+            return \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'registration-proofs', 1200, 80);
         } catch (\Throwable $e) {
-            if (isset($stream) && is_resource($stream)) {
-                fclose($stream);
-            }
-
             \Log::error("Failed storing {$label}: " . $e->getMessage(), [
                 'field' => $key,
                 'original_name' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
                 'mime' => $mimeType,
-                'source_path_empty' => $sourcePath === '',
             ]);
 
             return response()->json([
@@ -868,15 +846,6 @@ class PublicEventController extends Controller
                 'message' => "Upload {$label} gagal disimpan. Silakan coba lagi.",
             ], 500);
         }
-
-        if (!$stored) {
-            return response()->json([
-                'success' => false,
-                'message' => "Upload {$label} gagal disimpan. Silakan coba lagi.",
-            ], 500);
-        }
-
-        return $path;
     }
 
     public function success($reference)
