@@ -213,4 +213,77 @@ class EventController extends Controller
 
         return array_filter($meta, fn ($value) => filled($value));
     }
+
+    /**
+     * Duplikasi / Copy Event beserta seluruh kategori tiket dan gate
+     * Kecuali kode verifikasi event (dibuatkan baru secara acak)
+     */
+    public function duplicate(Event $event)
+    {
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            // 1. Replicate Event
+            $newEvent = $event->replicate([
+                'slug',
+                'security_code',
+                'status',
+            ]);
+
+            $newEvent->name = $event->name . ' (Salinan)';
+            $newEvent->slug = \Illuminate\Support\Str::slug($newEvent->name) . '-' . rand(1000, 9999);
+            $newEvent->status = 'draft';
+            // Generate kode verifikasi event baru (6 digit angka acak)
+            $newEvent->security_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $newEvent->created_at = now();
+            $newEvent->updated_at = now();
+            $newEvent->save();
+
+            // 2. Replicate Ticket Categories
+            $categoryMap = [];
+            $originalCategories = \App\Models\TicketCategory::where('event_id', $event->id)->get();
+            foreach ($originalCategories as $cat) {
+                $newCat = $cat->replicate([
+                    'event_id',
+                    'sold_count',
+                ]);
+                $newCat->event_id = $newEvent->id;
+                $newCat->sold_count = 0;
+                $newCat->created_at = now();
+                $newCat->updated_at = now();
+                $newCat->save();
+
+                $categoryMap[$cat->id] = $newCat->id;
+            }
+
+            // 3. Replicate Gates and sync category associations
+            $originalGates = \App\Models\Gate::where('event_id', $event->id)->with('ticketCategories')->get();
+            foreach ($originalGates as $gate) {
+                $newGate = $gate->replicate([
+                    'event_id',
+                ]);
+                $newGate->event_id = $newEvent->id;
+                $newGate->created_at = now();
+                $newGate->updated_at = now();
+                $newGate->save();
+
+                $mappedCategoryIds = [];
+                foreach ($gate->ticketCategories as $gateCat) {
+                    if (isset($categoryMap[$gateCat->id])) {
+                        $mappedCategoryIds[] = $categoryMap[$gateCat->id];
+                    }
+                }
+                if (!empty($mappedCategoryIds)) {
+                    $newGate->ticketCategories()->sync($mappedCategoryIds);
+                }
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->route('superadmin.events.edit', $newEvent)
+                ->with('success', 'Event berhasil diduplikasi beserta seluruh kategori tiket dan gerbang gate! Kode verifikasi baru telah di-generate.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return back()->with('error', 'Gagal menduplikasi event: ' . $e->getMessage());
+        }
+    }
 }

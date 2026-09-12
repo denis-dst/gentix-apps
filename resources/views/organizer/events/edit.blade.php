@@ -31,7 +31,17 @@
                 <h2 class="text-3xl font-black text-gray-800 tracking-tight">{{ $event->name }}</h2>
                 <p class="text-gray-500 font-medium">Manage your event details and ticket tiers.</p>
             </div>
-            <div class="flex gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <form action="{{ route('organizer.events.duplicate', $event) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menduplikasi event ini beserta seluruh kategori tiket dan gerbang gate? (Kode verifikasi event baru akan di-generate otomatis)')" class="inline">
+                    @csrf
+                    <button type="submit"
+                        class="px-5 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 transition shadow-sm flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        Duplikasi Event
+                    </button>
+                </form>
                 <a href="{{ route('organizer.events.gates.index', $event) }}"
                     class="px-5 py-2.5 bg-orange-600 text-black rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-200 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

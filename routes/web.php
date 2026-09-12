@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('events/trash', [App\Http\Controllers\SuperAdmin\EventController::class, 'trash'])->name('events.trash');
     Route::post('events/{id}/restore', [App\Http\Controllers\SuperAdmin\EventController::class, 'restore'])->name('events.restore');
     Route::delete('events/{id}/force-delete', [App\Http\Controllers\SuperAdmin\EventController::class, 'forceDelete'])->name('events.force-delete');
+    Route::post('events/{event}/duplicate', [App\Http\Controllers\SuperAdmin\EventController::class, 'duplicate'])->name('events.duplicate');
     Route::resource('events', App\Http\Controllers\SuperAdmin\EventController::class);
     
     Route::resource('transactions', App\Http\Controllers\SuperAdmin\TransactionController::class);
@@ -160,6 +161,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::get('/dashboard', [App\Http\Controllers\Organizer\DashboardController::class, 'index'])->name('dashboard');
     
     // Event Management
+    Route::post('events/{event}/duplicate', [App\Http\Controllers\Organizer\EventController::class, 'duplicate'])->name('events.duplicate');
     Route::resource('events', App\Http\Controllers\Organizer\EventController::class);
     Route::resource('events.categories', App\Http\Controllers\Organizer\TicketCategoryController::class);
     Route::get('categories/{category}/print-wristbands', [App\Http\Controllers\WristbandPrintController::class, 'print'])->name('categories.print-wristbands');

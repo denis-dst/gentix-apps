@@ -73,13 +73,19 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-2">
-                                        <a href="{{ route('events.show', $event->slug) }}" target="_blank" class="p-2 text-orange-500 hover:text-orange-700 bg-orange-50 rounded-lg border border-orange-200 transition shadow-sm">
+                                        <a href="{{ route('events.show', $event->slug) }}" target="_blank" title="Lihat Halaman Publik" class="p-2 text-orange-500 hover:text-orange-700 bg-orange-50 rounded-lg border border-orange-200 transition shadow-sm">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                         </a>
                                         <button type="button" onclick="copyEventLink(@js(route('events.show', $event->slug)), this)" title="Salin Link Event" class="p-2 text-orange-500 hover:text-orange-700 bg-orange-50 rounded-lg border border-orange-200 transition shadow-sm">
                                             <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                         </button>
-                                        <a href="{{ route('organizer.events.edit', $event) }}" class="p-2 text-orange-500 hover:text-orange-700 bg-orange-50 rounded-lg border border-orange-200 transition shadow-sm">
+                                        <form action="{{ route('organizer.events.duplicate', $event) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menduplikasi event ini beserta seluruh kategori tiket dan gerbang gate? (Kode verifikasi event baru akan di-generate otomatis)')" class="inline">
+                                            @csrf
+                                            <button type="submit" title="Duplikasi / Copy Event" class="p-2 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition shadow-sm">
+                                                <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                                            </button>
+                                        </form>
+                                        <a href="{{ route('organizer.events.edit', $event) }}" title="Edit Event" class="p-2 text-orange-500 hover:text-orange-700 bg-orange-50 rounded-lg border border-orange-200 transition shadow-sm">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                         </a>
                                     </div>
