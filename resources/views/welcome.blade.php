@@ -6,16 +6,12 @@
     <title>{{ $settings['app_name'] ?? 'GenTix' }} - {{ $settings['app_tagline'] ?? 'Connecting Generations' }}</title>
     <meta name="description" content="{{ $settings['meta_description'] ?? '' }}">
 
-    <!-- Fonts (High Performance Non-Blocking Loading) -->
+    <!-- Fonts (High Performance Preconnected Loading with font-display: swap) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
-    <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-    </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 
-    <!-- Styles / Scripts (Non-Blocking Optimized Delivery) -->
+    <!-- Styles / Scripts (Production Optimized Delivery) -->
     @if (file_exists(public_path('build/manifest.json')))
         @php
             $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
@@ -24,8 +20,7 @@
         @endphp
         @if($cssFile)
             <link rel="preload" as="style" href="{{ asset('build/' . $cssFile) }}">
-            <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}" media="print" onload="this.media='all'">
-            <noscript><link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}"></noscript>
+            <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}">
         @else
             @vite(['resources/css/app.css'])
         @endif
@@ -279,7 +274,7 @@
                     }
                 @endphp
                 <div class="glass-card rounded-3xl overflow-hidden group transition-all flex flex-col h-full">
-                    <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#181824] to-[#12121c] flex items-center justify-center">
+                    <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#181824] to-[#12121c] flex items-center justify-center" style="aspect-ratio: 16/10;">
                         <!-- Main contained poster image (100% visible, fully responsive without cropping) -->
                         <img src="{{ $bgImg }}" alt="{{ $event->name }}" width="473" height="236" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-cover transition duration-500 group-hover:scale-105">
                         

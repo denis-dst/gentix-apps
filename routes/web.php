@@ -8,12 +8,15 @@ use App\Models\Setting;
 use App\Http\Controllers\PublicEventController;
 
 Route::get('/', function () {
-    $events = Event::where('status', 'published')
+    $events = Event::with('ticketCategories')
+        ->where('status', 'published')
         ->orderBy('event_start_date', 'asc')
         ->take(6)
         ->get();
     
-    $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+    $settings = \Illuminate\Support\Facades\Cache::remember('public_settings_map', 3600, function () {
+        return \App\Models\Setting::pluck('value', 'key')->toArray();
+    });
 
     return view('welcome', compact('events', 'settings'));
 });
