@@ -6,10 +6,14 @@
     <title>{{ $settings['app_name'] ?? 'GenTix' }} - {{ $settings['app_tagline'] ?? 'Connecting Generations' }}</title>
     <meta name="description" content="{{ $settings['meta_description'] ?? '' }}">
 
-    <!-- Fonts (High Performance Preconnected Loading with font-display: swap) -->
+    <!-- Fonts (High Performance Non-Render-Blocking Loading) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    </noscript>
 
     <!-- Styles / Scripts (Production Optimized Delivery) -->
     @if (file_exists(public_path('build/manifest.json')))
@@ -143,7 +147,12 @@
             <div class="flex justify-between h-20 items-center">
                 <div class="flex items-center gap-2">
                     @if(isset($settings['app_logo']) && $settings['app_logo'])
-                        <img src="{{ asset('storage/' . $settings['app_logo']) }}" alt="Logo" width="160" height="40" class="h-10 w-auto">
+                        @php
+                            $logoPath = $settings['app_logo'];
+                            $webpLogo = preg_replace('/\.(png|jpe?g)$/i', '.webp', $logoPath);
+                            $finalLogo = file_exists(public_path('storage/' . $webpLogo)) ? asset('storage/' . $webpLogo) : asset('storage/' . $logoPath);
+                        @endphp
+                        <img src="{{ $finalLogo }}" alt="Logo" width="160" height="40" fetchpriority="high" decoding="async" class="h-10 w-auto object-contain">
                     @else
                         <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

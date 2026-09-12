@@ -48,7 +48,44 @@ class OptimizeImagesCommand extends Command
             }
         }
 
-        // 3. Update database Event background_image to point to .webp if it exists
+        // 3. Optimize storage/app/public/settings (Logos, favicons, etc.)
+        $settingsDir = storage_path('app/public/settings');
+        if (File::isDirectory($settingsDir)) {
+            $files = File::files($settingsDir);
+            foreach ($files as $file) {
+                $ext = strtolower($file->getExtension());
+                if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                    $origPath = $file->getRealPath();
+                    $webpPath = preg_replace('/\.(png|jpe?g)$/i', '.webp', $origPath);
+                    $origSize = filesize($origPath);
+                    
+                    ImageOptimizerService::convertAndSaveAsWebp($origPath, $webpPath, 400, 85);
+                    $newSize = file_exists($webpPath) ? filesize($webpPath) : 0;
+                    $this->line("Optimized setting asset: " . $file->getFilename() . " (" . round($origSize / 1024, 1) . " KB -> " . round($newSize / 1024, 1) . " KB WebP)");
+                }
+            }
+        }
+
+        // 4. Optimize storage/app/public/tickets
+        $ticketDirs = [storage_path('app/public/tickets/categories'), storage_path('app/public/tickets/backgrounds')];
+        foreach ($ticketDirs as $tDir) {
+            if (File::isDirectory($tDir)) {
+                $files = File::files($tDir);
+                foreach ($files as $file) {
+                    $ext = strtolower($file->getExtension());
+                    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                        $origPath = $file->getRealPath();
+                        $webpPath = preg_replace('/\.(png|jpe?g)$/i', '.webp', $origPath);
+                        $origSize = filesize($origPath);
+                        ImageOptimizerService::convertAndSaveAsWebp($origPath, $webpPath, 600, 80);
+                        $newSize = file_exists($webpPath) ? filesize($webpPath) : 0;
+                        $this->line("Optimized ticket asset: " . $file->getFilename() . " (" . round($origSize / 1024, 1) . " KB -> " . round($newSize / 1024, 1) . " KB WebP)");
+                    }
+                }
+            }
+        }
+
+        // 5. Update database Event background_image to point to .webp if it exists
         $events = Event::whereNotNull('background_image')->get();
         foreach ($events as $event) {
             if (!str_starts_with($event->background_image, 'http')) {
@@ -60,6 +97,19 @@ class OptimizeImagesCommand extends Command
                 }
             }
         }
+
+        // 6. Update database Settings to point to .webp if it exists
+        $settings = \App\Models\Setting::whereIn('key', ['app_logo', 'app_favicon', 'app_icon', 'wristband_league_logo'])->get();
+        foreach ($settings as $setting) {
+            if ($setting->value && !str_starts_with($setting->value, 'http')) {
+                $webpVal = preg_replace('/\.(png|jpe?g)$/i', '.webp', $setting->value);
+                if (file_exists(storage_path('app/public/' . $webpVal))) {
+                    $setting->update(['value' => $webpVal]);
+                    $this->line("Updated Setting {$setting->key} to WebP: {$webpVal}");
+                }
+            }
+        }
+        \Illuminate\Support\Facades\Cache::forget('public_settings_map');
 
         $this->info('Image optimization completed successfully!');
         return self::SUCCESS;

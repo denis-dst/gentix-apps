@@ -45,7 +45,8 @@ class SettingController extends Controller
                 continue;
             }
 
-            $path = $request->file($key)->store('settings', 'public');
+            $maxW = in_array($key, ['app_favicon', 'app_icon']) ? 192 : 400;
+            $path = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file($key), 'settings', $maxW, 85);
             Setting::updateOrCreate(['key' => $key], [
                 'value' => $path,
                 'group' => Setting::where('key', $key)->value('group') ?? 'appearance',
