@@ -204,9 +204,9 @@
                     <div class="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-orange-500/30 shadow-lg">
                         <h4 class="text-lg font-black text-white font-outfit mb-3">Gentix Apps &ndash; Legal Department</h4>
                         <div class="space-y-2.5 text-sm">
-                            <p class="text-stone-300"><span class="text-stone-500 font-medium">Email Official:</span> <a href="mailto:virtusunity@gmail.com" class="text-orange-400 font-bold hover:underline ml-1">virtusunity@gmail.com</a></p>
-                            <p class="text-stone-300"><span class="text-stone-500 font-medium">Telepon / WhatsApp:</span> <a href="https://wa.me/6283878537818" target="_blank" class="text-orange-400 font-bold hover:underline ml-1">083878537818</a></p>
-                            <p class="text-stone-300"><span class="text-stone-500 font-medium">Alamat Kantor:</span> <span class="text-stone-200 ml-1">DUSUN MANDAH INDUK 00/001 MANDAH, NATAR, LAMPUNG SELATAN, LAMPUNG 35362</span></p>
+                            <p class="text-stone-300"><span class="text-stone-400 font-medium">Email Official:</span> <a href="mailto:virtusunity@gmail.com" class="text-orange-400 font-bold hover:underline ml-1">virtusunity@gmail.com</a></p>
+                            <p class="text-stone-300"><span class="text-stone-400 font-medium">Telepon / WhatsApp:</span> <a href="https://wa.me/6283878537818" target="_blank" class="text-orange-400 font-bold hover:underline ml-1">083878537818</a></p>
+                            <p class="text-stone-300"><span class="text-stone-400 font-medium">Alamat Kantor:</span> <span class="text-stone-200 ml-1">DUSUN MANDAH INDUK 00/001 MANDAH, NATAR, LAMPUNG SELATAN, LAMPUNG 35362</span></p>
                         </div>
                     </div>
                 </div>

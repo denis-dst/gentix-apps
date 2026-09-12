@@ -339,7 +339,7 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">01</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Browse Events') }}</h4>
+                    <h3 class="text-xl font-bold mb-3 text-white">{{ __('Browse Events') }}</h3>
                     <p class="text-stone-400 text-sm font-light">{{ __('Explore our curated list of events across various categories.') }}</p>
                 </div>
 
@@ -348,7 +348,7 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">02</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Choose Seats') }}</h4>
+                    <h3 class="text-xl font-bold mb-3 text-white">{{ __('Choose Seats') }}</h3>
                     <p class="text-stone-400 text-sm font-light">{{ __('Select your preferred viewing area and number of tickets.') }}</p>
                 </div>
 
@@ -357,7 +357,7 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">03</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Secure Payment') }}</h4>
+                    <h3 class="text-xl font-bold mb-3 text-white">{{ __('Secure Payment') }}</h3>
                     <p class="text-stone-400 text-sm font-light">{{ __('Pay safely using our encrypted payment gateway.') }}</p>
                 </div>
 
@@ -366,7 +366,7 @@
                     <div class="w-16 h-16 rounded-2xl glass flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-xl text-white">
                         <span class="text-2xl font-bold font-outfit">04</span>
                     </div>
-                    <h4 class="text-xl font-bold mb-3 text-white">{{ __('Get E-Ticket') }}</h4>
+                    <h3 class="text-xl font-bold mb-3 text-white">{{ __('Get E-Ticket') }}</h3>
                     <p class="text-stone-400 text-sm font-light">{{ __('Your ticket will be sent to your email and Gentix wallet.') }}</p>
                 </div>
             </div>
@@ -403,9 +403,9 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-xl font-bold mb-2 text-white">{{ __('Technology Inclusivity') }}</h4>
+                                <h3 class="text-xl font-bold mb-2 text-white">{{ __('Technology Inclusivity') }}</h3>
                                 <p class="text-stone-400 text-sm leading-relaxed">
-                                    Built on high-end cloud infrastructure, yet designed with a UI so simple that everyone, from Gen Z to Baby Boomers, can scan their E-vouchers or RFID bands without a single worry.
+                                     Built on high-end cloud infrastructure, yet designed with a UI so simple that everyone, from Gen Z to Baby Boomers, can scan their E-vouchers or RFID bands without a single worry.
                                 </p>
                             </div>
                         </div>
@@ -417,9 +417,9 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-xl font-bold mb-2 text-white">{{ __('Universal Accessibility') }}</h4>
+                                <h3 class="text-xl font-bold mb-2 text-white">{{ __('Universal Accessibility') }}</h3>
                                 <p class="text-stone-400 text-sm leading-relaxed">
-                                    Whether it's a massive rock concert, a prestigious corporate seminar, or a local cultural festival, GenTix adapts to any event scale and audience, ensuring every gate is a gateway to a new memory.
+                                     Whether it's a massive rock concert, a prestigious corporate seminar, or a local cultural festival, GenTix adapts to any event scale and audience, ensuring every gate is a gateway to a new memory.
                                 </p>
                             </div>
                         </div>
@@ -475,7 +475,7 @@
                 
                 <div>
                     <h2 class="text-4xl font-bold font-outfit mb-8 leading-tight text-white">About <span class="text-orange-400">GenTix</span></h2>
-                    <p class="text-lg text-stone-400 font-light mb-8 leading-relaxed">
+                    <p class="text-lg text-stone-300 font-light mb-8 leading-relaxed">
                         GenTix is more than just a ticketing platform. We are a bridge between passionate event-goers and the most extraordinary experiences. Founded in 2024, our mission is to make event access seamless, secure, and purely delightful.
                     </p>
                     <ul class="space-y-6 mb-10">
@@ -486,8 +486,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-bold text-white">Verified Organizers</h5>
-                                <p class="text-sm text-stone-500">Every event on our platform is vetted for security.</p>
+                                <h3 class="font-bold text-white text-base">Verified Organizers</h3>
+                                <p class="text-sm text-stone-300">Every event on our platform is vetted for security.</p>
                             </div>
                         </li>
                         <li class="flex items-start gap-4">
@@ -497,8 +497,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-bold text-white">Fast-Pass Entry</h5>
-                                <p class="text-sm text-stone-500">Scan your QR code and get in within seconds.</p>
+                                <h3 class="font-bold text-white text-base">Fast-Pass Entry</h3>
+                                <p class="text-sm text-stone-300">Scan your QR code and get in within seconds.</p>
                             </div>
                         </li>
                         <li class="flex items-start gap-4">
@@ -508,8 +508,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-bold text-white">24/7 Priority Support</h5>
-                                <p class="text-sm text-slate-500">Our team is always here to help with your bookings.</p>
+                                <h3 class="font-bold text-white text-base">24/7 Priority Support</h3>
+                                <p class="text-sm text-stone-300">Our team is always here to help with your bookings.</p>
                             </div>
                         </li>
                     </ul>
