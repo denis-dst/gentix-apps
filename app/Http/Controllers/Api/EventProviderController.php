@@ -15,8 +15,12 @@ class EventProviderController extends Controller
      */
     public function listEvents()
     {
-        $events = Event::where('tenant_id', auth()->user()->tenant_id)
-            ->where('status', 'published')
+        $query = Event::query();
+        if (!auth()->user()->hasRole('Superadmin')) {
+            $query->where('tenant_id', auth()->user()->tenant_id);
+        }
+
+        $events = $query->where('status', 'published')
             ->orderBy('event_start_date', 'desc')
             ->get();
             

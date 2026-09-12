@@ -41,49 +41,126 @@ class GateController extends Controller
         ]);
 
         $eventId = (int) $request->event_id;
-        $event = Event::findOrFail($eventId);
+        $event = Event::with('ticketCategories')->findOrFail($eventId);
+        $isRedeemFlow = ($event->purchase_flow === 'redeem');
 
-        $tickets = Ticket::query()
-            ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
-            ->leftJoin('transactions', 'transactions.id', '=', 'tickets.transaction_id')
-            ->where('tickets.event_id', $eventId)
-            ->whereIn('status', ['sold', 'redeemed'])
-            ->select([
-                'tickets.id as ticket_id',
-                'tickets.event_id',
-                'tickets.tenant_id',
-                'tickets.ticket_category_id',
-                'tickets.ticket_code',
-                'tickets.wristband_qr',
-                'tickets.visitor_data',
-                'ticket_categories.name as category_name',
-                'transactions.customer_name',
-                'transactions.customer_email',
-                'transactions.customer_umroh_answer',
-                'transactions.reference_no',
-            ])
-            ->get()
-            ->map(function ($ticket) use ($event) {
-                $visitorData = $this->visitorDataArray($ticket->visitor_data);
-                $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
+        $ticketsCollection = collect();
 
-                return [
-                    'ticket_id' => $ticket->ticket_id,
-                    'event_id' => $ticket->event_id,
-                    'tenant_id' => $ticket->tenant_id,
-                    'ticket_category_id' => $ticket->ticket_category_id,
-                    'ticket_code' => $ticket->ticket_code,
-                    'wristband_qr' => $ticket->wristband_qr,
-                    'category_name' => $ticket->category_name ?? '-',
-                    'customer_name' => $visitorData['name'] ?? $ticket->customer_name ?? '-',
-                    'customer_email' => $ticket->customer_email ?? '-',
-                    'custom_question_label' => $customQuestion['label'],
-                    'custom_question_answer' => $customQuestion['answer'],
-                    'custom_question' => $customQuestion,
-                    'reference_no' => $ticket->reference_no ?? '-',
-                ];
-            })
-            ->values();
+        if ($isRedeemFlow) {
+            // 1. Tipe Redeem: Ambil tiket yang sudah pernah ditukarkan / diredeem ke wristband
+            $redeemedTickets = Ticket::query()
+                ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
+                ->leftJoin('transactions', 'transactions.id', '=', 'tickets.transaction_id')
+                ->where('tickets.event_id', $eventId)
+                ->where('tickets.status', 'redeemed')
+                ->whereNotNull('tickets.wristband_qr')
+                ->select([
+                    'tickets.id as ticket_id',
+                    'tickets.event_id',
+                    'tickets.tenant_id',
+                    'tickets.ticket_category_id',
+                    'tickets.ticket_code',
+                    'tickets.wristband_qr',
+                    'tickets.visitor_data',
+                    'ticket_categories.name as category_name',
+                    'transactions.customer_name',
+                    'transactions.customer_email',
+                    'transactions.customer_umroh_answer',
+                    'transactions.reference_no',
+                ])
+                ->get()
+                ->map(function ($ticket) use ($event) {
+                    $visitorData = $this->visitorDataArray($ticket->visitor_data);
+                    $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
+
+                    return [
+                        'ticket_id' => $ticket->ticket_id,
+                        'event_id' => $ticket->event_id,
+                        'tenant_id' => $ticket->tenant_id,
+                        'ticket_category_id' => $ticket->ticket_category_id,
+                        'ticket_code' => $ticket->wristband_qr ?: $ticket->ticket_code,
+                        'wristband_qr' => $ticket->wristband_qr,
+                        'category_name' => $ticket->category_name ?? '-',
+                        'customer_name' => $visitorData['name'] ?? $ticket->customer_name ?? '-',
+                        'customer_email' => $ticket->customer_email ?? '-',
+                        'custom_question_label' => $customQuestion['label'],
+                        'custom_question_answer' => $customQuestion['answer'],
+                        'custom_question' => $customQuestion,
+                        'reference_no' => $ticket->reference_no ?? '-',
+                    ];
+                });
+
+            $ticketsCollection = $ticketsCollection->concat($redeemedTickets);
+
+            // 2. Tipe Redeem: Ambil / generate data seluruh wristband cetak per kategori berdasarkan kuota
+            foreach ($event->ticketCategories as $cat) {
+                $quota = (int) ($cat->quota > 0 ? $cat->quota : 100);
+                $limit = min($quota, 5000);
+                for ($i = 1; $i <= $limit; $i++) {
+                    $wbCode = sprintf('WB-C%d-%04d', $cat->id, $i);
+                    $syntheticId = 9000000 + ($cat->id * 10000) + $i;
+                    $ticketsCollection->push([
+                        'ticket_id' => $syntheticId,
+                        'event_id' => $event->id,
+                        'tenant_id' => $event->tenant_id,
+                        'ticket_category_id' => $cat->id,
+                        'ticket_code' => $wbCode,
+                        'wristband_qr' => $wbCode,
+                        'category_name' => $cat->name,
+                        'customer_name' => 'Gelang Fisik #' . $i . ' (' . $cat->name . ')',
+                        'customer_email' => '-',
+                        'custom_question_label' => '-',
+                        'custom_question_answer' => '-',
+                        'custom_question' => ['label' => '-', 'answer' => '-'],
+                        'reference_no' => 'WB-STOCK-' . $cat->id . '-' . $i,
+                    ]);
+                }
+            }
+        } else {
+            // Tipe Direct: Unduh seluruh tiket terjual/redeemed (E-Voucher QR code dan/atau tiket penjualan langsung)
+            $directTickets = Ticket::query()
+                ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
+                ->leftJoin('transactions', 'transactions.id', '=', 'tickets.transaction_id')
+                ->where('tickets.event_id', $eventId)
+                ->whereIn('status', ['sold', 'redeemed'])
+                ->select([
+                    'tickets.id as ticket_id',
+                    'tickets.event_id',
+                    'tickets.tenant_id',
+                    'tickets.ticket_category_id',
+                    'tickets.ticket_code',
+                    'tickets.wristband_qr',
+                    'tickets.visitor_data',
+                    'ticket_categories.name as category_name',
+                    'transactions.customer_name',
+                    'transactions.customer_email',
+                    'transactions.customer_umroh_answer',
+                    'transactions.reference_no',
+                ])
+                ->get()
+                ->map(function ($ticket) use ($event) {
+                    $visitorData = $this->visitorDataArray($ticket->visitor_data);
+                    $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
+
+                    return [
+                        'ticket_id' => $ticket->ticket_id,
+                        'event_id' => $ticket->event_id,
+                        'tenant_id' => $ticket->tenant_id,
+                        'ticket_category_id' => $ticket->ticket_category_id,
+                        'ticket_code' => $ticket->ticket_code,
+                        'wristband_qr' => $ticket->wristband_qr,
+                        'category_name' => $ticket->category_name ?? '-',
+                        'customer_name' => $visitorData['name'] ?? $ticket->customer_name ?? '-',
+                        'customer_email' => $ticket->customer_email ?? '-',
+                        'custom_question_label' => $customQuestion['label'],
+                        'custom_question_answer' => $customQuestion['answer'],
+                        'custom_question' => $customQuestion,
+                        'reference_no' => $ticket->reference_no ?? '-',
+                    ];
+                });
+
+            $ticketsCollection = $ticketsCollection->concat($directTickets);
+        }
 
         $gates = Gate::where('event_id', $eventId)
             ->where('is_active', true)
@@ -104,7 +181,8 @@ class GateController extends Controller
         return response()->json([
             'status' => 'SUCCESS',
             'event_id' => $eventId,
-            'tickets' => $tickets,
+            'purchase_flow' => $event->purchase_flow ?? 'direct',
+            'tickets' => $ticketsCollection->values(),
             'gates' => $gates,
         ]);
     }
