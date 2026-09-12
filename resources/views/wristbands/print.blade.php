@@ -298,24 +298,46 @@
         }
 
         .btn {
-            background: #6366f1;
+            background: #2563eb;
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 13px;
+            width: 100%;
+        }
+        .btn:hover {
+            background: #1d4ed8;
         }
     </style>
 </head>
 <body>
-    <div class="controls no-print">
-        <button class="btn" onclick="window.print()">Print Wristbands</button>
-        <p style="font-size: 8pt; color: #475569; margin-top: 10px; line-height: 1.4;">
+    <div class="controls no-print" style="width: 260px;">
+        <div style="font-size: 11px; font-weight: bold; color: #1e293b; margin-bottom: 6px;">
+            {{ $category->name }}
+        </div>
+        <div style="font-size: 10px; color: #64748b; margin-bottom: 10px;">
+            Total Stok/Kuota: <strong>{{ $categoryQuota ?? $category->quota }}</strong> Gelang<br>
+            Menampilkan: <strong>{{ $startNumber ?? 1 }}</strong> s/d <strong>{{ ($startNumber ?? 1) + count($tickets) - 1 }}</strong> ({{ count($tickets) }} gelang)
+        </div>
+        <button class="btn" onclick="window.print()">🖨️ Cetak {{ count($tickets) }} Gelang</button>
+
+        <form method="GET" action="{{ route('organizer.categories.print-wristbands', $category) }}" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+            <div style="font-size: 9px; font-weight: bold; color: #475569; margin-bottom: 4px;">Cetak Sebagian (Batch):</div>
+            <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 6px;">
+                <input type="number" name="start" value="{{ $startNumber ?? 1 }}" min="1" placeholder="Mulai" style="width: 50%; font-size: 10px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <input type="number" name="count" value="{{ count($tickets) }}" min="1" max="5000" placeholder="Jumlah" style="width: 50%; font-size: 10px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;">
+            </div>
+            <button type="submit" style="width: 100%; font-size: 9px; padding: 4px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold;">Terapkan Batch</button>
+        </form>
+
+        <p style="font-size: 8pt; color: #475569; margin-top: 10px; line-height: 1.4; border-top: 1px solid #e2e8f0; padding-top: 8px;">
             <strong>Setting Cetak Browser:</strong><br>
             • Ukuran Kertas: <strong>F4 / Folio</strong> (215 x 330 mm)<br>
             • Margins: <strong>None / Minimum</strong><br>
-            • Centang: <strong>Background graphics</strong> (Grafis Latar Belakang)<br>
+            • Centang: <strong>Background graphics</strong><br>
             • Skala (Scale): <strong>100% / Default</strong>
         </p>
     </div>
