@@ -123,6 +123,11 @@ class GateController extends Controller
         ]);
 
         $scanCode = trim($request->wristband_qr);
+        if (preg_match('/(GTX-[A-Za-z0-9_-]+)/', $scanCode, $matches)) {
+            $extractedCode = $matches[1];
+        } else {
+            $extractedCode = basename(parse_url($scanCode, PHP_URL_PATH) ?: $scanCode);
+        }
 
         // Fetch ticket with event, category, and transaction in a single query
         $ticket = Ticket::with([
@@ -130,9 +135,11 @@ class GateController extends Controller
                 'transaction:id,customer_name,customer_email,customer_phone,reference_no,customer_umroh_answer',
                 'event:id,tenant_id,purchase_flow,name,umroh_question_enabled,meta'
             ])
-            ->where(function ($q) use ($scanCode) {
+            ->where(function ($q) use ($scanCode, $extractedCode) {
                 $q->where('wristband_qr', $scanCode)
-                  ->orWhere('ticket_code', $scanCode);
+                  ->orWhere('ticket_code', $scanCode)
+                  ->orWhere('ticket_code', $extractedCode)
+                  ->orWhere('wristband_qr', $extractedCode);
             })
             ->first();
 
@@ -169,7 +176,7 @@ class GateController extends Controller
             $gate = Gate::with('ticketCategories:id')->find($request->gate_id);
             if ($gate) {
                 $allowedCategoryIds = $gate->ticketCategories->pluck('id')->toArray();
-                if (!in_array($ticket->ticket_category_id, $allowedCategoryIds)) {
+                if (!empty($allowedCategoryIds) && !in_array($ticket->ticket_category_id, $allowedCategoryIds)) {
                     return response()->json([
                         'status' => 'REJECT',
                         'message' => 'Wrong Gate! Access Denied for ' . ($ticket->category->name ?? 'Category'),

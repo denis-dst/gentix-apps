@@ -30,14 +30,14 @@ Route::middleware(['auth:sanctum', 'role:Superadmin'])->group(function () {
 /**
  * Shared Tenant Routes (Events List)
  */
-Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket|Petugas Gate'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas Gate'])->group(function () {
     Route::get('/events', [EventProviderController::class, 'listEvents']);
 });
 
 /**
- * Event Provider Routes
+ * Event Provider & POS Routes
  */
-Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas Gate'])->group(function () {
     Route::post('/events', [EventProviderController::class, 'storeEvent']);
     Route::post('/events/{event}/ticket-categories', [EventProviderController::class, 'storeTicketCategory']);
     Route::post('/ticket-categories/{category}/update-design', [EventProviderController::class, 'updateTicketDesign']);
@@ -50,16 +50,9 @@ Route::middleware(['auth:sanctum', 'role:Penyedia Event|Petugas Loket'])->group(
 });
 
 /**
- * POS (Petugas Loket) Routes
- */
-Route::middleware(['auth:sanctum', 'role:Petugas Loket'])->group(function () {
-    // Moved to Penyedia Event group
-});
-
-/**
  * Gate (Petugas Gate) Routes
  */
-Route::middleware(['auth:sanctum', 'role:Petugas Gate'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:Superadmin|Penyedia Event|Petugas Gate|Petugas Loket'])->group(function () {
     Route::get('/gate/list', [GateController::class, 'listGates']);
     // Download wristband data untuk mode offline/local
     Route::get('/gate/download-data', [GateController::class, 'downloadData']);

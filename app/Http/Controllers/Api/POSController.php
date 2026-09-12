@@ -95,8 +95,20 @@ class POSController extends Controller
      */
     public function checkTicket($code)
     {
-        $ticket = Ticket::where('ticket_code', $code)
-            ->with(['category', 'transaction', 'redeemer'])
+        $rawCode = trim($code);
+        if (preg_match('/(GTX-[A-Za-z0-9_-]+)/', $rawCode, $matches)) {
+            $extractedCode = $matches[1];
+        } else {
+            $extractedCode = basename(parse_url($rawCode, PHP_URL_PATH) ?: $rawCode);
+        }
+
+        $ticket = Ticket::where(function ($q) use ($rawCode, $extractedCode) {
+                $q->where('ticket_code', $rawCode)
+                  ->orWhere('wristband_qr', $rawCode)
+                  ->orWhere('ticket_code', $extractedCode)
+                  ->orWhere('wristband_qr', $extractedCode);
+            })
+            ->with(['category', 'transaction', 'redeemer', 'event'])
             ->first();
 
         if (!$ticket) {
@@ -120,8 +132,8 @@ class POSController extends Controller
                     'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
                     'redeemed_by' => $ticket->redeemer->name ?? 'System',
                     'photo' => $ticket->redeem_photo ? asset('storage/' . $ticket->redeem_photo) : null,
-                    'visitor' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name,
+                    'visitor' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name ?? '-',
                     'wristband_qr' => $ticket->wristband_qr
                 ],
                 'is_redeemable' => false
@@ -136,10 +148,10 @@ class POSController extends Controller
             'color' => 'green',
             'ticket' => [
                 'code' => $ticket->ticket_code,
-                'name' => $ticket->transaction->customer_name,
-                'email' => $ticket->transaction->customer_email,
-                'phone' => $ticket->transaction->customer_phone,
-                'category' => $ticket->category->name,
+                'name' => $ticket->transaction->customer_name ?? '-',
+                'email' => $ticket->transaction->customer_email ?? '-',
+                'phone' => $ticket->transaction->customer_phone ?? '-',
+                'category' => $ticket->category->name ?? '-',
             ],
             'is_redeemable' => true
         ]);
@@ -151,14 +163,33 @@ class POSController extends Controller
     public function redeemTicket(Request $request)
     {
         $request->validate([
-            'ticket_code' => 'required|exists:tickets,ticket_code',
+            'ticket_code' => 'required|string',
             'wristband_qr' => 'nullable',
             'photo' => 'required' // Base64 expected from app
         ]);
 
-        $ticket = Ticket::where('ticket_code', $request->ticket_code)
-            ->with(['transaction', 'category', 'redeemer'])
+        $rawCode = trim($request->ticket_code);
+        if (preg_match('/(GTX-[A-Za-z0-9_-]+)/', $rawCode, $matches)) {
+            $extractedCode = $matches[1];
+        } else {
+            $extractedCode = basename(parse_url($rawCode, PHP_URL_PATH) ?: $rawCode);
+        }
+
+        $ticket = Ticket::where(function ($q) use ($rawCode, $extractedCode) {
+                $q->where('ticket_code', $rawCode)
+                  ->orWhere('wristband_qr', $rawCode)
+                  ->orWhere('ticket_code', $extractedCode)
+                  ->orWhere('wristband_qr', $extractedCode);
+            })
+            ->with(['transaction', 'category', 'redeemer', 'event'])
             ->first();
+
+        if (!$ticket) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tiket tidak ditemukan.'
+            ], 404);
+        }
 
         $this->authorizeTenant($ticket->event);
 
@@ -170,8 +201,8 @@ class POSController extends Controller
                     'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
                     'redeemed_by' => $ticket->redeemer->name ?? 'System',
                     'photo' => $ticket->redeem_photo ? asset('storage/' . $ticket->redeem_photo) : null,
-                    'visitor' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name,
+                    'visitor' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name ?? '-',
                 ],
                 'is_redeemable' => false
             ]);
@@ -191,7 +222,7 @@ class POSController extends Controller
             }
 
             $ticket->update([
-                'wristband_qr' => $request->wristband_qr,
+                'wristband_qr' => $request->wristband_qr ?: $ticket->wristband_qr,
                 'status' => 'redeemed',
                 'redeemed_at' => now(),
                 'redeemed_by' => auth()->id(),
@@ -204,8 +235,8 @@ class POSController extends Controller
                 'sub_message' => 'Redeem Berhasil. Kembali ke standby scan.',
                 'sound' => 'success',
                 'color' => 'green',
-                'visitor' => $ticket->transaction->customer_name,
-                'category' => $ticket->category->name
+                'visitor' => $ticket->transaction->customer_name ?? '-',
+                'category' => $ticket->category->name ?? '-'
             ]);
 
         } catch (\Exception $e) {
@@ -218,8 +249,12 @@ class POSController extends Controller
 
     private function authorizeTenant(Event $event)
     {
-        // Skip authorization for Superadmin if needed, but for now strict to tenant_id
-        if ($event->tenant_id !== auth()->user()->tenant_id) {
+        $user = auth()->user();
+        if ($user->hasRole('Superadmin')) {
+            return;
+        }
+
+        if ($user->tenant_id && (int) $event->tenant_id !== (int) $user->tenant_id) {
             abort(403, 'Unauthorized access to this event');
         }
     }

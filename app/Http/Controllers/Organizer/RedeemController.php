@@ -61,8 +61,20 @@ class RedeemController extends Controller
             'event_id' => 'required|exists:events,id'
         ]);
 
+        $rawCode = trim($request->ticket_code);
+        if (preg_match('/(GTX-[A-Za-z0-9_-]+)/', $rawCode, $matches)) {
+            $extractedCode = $matches[1];
+        } else {
+            $extractedCode = basename(parse_url($rawCode, PHP_URL_PATH) ?: $rawCode);
+        }
+
         $ticket = Ticket::where('event_id', $request->event_id)
-            ->where('ticket_code', $request->ticket_code)
+            ->where(function ($q) use ($rawCode, $extractedCode) {
+                $q->where('ticket_code', $rawCode)
+                  ->orWhere('wristband_qr', $rawCode)
+                  ->orWhere('ticket_code', $extractedCode)
+                  ->orWhere('wristband_qr', $extractedCode);
+            })
             ->with(['transaction', 'category', 'redeemer'])
             ->first();
 
@@ -88,8 +100,8 @@ class RedeemController extends Controller
                     'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
                     'redeemed_by' => $ticket->redeemer->name ?? 'System',
                     'photo' => $ticket->redeem_photo ? Storage::url($ticket->redeem_photo) : null,
-                    'customer' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name
+                    'customer' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name ?? '-'
                 ]
             ]);
         }
@@ -101,8 +113,8 @@ class RedeemController extends Controller
             'sub_message' => 'Silahkan ambil foto pengunjung untuk menyelesaikan redeem.',
             'sound' => 'success',
             'color' => 'green',
-            'customer_name' => $ticket->transaction->customer_name,
-            'category_name' => $ticket->category->name
+            'customer_name' => $ticket->transaction->customer_name ?? '-',
+            'category_name' => $ticket->category->name ?? '-'
         ]);
     }
 
@@ -115,8 +127,20 @@ class RedeemController extends Controller
         ]);
 
         $event = Event::findOrFail($request->event_id);
+        $rawCode = trim($request->ticket_code);
+        if (preg_match('/(GTX-[A-Za-z0-9_-]+)/', $rawCode, $matches)) {
+            $extractedCode = $matches[1];
+        } else {
+            $extractedCode = basename(parse_url($rawCode, PHP_URL_PATH) ?: $rawCode);
+        }
+
         $ticket = Ticket::where('event_id', $event->id)
-            ->where('ticket_code', $request->ticket_code)
+            ->where(function ($q) use ($rawCode, $extractedCode) {
+                $q->where('ticket_code', $rawCode)
+                  ->orWhere('wristband_qr', $rawCode)
+                  ->orWhere('ticket_code', $extractedCode)
+                  ->orWhere('wristband_qr', $extractedCode);
+            })
             ->with(['transaction', 'category'])
             ->first();
 
@@ -135,9 +159,9 @@ class RedeemController extends Controller
                 'success' => false,
                 'reason' => 'already_redeemed',
                 'message' => 'Sudah pernah di-redeem!',
-                'redeemed_at' => $ticket->redeemed_at->format('d M Y H:i'),
+                'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
                 'redeem_photo' => $ticket->redeem_photo ? Storage::url($ticket->redeem_photo) : null,
-                'customer' => $ticket->transaction->customer_name
+                'customer' => $ticket->transaction->customer_name ?? '-'
             ]);
         }
 
@@ -165,8 +189,8 @@ class RedeemController extends Controller
                 'sub_message' => 'Tiket telah berhasil di-redeem.',
                 'sound' => 'success',
                 'color' => 'green',
-                'customer_name' => $ticket->transaction->customer_name,
-                'category_name' => $ticket->category->name,
+                'customer_name' => $ticket->transaction->customer_name ?? '-',
+                'category_name' => $ticket->category->name ?? '-',
                 'ticket_code' => $ticket->ticket_code,
                 'photo_url' => Storage::url($photoPath)
             ]);
