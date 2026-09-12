@@ -151,6 +151,54 @@ class GateController extends Controller
             ->first();
 
         if (!$ticket) {
+            if (preg_match('/^WB[-_]?(?:C|CAT)?(\d+)[-_](\d+)$/i', $scanCode, $wbMatches)) {
+                $categoryId = (int) $wbMatches[1];
+                $wristbandIndex = (int) $wbMatches[2];
+
+                $category = \App\Models\TicketCategory::with('event')->find($categoryId);
+                if ($category && $category->event && (int)$category->event_id === (int)$request->event_id) {
+                    $maxQuota = max((int) $category->quota, 5000);
+                    if ($wristbandIndex <= $maxQuota) {
+                        $unlinkedTicket = Ticket::where('ticket_category_id', $category->id)
+                            ->where('status', 'sold')
+                            ->whereNull('wristband_qr')
+                            ->first();
+
+                        if ($unlinkedTicket) {
+                            $unlinkedTicket->update([
+                                'wristband_qr' => $scanCode,
+                                'status' => 'redeemed',
+                                'redeemed_at' => now(),
+                                'redeemed_by' => auth()->id(),
+                            ]);
+                            $ticket = $unlinkedTicket->fresh([
+                                'category:id,name,hex_color',
+                                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
+                                'event:id,tenant_id,purchase_flow,name'
+                            ]);
+                        } else {
+                            $newTicket = Ticket::create([
+                                'tenant_id' => $category->tenant_id,
+                                'event_id' => $category->event_id,
+                                'ticket_category_id' => $category->id,
+                                'ticket_code' => 'GTX-WB-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                                'wristband_qr' => $scanCode,
+                                'status' => 'redeemed',
+                                'redeemed_at' => now(),
+                                'redeemed_by' => auth()->id(),
+                            ]);
+                            $ticket = $newTicket->fresh([
+                                'category:id,name,hex_color',
+                                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
+                                'event:id,tenant_id,purchase_flow,name'
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!$ticket) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tiket Tidak Valid!'
