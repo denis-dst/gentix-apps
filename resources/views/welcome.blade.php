@@ -212,7 +212,10 @@
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="/images/hero.png" alt="Hero Background" width="1920" height="1080" fetchpriority="high" decoding="async" class="w-full h-full object-cover opacity-30">
+            <picture>
+                <source srcset="/images/hero.webp" type="image/webp">
+                <img src="/images/hero.png" alt="Hero Background" width="1200" height="675" fetchpriority="high" decoding="async" class="w-full h-full object-cover opacity-30">
+            </picture>
             <div class="absolute inset-0 hero-overlay"></div>
         </div>
         
@@ -257,12 +260,28 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 @foreach($events as $event)
                 @php
-                    $bgImg = $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : asset('images/concert.png');
+                    $bgImg = asset('images/concert.webp');
+                    if ($event->background_image) {
+                        if (str_starts_with($event->background_image, 'http')) {
+                            if (str_contains($event->background_image, 'unsplash.com')) {
+                                $bgImg = preg_replace('/(\?.*)?$/', '?auto=format&fit=crop&w=600&q=75', $event->background_image);
+                            } else {
+                                $bgImg = $event->background_image;
+                            }
+                        } else {
+                            $webpCandidate = preg_replace('/\.(png|jpe?g)$/i', '.webp', $event->background_image);
+                            if (file_exists(public_path('storage/' . $webpCandidate))) {
+                                $bgImg = asset('storage/' . $webpCandidate);
+                            } else {
+                                $bgImg = asset('storage/' . $event->background_image);
+                            }
+                        }
+                    }
                 @endphp
                 <div class="glass-card rounded-3xl overflow-hidden group transition-all flex flex-col h-full">
                     <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#181824] to-[#12121c] flex items-center justify-center">
                         <!-- Main contained poster image (100% visible, fully responsive without cropping) -->
-                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" width="600" height="375" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                        <img src="{{ $bgImg }}" alt="{{ $event->name }}" width="473" height="236" loading="lazy" decoding="async" class="relative z-10 w-full h-full object-cover transition duration-500 group-hover:scale-105">
                         
                         <div class="absolute inset-0 bg-gradient-to-t from-[#13131b]/80 via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute top-4 left-4 z-20 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
@@ -406,7 +425,10 @@
                 <div class="relative">
                     <div class="absolute inset-0 bg-orange-500/10 blur-[100px] rounded-full"></div>
                     <div class="glass p-2 rounded-[2.5rem] relative overflow-hidden border border-white/10">
-                        <img src="/images/hero.png" alt="GenTix Vision" loading="lazy" decoding="async" class="rounded-[2.2rem] w-full h-full object-cover opacity-80 mix-blend-lighten">
+                        <picture>
+                            <source srcset="/images/hero.webp" type="image/webp">
+                            <img src="/images/hero.png" alt="GenTix Vision" loading="lazy" decoding="async" width="600" height="400" class="rounded-[2.2rem] w-full h-full object-cover opacity-80 mix-blend-lighten">
+                        </picture>
                         <div class="absolute inset-0 bg-gradient-to-t from-[#13131b] via-transparent to-transparent"></div>
                         <div class="absolute bottom-10 left-10 right-10">
                             <div class="text-4xl font-bold font-outfit mb-2">GenTix</div>

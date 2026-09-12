@@ -348,6 +348,23 @@
 
         $descriptionHtml = trim((string) $event->description);
         $recommendedImageSize = '1200 x 600 px';
+        $eventBannerImg = asset('images/concert.webp');
+        if ($event->background_image) {
+            if (str_starts_with($event->background_image, 'http')) {
+                if (str_contains($event->background_image, 'unsplash.com')) {
+                    $eventBannerImg = preg_replace('/(\?.*)?$/', '?auto=format&fit=crop&w=800&q=75', $event->background_image);
+                } else {
+                    $eventBannerImg = $event->background_image;
+                }
+            } else {
+                $webpCandidate = preg_replace('/\.(png|jpe?g)$/i', '.webp', $event->background_image);
+                if (file_exists(public_path('storage/' . $webpCandidate))) {
+                    $eventBannerImg = asset('storage/' . $webpCandidate);
+                } else {
+                    $eventBannerImg = asset('storage/' . $event->background_image);
+                }
+            }
+        }
     @endphp
 
     <div class="min-h-screen pb-20">
@@ -356,9 +373,11 @@
             <div class="max-w-6xl mx-auto p-4 lg:p-8">
                 <div class="flex flex-col lg:flex-row gap-8 items-start">
                     <div class="w-full lg:w-1/3 shrink-0 relative group">
-                            <img src="{{ $event->background_image ? (str_starts_with($event->background_image, 'http') ? $event->background_image : asset('storage/' . $event->background_image)) : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&q=80' }}" 
-                                onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&q=80'"
-                                class="w-full aspect-[2/1] object-contain rounded-3xl shadow-2xl shadow-purple-200 transition duration-500 group-hover:scale-[1.02] bg-slate-100" alt="{{ $event->name }}">
+                        <img src="{{ $eventBannerImg }}" 
+                            onerror="this.onerror=null;this.src='{{ asset('images/concert.webp') }}'"
+                            width="600" height="300"
+                            fetchpriority="high" decoding="async"
+                            class="w-full aspect-[2/1] object-contain rounded-3xl shadow-2xl shadow-purple-200 transition duration-500 group-hover:scale-[1.02] bg-slate-100" alt="{{ $event->name }}">
                        
                         
                         <div class="absolute top-4 left-4">

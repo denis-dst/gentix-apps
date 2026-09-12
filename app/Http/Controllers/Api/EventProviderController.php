@@ -42,7 +42,7 @@ class EventProviderController extends Controller
         $validated['slug'] = str($request->name)->slug() . '-' . rand(100, 999);
 
         if ($request->hasFile('background_image')) {
-            $validated['background_image'] = $request->file('background_image')->store('events/bg', 'public');
+            $validated['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'events/backgrounds', 1200, 80);
         }
 
         $event = Event::create($validated);
@@ -70,11 +70,11 @@ class EventProviderController extends Controller
         $validated['tenant_id'] = $event->tenant_id;
 
         if ($request->hasFile('category_image')) {
-            $validated['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
+            $validated['category_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('category_image'), 'tickets/categories', 600, 80);
         }
 
         if ($request->hasFile('background_image')) {
-            $validated['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+            $validated['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'tickets/backgrounds', 1200, 80);
         }
 
         $category = TicketCategory::create($validated);
@@ -97,12 +97,12 @@ class EventProviderController extends Controller
 
         if ($request->hasFile('category_image')) {
             if ($category->category_image) Storage::disk('public')->delete($category->category_image);
-            $validated['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
+            $validated['category_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('category_image'), 'tickets/categories', 600, 80);
         }
 
         if ($request->hasFile('background_image')) {
             if ($category->background_image) Storage::disk('public')->delete($category->background_image);
-            $validated['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+            $validated['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'tickets/backgrounds', 1200, 80);
         }
 
         $category->update($validated);

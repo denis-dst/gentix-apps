@@ -181,7 +181,27 @@
                     <!-- Event Section -->
                     <div class="flex gap-8 items-start">
                         <div class="w-1/3 shrink-0">
-                            <img src="{{ $ticket->event->background_image ? (str_starts_with($ticket->event->background_image, 'http') ? $ticket->event->background_image : asset('storage/' . $ticket->event->background_image)) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80' }}" 
+                            @php
+                                $ticketEventImg = asset('images/concert.webp');
+                                if ($ticket->event->background_image) {
+                                    if (str_starts_with($ticket->event->background_image, 'http')) {
+                                        if (str_contains($ticket->event->background_image, 'unsplash.com')) {
+                                            $ticketEventImg = preg_replace('/(\?.*)?$/', '?auto=format&fit=crop&w=600&q=75', $ticket->event->background_image);
+                                        } else {
+                                            $ticketEventImg = $ticket->event->background_image;
+                                        }
+                                    } else {
+                                        $webpCandidate = preg_replace('/\.(png|jpe?g)$/i', '.webp', $ticket->event->background_image);
+                                        if (file_exists(public_path('storage/' . $webpCandidate))) {
+                                            $ticketEventImg = asset('storage/' . $webpCandidate);
+                                        } else {
+                                            $ticketEventImg = asset('storage/' . $ticket->event->background_image);
+                                        }
+                                    }
+                                }
+                            @endphp
+                            <img src="{{ $ticketEventImg }}" 
+                                 width="400" height="300" loading="lazy" decoding="async"
                                  class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm border border-slate-100" alt="Banner">
                         </div>
                         <div class="flex-1 pt-2">
@@ -395,7 +415,8 @@
                 <!-- Event Section -->
                 <div class="flex gap-8 items-start print-compact-event {{ $isMultiTicket ? 'gap-4' : '' }}">
                     <div class="{{ $isMultiTicket ? 'w-1/4' : 'w-1/3' }} shrink-0">
-                        <img src="{{ $ticket->event->background_image ? (str_starts_with($ticket->event->background_image, 'http') ? $ticket->event->background_image : asset('storage/' . $ticket->event->background_image)) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80' }}" 
+                        <img src="{{ $ticketEventImg }}" 
+                             width="300" height="225" loading="lazy" decoding="async"
                              class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm border border-slate-100" alt="Banner">
                     </div>
                     <div class="flex-1 pt-2">

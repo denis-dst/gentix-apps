@@ -42,11 +42,11 @@ class TicketCategoryController extends Controller
         }
 
         if ($request->hasFile('category_image')) {
-            $data['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
+            $data['category_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('category_image'), 'tickets/categories', 600, 80);
         }
 
         if ($request->hasFile('background_image')) {
-            $data['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+            $data['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'tickets/backgrounds', 1200, 80);
         }
 
         TicketCategory::create($data);
@@ -88,12 +88,12 @@ class TicketCategoryController extends Controller
 
         if ($request->hasFile('category_image')) {
             if ($category->category_image) Storage::disk('public')->delete($category->category_image);
-            $data['category_image'] = $request->file('category_image')->store('tickets/categories', 'public');
+            $data['category_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('category_image'), 'tickets/categories', 600, 80);
         }
 
         if ($request->hasFile('background_image')) {
             if ($category->background_image) Storage::disk('public')->delete($category->background_image);
-            $data['background_image'] = $request->file('background_image')->store('tickets/backgrounds', 'public');
+            $data['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'tickets/backgrounds', 1200, 80);
         }
 
         $category->update($data);

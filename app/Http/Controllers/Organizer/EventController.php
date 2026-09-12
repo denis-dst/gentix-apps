@@ -131,7 +131,7 @@ class EventController extends Controller
         }
 
         if ($request->hasFile('background_image')) {
-            $validated['background_image'] = $request->file('background_image')->store('events/backgrounds', 'public');
+            $validated['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'events/backgrounds', 1200, 80);
         }
 
         $event = Event::create($validated);
@@ -253,7 +253,7 @@ class EventController extends Controller
 
         if ($request->hasFile('background_image')) {
             if ($event->background_image) Storage::disk('public')->delete($event->background_image);
-            $validated['background_image'] = $request->file('background_image')->store('events/backgrounds', 'public');
+            $validated['background_image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('background_image'), 'events/backgrounds', 1200, 80);
         }
 
         $event->update($validated);

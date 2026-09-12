@@ -581,7 +581,7 @@
             </div>
 
             <div class="hero-card">
-                <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80" alt="Portofolio Website">
+                <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=75" alt="Portofolio Website" width="600" height="375" loading="lazy" decoding="async">
             </div>
         </div>
     </section>
@@ -601,7 +601,7 @@
                 <!-- Card 1 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=80" alt="Portal Berita">
+                        <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=75" alt="Portal Berita" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">Portal Berita</div>
@@ -614,7 +614,7 @@
                 <!-- Card 2 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=80" alt="Harga Pasar">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=75" alt="Harga Pasar" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">Sistem Informasi</div>
@@ -627,7 +627,7 @@
                 <!-- Card 3 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&q=80" alt="Galeri IKM">
+                        <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=600&q=75" alt="Galeri IKM" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">UMKM</div>
@@ -640,7 +640,7 @@
                 <!-- Card 4 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&q=80" alt="LampungIn">
+                        <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=75" alt="LampungIn" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">Super Apps</div>
@@ -653,7 +653,7 @@
                 <!-- Card 5 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80" alt="SekolahKu Apps">
+                        <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=75" alt="SekolahKu Apps" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">SaaS Pendidikan</div>
@@ -666,7 +666,7 @@
                 <!-- Card 6 -->
                 <div class="card">
                     <div class="thumb">
-                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80" alt="Gentix">
+                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=600&q=75" alt="Gentix" width="600" height="375" loading="lazy" decoding="async">
                     </div>
                     <div class="card-body">
                         <div class="tag">Event Ticketing</div>
@@ -683,7 +683,7 @@
     <section class="feature" id="featured">
         <div class="container feature-box">
             <div>
-                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80" alt="SekolahKu Apps">
+                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=75" alt="SekolahKu Apps" width="600" height="375" loading="lazy" decoding="async">
             </div>
 
             <div>
