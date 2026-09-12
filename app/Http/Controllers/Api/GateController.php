@@ -150,19 +150,6 @@ class GateController extends Controller
 
         $event = $ticket->event;
 
-        if (($event->purchase_flow ?? 'redeem') === 'redeem' && $ticket->status !== 'redeemed') {
-            return response()->json([
-                'status' => 'REJECT',
-                'message' => 'Tiket belum diredeem menjadi wristband.',
-                'color' => 'pink',
-                'visitor' => $ticket->transaction->customer_name ?? '-',
-                'category' => $ticket->category->name ?? '-',
-                'ticket_code' => $ticket->ticket_code,
-                'email' => $ticket->transaction->customer_email ?? '-',
-                'reference_no' => $ticket->transaction->reference_no ?? '-',
-            ], 403);
-        }
-
         if ($ticket->status === 'void') {
             return response()->json([
                 'status' => 'REJECT',
@@ -374,6 +361,13 @@ class GateController extends Controller
             'device_id' => $request->device_id,
             'scanned_by' => auth()->id()
         ]);
+
+        if ($ticket->status === 'sold' && $request->type === 'IN') {
+            $ticket->update([
+                'status' => 'redeemed',
+                'redeemed_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'status' => 'SUCCESS',

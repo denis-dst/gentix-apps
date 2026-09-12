@@ -159,15 +159,6 @@ class GateController extends Controller
 
         $event = $ticket->event;
 
-        if (($event->purchase_flow ?? 'redeem') === 'redeem' && $ticket->status !== 'redeemed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tiket belum diredeem menjadi wristband.',
-                'customer' => $ticket->transaction->customer_name ?? '-',
-                'category' => $ticket->category->name ?? '-',
-            ], 403);
-        }
-
         if ($ticket->status === 'void') {
             return response()->json([
                 'success' => false,
@@ -276,6 +267,13 @@ class GateController extends Controller
                     'scanned_at' => now(),
                     'scanned_by' => auth()->id()
                 ]);
+
+                if ($ticket->status === 'sold' && $request->mode === 'IN') {
+                    $ticket->update([
+                        'status' => 'redeemed',
+                        'redeemed_at' => now(),
+                    ]);
+                }
             });
 
             // Single aggregate query for live counts
