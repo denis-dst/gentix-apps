@@ -893,10 +893,10 @@
                                     <!-- Promo Code Section -->
                                     <div class="pt-4 border-t border-slate-50 space-y-3" x-show="quantity > 0">
                                         <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Punya Kode Promo?</label>
-                                        <div class="flex gap-2">
+                                        <div class="flex items-stretch gap-2">
                                             <input type="text" x-model="promoCode" placeholder="Masukkan kode" 
-                                                   class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold focus:border-blue-500 outline-none uppercase">
-                                            <button @click="applyPromo" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition">
+                                                   class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:border-blue-500 focus:bg-white outline-none uppercase transition-all">
+                                            <button type="button" @click="applyPromo" class="shrink-0 whitespace-nowrap px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition active:scale-95 shadow-sm">
                                                 Gunakan
                                             </button>
                                         </div>
