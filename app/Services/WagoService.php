@@ -83,17 +83,34 @@ class WagoService
         $paymentChannel = $transactionDetails['payment_channel'] 
             ?? config('services.wago.payment_channel');
 
+        // Normalize phone number (digits only, e.g., 0812xxxx)
+        $phone = preg_replace('/[^0-9]/', '', (string) ($customerDetails['phone'] ?? ''));
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        }
+
         $payload = [
-            'order_id'        => $orderId,
-            'nominal'         => $nominal,
-            'customer_name'   => (string) ($customerDetails['name'] ?? ''),
-            'customer_email'  => (string) ($customerDetails['email'] ?? ''),
-            'customer_phone'  => (string) ($customerDetails['phone'] ?? ''),
+            'order_id'        => (string) $orderId,
+            'nominal'         => (int) $nominal,
+            'customer_name'   => trim((string) ($customerDetails['name'] ?? '')),
+            'customer_email'  => trim((string) ($customerDetails['email'] ?? '')),
+            'customer_phone'  => $phone,
             'payment_method'  => $paymentMethod,
-            'callback_url'    => $transactionDetails['callback_url'] ?? route('wago.notification'),
-            'return_url'      => $transactionDetails['return_url'] ?? route('checkout.success', $orderId),
-            'redirect_url'    => $transactionDetails['redirect_url'] ?? route('checkout.success', $orderId),
         ];
+
+        if (!empty($transactionDetails['callback_url'])) {
+            $payload['callback_url'] = $transactionDetails['callback_url'];
+        } elseif (function_exists('route')) {
+            $payload['callback_url'] = route('wago.notification');
+        }
+
+        if (!empty($transactionDetails['return_url'])) {
+            $payload['return_url'] = $transactionDetails['return_url'];
+        }
+
+        if (!empty($transactionDetails['redirect_url'])) {
+            $payload['redirect_url'] = $transactionDetails['redirect_url'];
+        }
 
         if (!empty($paymentChannel)) {
             $payload['payment_channel'] = $paymentChannel;

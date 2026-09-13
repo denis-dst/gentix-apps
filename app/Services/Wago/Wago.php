@@ -55,6 +55,12 @@ class Wago {
         
         if ($httpCode >= 400) {
             $msg = $decoded['message'] ?? $decoded['error'] ?? 'Unknown Error';
+            if (!empty($decoded['errors'])) {
+                $details = is_array($decoded['errors']) ? json_encode($decoded['errors']) : (string) $decoded['errors'];
+                $msg .= " - Details: " . $details;
+            } elseif (!empty($decoded['data']) && is_array($decoded['data'])) {
+                $msg .= " - Details: " . json_encode($decoded['data']);
+            }
             throw new Exception("WAGO API Error ($httpCode): $msg");
         }
 
