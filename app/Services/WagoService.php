@@ -22,21 +22,21 @@ class WagoService
 
     public function __construct()
     {
-        $this->appId          = (string) (config('services.wago.app_id') ?? 'GENTIXAPPS');
-        $this->apiKey         = (string) (config('services.wago.api_key') ?? '');
+        $this->appId = (string) (config('services.wago.app_id') ?? 'GENTIXAPPS');
+        $this->apiKey = (string) (config('services.wago.api_key') ?? '');
         $this->callbackSecret = (string) (config('services.wago.callback_secret') ?? '');
-        $this->isProduction   = (bool) (config('services.wago.is_production') ?? true);
-        $this->isSandbox      = (bool) (config('services.wago.is_sandbox') ?? false);
-        $this->apiBaseUrl     = (string) (config('services.wago.api_base_url') ?: 'https://api.wago-id.web.id');
-        $this->checkoutUrl    = (string) (config('services.wago.checkout_url') ?: 'https://pay.wago-id.web.id/checkout');
+        $this->isProduction = (bool) (config('services.wago.is_production') ?? true);
+        $this->isSandbox = (bool) (config('services.wago.is_sandbox') ?? false);
+        $this->apiBaseUrl = (string) (config('services.wago.api_base_url') ?: 'https://api.wago-id.web.id');
+        $this->checkoutUrl = (string) (config('services.wago.checkout_url') ?: 'https://pay.wago-id.web.id/checkout');
 
         if (!empty($this->appId) && !empty($this->apiKey)) {
             try {
                 $this->wagoSdk = new Wago([
-                    'appId'         => $this->appId,
-                    'apiKey'        => $this->apiKey,
+                    'appId' => $this->appId,
+                    'apiKey' => $this->apiKey,
                     'webhookSecret' => $this->callbackSecret,
-                    'isProduction'  => $this->isProduction,
+                    'isProduction' => $this->isProduction,
                 ]);
             } catch (Throwable $e) {
                 Log::warning('WagoService: Failed to initialize WAGO SDK: ' . $e->getMessage() . '. Using native HTTP client.');
@@ -68,19 +68,19 @@ class WagoService
         if (empty($this->apiKey)) {
             Log::warning('WagoService: WAGO_API_KEY is not configured in .env file. Using simulated checkout.');
             return [
-                'success'      => true,
-                'payment_url'  => route('checkout.success', $orderId),
-                'order_token'  => 'WAGO-SIM-' . Str::random(12),
-                'order_id'     => $orderId,
+                'success' => true,
+                'payment_url' => route('checkout.success', $orderId),
+                'order_token' => 'WAGO-SIM-' . Str::random(12),
+                'order_id' => $orderId,
                 'is_simulated' => true,
             ];
         }
 
-        $paymentMethod  = $transactionDetails['payment_method'] 
-            ?? config('services.wago.payment_method') 
+        $paymentMethod = $transactionDetails['payment_method']
+            ?? config('services.wago.payment_method')
             ?? 'QRIS';
 
-        $paymentChannel = $transactionDetails['payment_channel'] 
+        $paymentChannel = $transactionDetails['payment_channel']
             ?? config('services.wago.payment_channel');
 
         // Normalize phone number (digits only, e.g., 0812xxxx)
@@ -90,12 +90,12 @@ class WagoService
         }
 
         $payload = [
-            'order_id'        => (string) $orderId,
-            'nominal'         => (int) $nominal,
-            'customer_name'   => trim((string) ($customerDetails['name'] ?? '')),
-            'customer_email'  => trim((string) ($customerDetails['email'] ?? '')),
-            'customer_phone'  => $phone,
-            'payment_method'  => $paymentMethod,
+            'order_id' => (string) $orderId,
+            'nominal' => (int) $nominal,
+            'customer_name' => trim((string) ($customerDetails['name'] ?? '')),
+            'customer_email' => trim((string) ($customerDetails['email'] ?? '')),
+            'customer_phone' => $phone,
+            'payment_method' => $paymentMethod,
         ];
 
         if (!empty($transactionDetails['callback_url'])) {
@@ -131,8 +131,8 @@ class WagoService
         try {
             Log::info('WagoService: Creating transaction', [
                 'order_id' => $orderId,
-                'nominal'  => $nominal,
-                'app_id'   => $this->appId,
+                'nominal' => $nominal,
+                'app_id' => $this->appId,
             ]);
 
             // Attempt via official SDK
@@ -143,7 +143,7 @@ class WagoService
                 // Direct HTTP Fallback
                 $res = Http::withHeaders([
                     'Content-Type' => 'application/json',
-                    'x-api-key'    => $this->apiKey,
+                    'x-api-key' => $this->apiKey,
                 ])->post(rtrim($this->apiBaseUrl, '/') . '/api/order', array_merge(['app_id' => $this->appId], $payload));
 
                 $response = $res->json();
@@ -152,24 +152,24 @@ class WagoService
             Log::info('WagoService: Create transaction response', ['response' => $response]);
 
             $status = $response['status'] ?? '';
-            $data   = $response['data'] ?? [];
+            $data = $response['data'] ?? [];
 
             if (($status === 'success' || isset($data['order_token'])) && !empty($data['order_token'])) {
                 $orderToken = (string) $data['order_token'];
                 // According to WAGO documentation:
                 // Redirect URL: https://pay.wago-id.web.id/checkout/{order_id}?token={order_token}
-                $paymentUrl = $data['checkout_url'] 
-                    ?? $data['payment_url'] 
+                $paymentUrl = $data['checkout_url']
+                    ?? $data['payment_url']
                     ?? (rtrim($this->checkoutUrl, '/') . '/' . urlencode($orderId) . '?token=' . urlencode($orderToken));
 
                 return [
-                    'success'      => true,
-                    'payment_url'  => $paymentUrl,
-                    'order_token'  => $orderToken,
-                    'order_id'     => $orderId,
+                    'success' => true,
+                    'payment_url' => $paymentUrl,
+                    'order_token' => $orderToken,
+                    'order_id' => $orderId,
                     'nominal_unik' => $data['nominal_unik'] ?? $nominal,
-                    'status'       => $data['status'] ?? 'PENDING',
-                    'raw'          => $response,
+                    'status' => $data['status'] ?? 'PENDING',
+                    'raw' => $response,
                 ];
             }
 
@@ -179,12 +179,12 @@ class WagoService
             return [
                 'success' => false,
                 'message' => 'WAGO Error: ' . $errorMessage,
-                'raw'     => $response,
+                'raw' => $response,
             ];
         } catch (Exception $e) {
             Log::error('WagoService: Exception in createPayment', [
                 'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
@@ -203,11 +203,11 @@ class WagoService
         if (empty($this->apiKey)) {
             Log::warning('WagoService: WAGO_API_KEY is not configured in .env file.');
             return [
-                'success'         => false,
+                'success' => false,
                 'internal_status' => 'pending',
-                'is_paid'         => false,
-                'is_failed'       => false,
-                'is_pending'      => true,
+                'is_paid' => false,
+                'is_failed' => false,
+                'is_pending' => true,
             ];
         }
 
@@ -219,8 +219,8 @@ class WagoService
                 $res = Http::withHeaders([
                     'x-api-key' => $this->apiKey,
                 ])->get(rtrim($this->apiBaseUrl, '/') . '/api/order', [
-                    'id' => $orderId,
-                ]);
+                            'id' => $orderId,
+                        ]);
                 $data = $res->json();
             }
 
@@ -228,8 +228,8 @@ class WagoService
 
             if (!empty($data)) {
                 $statusText = strtoupper(trim((string) ($data['status'] ?? '')));
-                $isPaid     = ($statusText === 'SUCCESS' || $statusText === 'PAID');
-                $isFailed   = in_array($statusText, ['FAILED', 'EXPIRED', 'CANCELLED']);
+                $isPaid = ($statusText === 'SUCCESS' || $statusText === 'PAID');
+                $isFailed = in_array($statusText, ['FAILED', 'EXPIRED', 'CANCELLED']);
 
                 $internalStatus = 'pending';
                 if ($isPaid) {
@@ -241,17 +241,17 @@ class WagoService
                 }
 
                 return [
-                    'success'         => true,
-                    'order_id'        => $data['order_id'] ?? $orderId,
-                    'status'          => $statusText,
+                    'success' => true,
+                    'order_id' => $data['order_id'] ?? $orderId,
+                    'status' => $statusText,
                     'internal_status' => $internalStatus,
-                    'is_paid'         => $isPaid,
-                    'is_failed'       => $isFailed,
-                    'is_pending'      => ($internalStatus === 'pending'),
-                    'nominal_unik'    => $data['nominal_unik'] ?? null,
-                    'sn'              => $data['sn'] ?? null,
-                    'paid_at'         => $data['paidAt'] ?? null,
-                    'raw'             => $data,
+                    'is_paid' => $isPaid,
+                    'is_failed' => $isFailed,
+                    'is_pending' => ($internalStatus === 'pending'),
+                    'nominal_unik' => $data['nominal_unik'] ?? null,
+                    'sn' => $data['sn'] ?? null,
+                    'paid_at' => $data['paidAt'] ?? null,
+                    'raw' => $data,
                 ];
             }
 
@@ -262,7 +262,7 @@ class WagoService
         } catch (Exception $e) {
             Log::error('WagoService: Exception in checkTransactionStatus', [
                 'order_id' => $orderId,
-                'message'  => $e->getMessage(),
+                'message' => $e->getMessage(),
             ]);
 
             return [
@@ -294,12 +294,12 @@ class WagoService
                 return $this->wagoSdk->verifyWebhook($body, $signature, $timestamp);
             }
 
-            $orderId     = $body['order_id'] ?? $body['data']['order_id'] ?? $body['data']['id'] ?? $body['id'] ?? '';
-            $status      = $body['status'] ?? $body['data']['status'] ?? '';
+            $orderId = $body['order_id'] ?? $body['data']['order_id'] ?? $body['data']['id'] ?? $body['id'] ?? '';
+            $status = $body['status'] ?? $body['data']['status'] ?? '';
             $nominalUnik = $body['nominal_unik'] ?? $body['data']['nominal_unik'] ?? '';
-            $sn          = $body['sn'] ?? $body['data']['sn'] ?? '';
+            $sn = $body['sn'] ?? $body['data']['sn'] ?? '';
 
-            $rawPayload        = "{$orderId}:{$status}:{$nominalUnik}:{$sn}:{$timestamp}";
+            $rawPayload = "{$orderId}:{$status}:{$nominalUnik}:{$sn}:{$timestamp}";
             $expectedSignature = hash_hmac('sha256', $rawPayload, $this->callbackSecret);
 
             return hash_equals($expectedSignature, $signature);
