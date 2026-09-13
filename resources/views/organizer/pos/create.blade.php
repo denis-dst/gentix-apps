@@ -93,9 +93,8 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Metode Bayar</label>
                         <select name="payment_method" class="w-full rounded-xl border-slate-200 focus:border-orange-500 focus:ring-orange-500 text-sm font-bold" required>
-                            @foreach(['Tunai', 'QRIS', 'Debit', 'Transfer', 'EDC'] as $method)
-                                <option value="{{ $method }}" {{ old('payment_method', 'Tunai') === $method ? 'selected' : '' }}>{{ $method }}</option>
-                            @endforeach
+                            <option value="Tunai" {{ old('payment_method', 'Tunai') === 'Tunai' ? 'selected' : '' }}>Tunai (Cash)</option>
+                            <option value="QRIS" {{ old('payment_method') === 'QRIS' ? 'selected' : '' }}>QRIS (WAGO Payment)</option>
                         </select>
                     </div>
                 </div>

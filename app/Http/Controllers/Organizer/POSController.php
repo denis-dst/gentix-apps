@@ -47,7 +47,7 @@ class POSController extends Controller
             'customer_phone' => 'required|string|max:30',
             'customer_email' => 'required|email|max:255',
             'customer_nik' => 'nullable|string|max:32',
-            'payment_method' => 'required|string|max:50',
+            'payment_method' => 'required|in:Tunai,QRIS',
         ]);
 
         // Normalize phone number to Fonnte format (starts with 62)
@@ -76,6 +76,68 @@ class POSController extends Controller
             return back()->withInput()->with('error', 'Penjualan tiket kategori ini sudah berakhir.');
         }
 
+        // Handle QRIS Payment via WAGO Gateway
+        if ($validated['payment_method'] === 'QRIS') {
+            $referenceNo = 'POS-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            $totalAmount = (int) ($category->price * $validated['quantity']);
+
+            $transaction = Transaction::create([
+                'tenant_id'          => $event->tenant_id,
+                'event_id'           => $event->id,
+                'ticket_category_id' => $category->id,
+                'quantity'           => $validated['quantity'],
+                'reference_no'       => $referenceNo,
+                'customer_name'      => $validated['customer_name'],
+                'customer_email'     => $validated['customer_email'],
+                'customer_phone'     => $validated['customer_phone'],
+                'customer_nik'       => $validated['customer_nik'] ?? null,
+                'discount_amount'    => 0,
+                'total_amount'       => $totalAmount,
+                'payment_status'     => 'pending',
+                'payment_method'     => 'QRIS (WAGO)',
+                'channel'            => 'pos',
+                'processed_by'       => auth()->id(),
+            ]);
+
+            session([
+                'last_checkout_reference'  => $referenceNo,
+                'last_checkout_event_slug' => $event->slug,
+            ]);
+
+            $wagoService = new \App\Services\WagoService();
+            $posReturnUrl = route('organizer.pos.create', $event);
+
+            $wagoResult = $wagoService->createPayment([
+                'order_id'        => $referenceNo,
+                'nominal'         => $totalAmount,
+                'callback_url'    => route('wago.notification'),
+                'return_url'      => route('checkout.success', $referenceNo),
+                'redirect_url'    => route('checkout.success', $referenceNo),
+                'cancel_url'      => $posReturnUrl . '?status=cancelled&ref=' . urlencode($referenceNo),
+                'back_url'        => $posReturnUrl . '?status=cancelled&ref=' . urlencode($referenceNo),
+                'payment_method'  => 'QRIS',
+                'payment_channel' => config('services.wago.payment_channel'),
+            ], [
+                'name'  => $validated['customer_name'],
+                'email' => $validated['customer_email'],
+                'phone' => $validated['customer_phone'],
+            ]);
+
+            if ($wagoResult['success']) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success'      => true,
+                        'redirect_url' => $wagoResult['payment_url'],
+                        'reference_no' => $referenceNo,
+                    ]);
+                }
+                return redirect($wagoResult['payment_url']);
+            }
+
+            return back()->withInput()->with('error', $wagoResult['message'] ?? 'Gagal membuat sesi pembayaran QRIS WAGO.');
+        }
+
+        // Handle Tunai (Cash) Payment
         $transaction = null;
         $tickets = collect();
 
@@ -93,7 +155,7 @@ class POSController extends Controller
                 'discount_amount' => 0,
                 'total_amount' => $category->price * $validated['quantity'],
                 'payment_status' => 'paid',
-                'payment_method' => $validated['payment_method'],
+                'payment_method' => 'Tunai',
                 'channel' => 'pos',
                 'processed_by' => auth()->id(),
                 'paid_at' => now(),
