@@ -118,13 +118,16 @@ class PublicEventController extends Controller
             ?: $request->header('X-WAGO-Timestamp')
             ?: (string) $request->input('t', '');
 
-        // Handle "Test Webhook" ping from WAGO dashboard
-        $isTestPing = $event === 'test' 
-            || $event === 'ping' 
-            || $request->boolean('test') 
-            || empty($body) 
-            || $orderId === 'test'
-            || $orderId === 'ping';
+        // If accessed by browser (e.g. user redirected back or clicked link), redirect immediately to UI
+        if ($request->isMethod('GET') && ($request->acceptsHtml() || !$request->expectsJson())) {
+            if (!empty($orderId)) {
+                return redirect()->route('checkout.success', $orderId);
+            }
+            return redirect('/');
+        }
+
+        // Handle "Test Webhook" ping from WAGO dashboard (must be explicit test event/parameter)
+        $isTestPing = ($event === 'test' || $event === 'ping' || $request->boolean('test') || $orderId === 'test' || $orderId === 'ping');
 
         if ($isTestPing) {
             \Log::info('WAGO Webhook test ping successfully handled', ['body' => $body]);
@@ -586,6 +589,8 @@ class PublicEventController extends Controller
                 'callback_url'    => route('wago.notification'),
                 'return_url'      => route('checkout.success', $referenceNo),
                 'redirect_url'    => route('checkout.success', $referenceNo),
+                'cancel_url'      => route('checkout.success', $referenceNo),
+                'back_url'        => route('checkout.success', $referenceNo),
                 'payment_method'  => config('services.wago.payment_method', 'QRIS'),
                 'payment_channel' => config('services.wago.payment_channel'),
             ], [

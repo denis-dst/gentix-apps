@@ -112,6 +112,14 @@ class WagoService
             $payload['redirect_url'] = $transactionDetails['redirect_url'];
         }
 
+        if (!empty($transactionDetails['cancel_url'])) {
+            $payload['cancel_url'] = $transactionDetails['cancel_url'];
+        }
+
+        if (!empty($transactionDetails['back_url'])) {
+            $payload['back_url'] = $transactionDetails['back_url'];
+        }
+
         if (!empty($paymentChannel)) {
             $payload['payment_channel'] = $paymentChannel;
         }
