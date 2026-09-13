@@ -24,7 +24,12 @@ class SeasonPassController extends Controller
         $tenantId = $this->getTenantId();
 
         $query = SeasonPass::where('tenant_id', $tenantId)
-            ->with(['user', 'member', 'category', 'claims.event'])
+            ->with([
+                'user:id,name,email',
+                'member:id,user_id,member_number,full_name_ktp,nik',
+                'category:id,name,hex_color',
+                'claims.event:id,name'
+            ])
             ->latest();
 
         if ($request->filled('pass_type')) {
@@ -52,14 +57,21 @@ class SeasonPassController extends Controller
         }
 
         $passes = $query->paginate(20)->withQueryString();
-        $categories = TicketCategory::whereHas('event', function($q) use ($tenantId) {
-            $q->where('tenant_id', $tenantId);
-        })->get();
+        $categories = TicketCategory::where('tenant_id', $tenantId)->get(['id', 'name', 'event_id']);
+
+        $passAgg = SeasonPass::where('tenant_id', $tenantId)
+            ->selectRaw("
+                COUNT(*) as total_passes,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_passes
+            ")
+            ->first();
+
+        $totalClaims = SeasonPassClaim::where('tenant_id', $tenantId)->count();
 
         $stats = [
-            'total_passes' => SeasonPass::where('tenant_id', $tenantId)->count(),
-            'active_passes' => SeasonPass::where('tenant_id', $tenantId)->where('status', 'active')->count(),
-            'total_claims' => SeasonPassClaim::where('tenant_id', $tenantId)->count(),
+            'total_passes' => (int) ($passAgg->total_passes ?? 0),
+            'active_passes' => (int) ($passAgg->active_passes ?? 0),
+            'total_claims' => $totalClaims,
         ];
 
         return view('organizer.season-passes.index', compact('passes', 'categories', 'stats'));
@@ -68,10 +80,11 @@ class SeasonPassController extends Controller
     public function create()
     {
         $tenantId = $this->getTenantId();
-        $members = TenantMember::where('tenant_id', $tenantId)->with('user')->get();
-        $categories = TicketCategory::whereHas('event', function($q) use ($tenantId) {
-            $q->where('tenant_id', $tenantId);
-        })->get();
+        $members = TenantMember::where('tenant_id', $tenantId)
+            ->select(['id', 'user_id', 'member_number', 'full_name_ktp'])
+            ->with('user:id,name,email')
+            ->get();
+        $categories = TicketCategory::where('tenant_id', $tenantId)->get(['id', 'name', 'event_id']);
 
         return view('organizer.season-passes.form', compact('members', 'categories'));
     }

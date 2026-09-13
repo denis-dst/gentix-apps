@@ -27,35 +27,76 @@ class ReportController extends Controller
             ->orderByDesc('event_start_date');
 
         $events = (clone $baseEventsQuery)->paginate(8)->withQueryString();
-        $summaryRows = (clone $baseEventsQuery)->get()->map(fn ($event) => $this->buildEventReport($event));
 
         $eventOptions = Event::where('tenant_id', $tenantId)
             ->orderByDesc('event_start_date')
             ->get(['id', 'name']);
 
-        $reportRows = $events->getCollection()
-            ->map(fn ($event) => $this->buildEventReport($event));
+        $reportRows = $this->buildBatchEventReports($events->getCollection());
 
-        $totals = [
-            'sold' => $summaryRows->sum('sold_count'),
-            'redeemed' => $summaryRows->sum('redeemed_count'),
-            'checkin' => $summaryRows->sum('checkin_count'),
-            'checkout' => $summaryRows->sum('checkout_count'),
-            'inside' => $summaryRows->sum('inside_count'),
-            'revenue' => $summaryRows->sum('revenue'),
-            'paid_transactions' => $summaryRows->sum('paid_transactions_count'),
-        ];
+        $matchingEventIds = (clone $baseEventsQuery)->pluck('id')->all();
+
+        if (empty($matchingEventIds)) {
+            $totals = [
+                'sold' => 0,
+                'redeemed' => 0,
+                'checkin' => 0,
+                'checkout' => 0,
+                'inside' => 0,
+                'revenue' => 0,
+                'paid_transactions' => 0,
+            ];
+        } else {
+            $ticketTotals = Ticket::whereIn('event_id', $matchingEventIds)
+                ->selectRaw("
+                    SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold,
+                    SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed
+                ")
+                ->first();
+
+            $gateTotals = GateLog::whereIn('event_id', $matchingEventIds)
+                ->selectRaw("
+                    SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as checkin,
+                    SUM(CASE WHEN type = 'OUT' THEN 1 ELSE 0 END) as checkout
+                ")
+                ->first();
+
+            $txnTotals = Transaction::whereIn('event_id', $matchingEventIds)
+                ->where('payment_status', 'paid')
+                ->selectRaw("
+                    COUNT(*) as paid_transactions,
+                    COALESCE(SUM(total_amount), 0) as revenue
+                ")
+                ->first();
+
+            $checkin = (int) ($gateTotals->checkin ?? 0);
+            $checkout = (int) ($gateTotals->checkout ?? 0);
+
+            $totals = [
+                'sold' => (int) ($ticketTotals->sold ?? 0),
+                'redeemed' => (int) ($ticketTotals->redeemed ?? 0),
+                'checkin' => $checkin,
+                'checkout' => $checkout,
+                'inside' => max(0, $checkin - $checkout),
+                'revenue' => (float) ($txnTotals->revenue ?? 0),
+                'paid_transactions' => (int) ($txnTotals->paid_transactions ?? 0),
+            ];
+        }
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'category', 'tickets.category', 'tickets.gateLogs'])
+            ->with([
+                'event:id,name,umroh_question_enabled,meta',
+                'category:id,name',
+                'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'ticket_category_id', 'ticket_code', 'status', 'redeemed_at', 'visitor_data']),
+                'tickets.category:id,name',
+                'tickets.gateLogs' => fn ($q) => $q->select(['id', 'ticket_id', 'type', 'scanned_at'])->orderBy('scanned_at')
+            ])
             ->orderByDesc('created_at')
             ->get();
 
         $transactionReportRows = $this->buildTransactionReportRows($transactions);
         $ticketReportRows = $this->buildTicketReportRows($transactions);
-
-        // Debug logging removed - not needed in production
 
         return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
     }
@@ -70,7 +111,10 @@ class ReportController extends Controller
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['tickets'])
+            ->select(['id', 'customer_name', 'customer_phone', 'customer_email', 'reference_no', 'created_at'])
+            ->with([
+                'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'status', 'visitor_data'])
+            ])
             ->orderByDesc('created_at')
             ->get();
 
@@ -85,7 +129,13 @@ class ReportController extends Controller
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
-            ->with(['event', 'category', 'tickets.category', 'tickets.gateLogs'])
+            ->with([
+                'event:id,name,umroh_question_enabled,meta',
+                'category:id,name',
+                'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'ticket_category_id', 'ticket_code', 'status', 'redeemed_at', 'visitor_data']),
+                'tickets.category:id,name',
+                'tickets.gateLogs' => fn ($q) => $q->select(['id', 'ticket_id', 'type', 'scanned_at'])->orderBy('scanned_at')
+            ])
             ->orderByDesc('created_at')
             ->get();
 
@@ -212,7 +262,6 @@ class ReportController extends Controller
 
                 $proofData = $proofTicket && is_array($proofTicket->visitor_data) ? $proofTicket->visitor_data : [];
 
-                // Partial scan detection: use gate_logs (type=IN), NOT ticket.status
                 $nonVoidTickets      = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
                 $totalTickets        = $nonVoidTickets->count();
                 $checkedInTickets    = $nonVoidTickets->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty());
@@ -238,7 +287,6 @@ class ReportController extends Controller
                     'proof_ig' => $proofData['proof_ig'] ?? null,
                     'proof_review' => $proofData['proof_review'] ?? null,
                     'proofs' => $proofData['proofs'] ?? [],
-                    // Partial scan fields (gate_logs based)
                     'total_tickets'    => $totalTickets,
                     'redeemed_tickets' => $checkedInCount,
                     'is_partial_scan'  => $isPartialScan,
@@ -251,7 +299,6 @@ class ReportController extends Controller
     {
         return $transactions
             ->flatMap(function ($transaction) {
-                // Partial scan: based on gate_logs IN entries per ticket
                 $nonVoidTickets   = $transaction->tickets->filter(fn ($t) => $t->status !== 'void');
                 $totalTickets     = $nonVoidTickets->count();
                 $checkedInCount   = $nonVoidTickets->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();
@@ -260,7 +307,6 @@ class ReportController extends Controller
                 return $transaction->tickets->map(function ($ticket) use ($transaction, $isPartialTxn, $totalTickets, $checkedInCount) {
                     $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
 
-                    // Gate scan data for this specific ticket
                     $inLogs        = $ticket->gateLogs->where('type', 'IN')->sortBy('scanned_at');
                     $hasCheckin    = $inLogs->isNotEmpty();
                     $firstCheckin  = $inLogs->first()?->scanned_at;
@@ -279,10 +325,8 @@ class ReportController extends Controller
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
                         'redeemed_at' => $ticket->redeemed_at,
-                        // Gate scan fields (accurate)
                         'has_checkin'       => $hasCheckin,
                         'first_checkin_at'  => $firstCheckin,
-                        // Partial scan context
                         'is_partial_txn'    => $isPartialTxn,
                         'txn_total_tickets'  => $totalTickets,
                         'txn_redeemed'       => $checkedInCount,
@@ -303,87 +347,104 @@ class ReportController extends Controller
         return $label !== '' ? $label : 'Pertanyaan Custom';
     }
 
-    private function buildEventReport(Event $event): array
+    private function buildBatchEventReports(Collection $events): Collection
     {
+        if ($events->isEmpty()) {
+            return collect();
+        }
+
+        $eventIds = $events->pluck('id')->all();
+
         $ticketStats = Ticket::query()
-            ->where('event_id', $event->id)
-            ->select('ticket_category_id')
+            ->whereIn('event_id', $eventIds)
+            ->select('event_id', 'ticket_category_id')
             ->selectRaw("SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed_count")
-            ->groupBy('ticket_category_id')
+            ->groupBy('event_id', 'ticket_category_id')
             ->get()
-            ->keyBy('ticket_category_id');
+            ->groupBy('event_id');
 
         $gateStats = GateLog::query()
             ->join('tickets', 'tickets.id', '=', 'gate_logs.ticket_id')
-            ->where('gate_logs.event_id', $event->id)
-            ->select('tickets.ticket_category_id')
+            ->whereIn('gate_logs.event_id', $eventIds)
+            ->select('gate_logs.event_id', 'tickets.ticket_category_id')
             ->selectRaw("SUM(CASE WHEN gate_logs.type = 'IN' THEN 1 ELSE 0 END) as checkin_count")
             ->selectRaw("SUM(CASE WHEN gate_logs.type = 'OUT' THEN 1 ELSE 0 END) as checkout_count")
-            ->groupBy('tickets.ticket_category_id')
+            ->groupBy('gate_logs.event_id', 'tickets.ticket_category_id')
             ->get()
-            ->keyBy('ticket_category_id');
+            ->groupBy('event_id');
 
         $transactionStats = Transaction::query()
-            ->where('event_id', $event->id)
+            ->whereIn('event_id', $eventIds)
             ->where('payment_status', 'paid')
-            ->select('ticket_category_id')
+            ->select('event_id', 'ticket_category_id')
             ->selectRaw('COUNT(*) as paid_transactions_count')
             ->selectRaw('COALESCE(SUM(total_amount), 0) as revenue')
-            ->groupBy('ticket_category_id')
+            ->groupBy('event_id', 'ticket_category_id')
             ->get()
-            ->keyBy('ticket_category_id');
+            ->groupBy('event_id');
 
-        // Partial scan: use gate_logs (type=IN) as source of truth
-        // A transaction is partial if: has >1 non-void ticket, some (not all, not zero) have a gate_log IN entry
-        $partialScanByCategory = Transaction::query()
-            ->where('event_id', $event->id)
+        $partialScanByEventAndCategory = Transaction::query()
+            ->whereIn('event_id', $eventIds)
             ->where('payment_status', 'paid')
-            ->with(['tickets' => fn ($q) => $q->where('status', '!=', 'void')->with('gateLogs')])
+            ->select(['id', 'event_id', 'ticket_category_id'])
+            ->with([
+                'tickets' => fn ($q) => $q->where('status', '!=', 'void')->select(['id', 'transaction_id', 'ticket_category_id']),
+                'tickets.gateLogs' => fn ($q) => $q->where('type', 'IN')->select(['id', 'ticket_id', 'type'])
+            ])
             ->get()
-            ->groupBy('ticket_category_id')
-            ->map(function ($txns) {
-                return $txns->filter(function ($txn) {
-                    $nonVoid      = $txn->tickets;
-                    $total        = $nonVoid->count();
-                    $checkedIn    = $nonVoid->filter(fn ($t) => $t->gateLogs->where('type', 'IN')->isNotEmpty())->count();
-                    return $total > 1 && $checkedIn > 0 && $checkedIn < $total;
-                })->count();
+            ->groupBy('event_id')
+            ->map(function ($eventTxns) {
+                return $eventTxns->groupBy('ticket_category_id')->map(function ($catTxns) {
+                    return $catTxns->filter(function ($txn) {
+                        $nonVoid = $txn->tickets;
+                        $total = $nonVoid->count();
+                        $checkedIn = $nonVoid->filter(fn ($t) => $t->gateLogs->isNotEmpty())->count();
+                        return $total > 1 && $checkedIn > 0 && $checkedIn < $total;
+                    })->count();
+                });
             });
 
-        $categories = $event->ticketCategories->map(function ($category) use ($ticketStats, $gateStats, $transactionStats, $partialScanByCategory) {
-            $ticket = $ticketStats->get($category->id);
-            $gate = $gateStats->get($category->id);
-            $transaction = $transactionStats->get($category->id);
-            $checkin = (int) ($gate->checkin_count ?? 0);
-            $checkout = (int) ($gate->checkout_count ?? 0);
+        return $events->map(function ($event) use ($ticketStats, $gateStats, $transactionStats, $partialScanByEventAndCategory) {
+            $eventTicketStats = $ticketStats->get($event->id, collect())->keyBy('ticket_category_id');
+            $eventGateStats = $gateStats->get($event->id, collect())->keyBy('ticket_category_id');
+            $eventTxStats = $transactionStats->get($event->id, collect())->keyBy('ticket_category_id');
+            $eventPartialStats = $partialScanByEventAndCategory->get($event->id, collect());
+
+            $categories = $event->ticketCategories->map(function ($category) use ($eventTicketStats, $eventGateStats, $eventTxStats, $eventPartialStats) {
+                $ticket = $eventTicketStats->get($category->id);
+                $gate = $eventGateStats->get($category->id);
+                $transaction = $eventTxStats->get($category->id);
+                $checkin = (int) ($gate->checkin_count ?? 0);
+                $checkout = (int) ($gate->checkout_count ?? 0);
+
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'hex_color' => $category->hex_color ?? '#6366F1',
+                    'sold_count' => (int) ($ticket->sold_count ?? 0),
+                    'redeemed_count' => (int) ($ticket->redeemed_count ?? 0),
+                    'checkin_count' => $checkin,
+                    'checkout_count' => $checkout,
+                    'inside_count' => max(0, $checkin - $checkout),
+                    'paid_transactions_count' => (int) ($transaction->paid_transactions_count ?? 0),
+                    'revenue' => (float) ($transaction->revenue ?? 0),
+                    'partial_scan_count' => (int) ($eventPartialStats->get($category->id) ?? 0),
+                ];
+            });
 
             return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'hex_color' => $category->hex_color ?? '#6366F1',
-                'sold_count' => (int) ($ticket->sold_count ?? 0),
-                'redeemed_count' => (int) ($ticket->redeemed_count ?? 0),
-                'checkin_count' => $checkin,
-                'checkout_count' => $checkout,
-                'inside_count' => max(0, $checkin - $checkout),
-                'paid_transactions_count' => (int) ($transaction->paid_transactions_count ?? 0),
-                'revenue' => (float) ($transaction->revenue ?? 0),
-                'partial_scan_count' => (int) ($partialScanByCategory->get($category->id) ?? 0),
+                'event' => $event,
+                'categories' => $categories,
+                'sold_count' => $categories->sum('sold_count'),
+                'redeemed_count' => $categories->sum('redeemed_count'),
+                'checkin_count' => $categories->sum('checkin_count'),
+                'checkout_count' => $categories->sum('checkout_count'),
+                'inside_count' => $categories->sum('inside_count'),
+                'paid_transactions_count' => $categories->sum('paid_transactions_count'),
+                'revenue' => $categories->sum('revenue'),
+                'partial_scan_count' => $categories->sum('partial_scan_count'),
             ];
         });
-
-        return [
-            'event' => $event,
-            'categories' => $categories,
-            'sold_count' => $categories->sum('sold_count'),
-            'redeemed_count' => $categories->sum('redeemed_count'),
-            'checkin_count' => $categories->sum('checkin_count'),
-            'checkout_count' => $categories->sum('checkout_count'),
-            'inside_count' => $categories->sum('inside_count'),
-            'paid_transactions_count' => $categories->sum('paid_transactions_count'),
-            'revenue' => $categories->sum('revenue'),
-            'partial_scan_count' => $categories->sum('partial_scan_count'),
-        ];
     }
 }

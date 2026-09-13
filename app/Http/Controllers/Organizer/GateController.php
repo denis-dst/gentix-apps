@@ -18,6 +18,7 @@ class GateController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $events = Event::where('tenant_id', $tenantId)
             ->where('status', 'published')
+            ->select(['id', 'name', 'slug', 'venue', 'city', 'event_start_date', 'background_image'])
             ->orderBy('event_start_date', 'desc')
             ->get();
 

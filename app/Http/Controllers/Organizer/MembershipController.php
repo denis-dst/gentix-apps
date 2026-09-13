@@ -129,7 +129,11 @@ class MembershipController extends Controller
         $tenantId = $this->getTenantId();
 
         $query = TenantMember::where('tenant_id', $tenantId)
-            ->with(['user', 'tier', 'korwil'])
+            ->with([
+                'user:id,name,email',
+                'tier:id,name,badge_color',
+                'korwil:id,name,code'
+            ])
             ->latest();
 
         if ($request->filled('status')) {
@@ -155,11 +159,21 @@ class MembershipController extends Controller
         }
 
         $members = $query->paginate(20)->withQueryString();
+
+        $stats = TenantMember::where('tenant_id', $tenantId)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN kyc_status = 'verified' THEN 1 ELSE 0 END) as verified,
+                SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected
+            ")
+            ->first();
+
         $counts = [
-            'total' => TenantMember::where('tenant_id', $tenantId)->count(),
-            'verified' => TenantMember::where('tenant_id', $tenantId)->where('kyc_status', 'verified')->count(),
-            'pending' => TenantMember::where('tenant_id', $tenantId)->where('kyc_status', 'pending')->count(),
-            'rejected' => TenantMember::where('tenant_id', $tenantId)->where('kyc_status', 'rejected')->count(),
+            'total' => (int) ($stats->total ?? 0),
+            'verified' => (int) ($stats->verified ?? 0),
+            'pending' => (int) ($stats->pending ?? 0),
+            'rejected' => (int) ($stats->rejected ?? 0),
         ];
 
         return view('organizer.membership.members.index', compact('members', 'counts'));

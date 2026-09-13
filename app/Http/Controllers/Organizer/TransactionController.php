@@ -17,7 +17,12 @@ class TransactionController extends Controller
         $tenantId = auth()->user()->tenant_id;
 
         $query = Transaction::where('tenant_id', $tenantId)
-            ->with(['event', 'tickets.category'])
+            ->with([
+                'event:id,name,slug',
+                'category:id,name,hex_color',
+                'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'ticket_category_id', 'ticket_code', 'status', 'visitor_data']),
+                'tickets.category:id,name,hex_color'
+            ])
             ->orderByDesc('created_at');
 
         if ($request->filled('q')) {
@@ -40,9 +45,7 @@ class TransactionController extends Controller
         $transactions = $query->paginate(20)->withQueryString();
 
         $eventOptions = Event::where('tenant_id', $tenantId)->orderByDesc('created_at')->get(['id', 'name']);
-        $ticketCategories = TicketCategory::whereHas('event', function($q) use ($tenantId) {
-            $q->where('tenant_id', $tenantId);
-        })->get(['id', 'name']);
+        $ticketCategories = TicketCategory::where('tenant_id', $tenantId)->get(['id', 'name']);
 
         return view('organizer.transactions.index', compact('transactions', 'eventOptions', 'ticketCategories'));
     }

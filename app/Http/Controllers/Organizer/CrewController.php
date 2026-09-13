@@ -18,6 +18,7 @@ class CrewController extends Controller
                     $rq->whereIn('name', ['Petugas Loket', 'Petugas Gate']);
                 });
             })
+            ->with('roles:id,name')
             ->paginate(10);
         return view('organizer.crews.index', compact('crews'));
     }

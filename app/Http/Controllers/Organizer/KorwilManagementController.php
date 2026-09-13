@@ -22,20 +22,30 @@ class KorwilManagementController extends Controller
         $tenantId = $this->getTenantId();
 
         $korwils = Korwil::where('tenant_id', $tenantId)
-            ->with(['coordinator', 'members'])
+            ->with(['coordinator:id,name,email'])
             ->withCount(['members', 'allocations'])
             ->latest()
             ->get();
 
         $allocations = KorwilAllocation::where('tenant_id', $tenantId)
-            ->with(['korwil', 'event', 'category', 'memberConsents'])
+            ->with([
+                'korwil:id,name,code',
+                'event:id,name',
+                'category:id,name',
+                'memberConsents' => fn ($q) => $q->select(['id', 'korwil_allocation_id', 'status'])
+            ])
             ->latest()
             ->paginate(15);
 
-        $events = Event::where('tenant_id', $tenantId)->where('status', 'published')->latest('event_start_date')->get();
-        $categories = TicketCategory::whereHas('event', function($q) use ($tenantId) {
-            $q->where('tenant_id', $tenantId);
-        })->get();
+        $events = Event::where('tenant_id', $tenantId)
+            ->where('status', 'published')
+            ->select(['id', 'name', 'event_start_date'])
+            ->latest('event_start_date')
+            ->get();
+
+        $categories = TicketCategory::where('tenant_id', $tenantId)
+            ->select(['id', 'name', 'event_id'])
+            ->get();
 
         return view('organizer.korwil.index', compact('korwils', 'allocations', 'events', 'categories'));
     }

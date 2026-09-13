@@ -16,6 +16,7 @@ class RedeemController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $events = Event::where('tenant_id', $tenantId)
             ->where('status', 'published')
+            ->select(['id', 'name', 'slug', 'venue', 'city', 'event_start_date', 'background_image'])
             ->orderBy('event_start_date', 'desc')
             ->get();
 
@@ -75,7 +76,7 @@ class RedeemController extends Controller
                   ->orWhere('ticket_code', $extractedCode)
                   ->orWhere('wristband_qr', $extractedCode);
             })
-            ->with(['transaction', 'category', 'redeemer'])
+            ->with(['transaction:id,customer_name', 'category:id,name', 'redeemer:id,name'])
             ->first();
 
         if (!$ticket) {
@@ -141,7 +142,7 @@ class RedeemController extends Controller
                   ->orWhere('ticket_code', $extractedCode)
                   ->orWhere('wristband_qr', $extractedCode);
             })
-            ->with(['transaction', 'category'])
+            ->with(['transaction:id,customer_name', 'category:id,name'])
             ->first();
 
         // 1. Check if Valid (Exists)
@@ -211,14 +212,15 @@ class RedeemController extends Controller
 
         $tickets = Ticket::where('event_id', $event->id)
             ->whereIn('status', ['sold', 'redeemed'])
-            ->with(['transaction', 'category'])
+            ->select(['id', 'ticket_code', 'status', 'transaction_id', 'ticket_category_id', 'redeemed_at', 'redeem_photo'])
+            ->with(['transaction:id,customer_name', 'category:id,name'])
             ->get()
             ->map(function($ticket) {
                 return [
                     'code' => $ticket->ticket_code,
                     'status' => $ticket->status,
-                    'customer' => $ticket->transaction->customer_name,
-                    'category' => $ticket->category->name,
+                    'customer' => $ticket->transaction->customer_name ?? '-',
+                    'category' => $ticket->category->name ?? '-',
                     'redeemed_at' => $ticket->redeemed_at ? $ticket->redeemed_at->format('d M Y H:i') : null,
                     'redeem_photo' => $ticket->redeem_photo ? Storage::url($ticket->redeem_photo) : null,
                 ];

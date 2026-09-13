@@ -23,6 +23,7 @@ class GamificationController extends Controller
 
         $events = Event::where('tenant_id', $tenantId)
             ->whereNotNull('home_team_name')
+            ->select(['id', 'name', 'home_team_name', 'away_team_name', 'home_score', 'away_score', 'event_start_date', 'status'])
             ->latest('event_start_date')
             ->take(15)
             ->get();
@@ -33,7 +34,11 @@ class GamificationController extends Controller
             ->get();
 
         $predictions = MatchPrediction::where('tenant_id', $tenantId)
-            ->with(['event', 'member.user'])
+            ->with([
+                'event:id,name,home_team_name,away_team_name',
+                'member:id,user_id,full_name_ktp,member_number',
+                'member.user:id,name,email'
+            ])
             ->latest()
             ->paginate(20);
 
