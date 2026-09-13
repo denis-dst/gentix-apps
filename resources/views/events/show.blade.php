@@ -368,6 +368,21 @@
     @endphp
 
     <div class="min-h-screen pb-20">
+        @if(session('error') || request('status') === 'cancelled' || request('status') === 'cancel')
+            <div class="max-w-6xl mx-auto px-4 pt-4">
+                <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 text-rose-800 text-sm font-bold shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <span>{{ session('error') ?? 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.' }}</span>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Header / Banner Section -->
         <div class="bg-white border-b border-slate-200">
             <div class="max-w-6xl mx-auto p-4 lg:p-8">

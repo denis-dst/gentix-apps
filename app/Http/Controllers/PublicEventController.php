@@ -118,10 +118,30 @@ class PublicEventController extends Controller
             ?: $request->header('X-WAGO-Timestamp')
             ?: (string) $request->input('t', '');
 
-        // If accessed by browser (e.g. user redirected back or clicked link), redirect immediately to UI
+        // If accessed by browser (e.g. user redirected back or clicked link)
         if ($request->isMethod('GET') && ($request->acceptsHtml() || !$request->expectsJson())) {
             if (!empty($orderId)) {
-                return redirect()->route('checkout.success', $orderId);
+                $dbTransaction = Transaction::where('reference_no', $orderId)
+                    ->orWhere('payment_reference', $orderId)
+                    ->with('event')
+                    ->first();
+
+                if ($dbTransaction) {
+                    $statusParam = strtoupper(trim((string) ($request->input('status') ?? '')));
+                    $actionParam = strtolower(trim((string) ($request->input('action') ?? '')));
+
+                    if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED', 'FAILED', 'EXPIRED']) || $actionParam === 'cancel') {
+                        if ($dbTransaction->payment_status !== 'paid') {
+                            $dbTransaction->update(['payment_status' => 'cancelled']);
+                        }
+                        if ($dbTransaction->event) {
+                            return redirect()->route('events.show', $dbTransaction->event->slug)
+                                ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
+                        }
+                    }
+
+                    return redirect()->route('checkout.success', $dbTransaction->reference_no);
+                }
             }
             return redirect('/');
         }
@@ -583,14 +603,15 @@ class PublicEventController extends Controller
 
             // WAGO Payment Gateway integration
             $wagoService = new \App\Services\WagoService();
+            $eventShowUrl = route('events.show', $event->slug);
             $wagoResult  = $wagoService->createPayment([
                 'order_id'        => $referenceNo,
                 'nominal'         => $totalAmount,
                 'callback_url'    => route('wago.notification'),
                 'return_url'      => route('checkout.success', $referenceNo),
                 'redirect_url'    => route('checkout.success', $referenceNo),
-                'cancel_url'      => route('checkout.success', $referenceNo),
-                'back_url'        => route('checkout.success', $referenceNo),
+                'cancel_url'      => $eventShowUrl . '?status=cancelled&ref=' . urlencode($referenceNo),
+                'back_url'        => $eventShowUrl . '?status=cancelled&ref=' . urlencode($referenceNo),
                 'payment_method'  => config('services.wago.payment_method', 'QRIS'),
                 'payment_channel' => config('services.wago.payment_channel'),
             ], [
@@ -857,6 +878,20 @@ class PublicEventController extends Controller
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
 
+        $statusParam = strtoupper(trim((string) request()->query('status', '')));
+        $actionParam = strtolower(trim((string) request()->query('action', '')));
+
+        // If user returned from a cancelled transaction attempt
+        if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED', 'FAILED']) || $actionParam === 'cancel') {
+            if ($transaction->payment_status !== 'paid') {
+                $transaction->update(['payment_status' => 'cancelled']);
+                if ($transaction->event) {
+                    return redirect()->route('events.show', $transaction->event->slug)
+                        ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
+                }
+            }
+        }
+
         // Free events or 100% Promo discounts are already paid and finalized during checkout
         if ($transaction->payment_method === 'free' || $transaction->payment_method === 'promo' || $transaction->total_amount == 0) {
             return view('checkout.success', compact('transaction'));
@@ -869,8 +904,6 @@ class PublicEventController extends Controller
 
         // If tickets are not generated yet, check status
         if ($transaction->tickets->isEmpty()) {
-            $statusParam = strtoupper(trim((string) request()->query('status', '')));
-
             if ($transaction->payment_status === 'paid' || $statusParam === 'SUCCESS' || $statusParam === 'PAID') {
                 $transaction->update([
                     'payment_status' => 'paid',
@@ -880,12 +913,13 @@ class PublicEventController extends Controller
                 $this->finalizeTransaction($transaction);
                 $transaction->refresh();
                 $transaction->load('tickets.category', 'event');
-            } elseif ($statusParam === 'FAILED') {
-                $transaction->update(['payment_status' => 'failed']);
-                $transaction->refresh();
             } elseif ($statusParam === 'EXPIRED') {
                 $transaction->update(['payment_status' => 'expired']);
                 $transaction->refresh();
+                if ($transaction->event) {
+                    return redirect()->route('events.show', $transaction->event->slug)
+                        ->with('error', 'Waktu pembayaran telah kedaluwarsa. Silakan lakukan pemesanan ulang.');
+                }
             } else {
                 // Check status directly with WAGO API
                 if (!empty(config('services.wago.api_key'))) {
@@ -903,6 +937,10 @@ class PublicEventController extends Controller
                     } elseif ($checkResult['success'] && $checkResult['is_failed']) {
                         $transaction->update(['payment_status' => $checkResult['internal_status']]);
                         $transaction->refresh();
+                        if (in_array($checkResult['internal_status'], ['cancelled', 'failed']) && $transaction->event) {
+                            return redirect()->route('events.show', $transaction->event->slug)
+                                ->with('error', 'Pembayaran dibatalkan atau tidak berhasil. Silakan ulangi pemesanan tiket Anda.');
+                        }
                     }
                 }
             }
