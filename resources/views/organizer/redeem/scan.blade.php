@@ -95,7 +95,7 @@
                         x-show="inputType === 'auto'">
 
                     <!-- Camera Container & Tap-to-Refocus -->
-                    <div x-show="inputType === 'camera'" 
+                    <div x-show="inputType === 'camera' || showCaptureModal" 
                         class="absolute inset-0 w-full h-full bg-black overflow-hidden select-none cursor-pointer"
                         @click="triggerRefocus($event)">
                         
@@ -242,6 +242,121 @@
                         <div class="mt-8 text-center bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/10">
                             <p class="text-[11px] font-black uppercase tracking-[0.3em] text-white">Standby Scanner</p>
                             <p class="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Arahkan Kamera ke QR Tiket</p>
+                        </div>
+                    </div>
+
+                    <!-- Visitor Photo Capture & Confirmation Modal -->
+                    <div x-show="showCaptureModal" x-cloak class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/85 backdrop-blur-md p-4 sm:p-6 select-none animate-in fade-in duration-200">
+                        <!-- Top Bar: Verified Visitor Header & Camera Controls -->
+                        <div class="w-full max-w-lg flex items-center justify-between gap-3 z-10 bg-slate-900/90 border border-white/10 px-4 py-3 rounded-2xl backdrop-blur-md shadow-xl">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    TIKET VALID
+                                </span>
+                                <div class="leading-tight text-left min-w-0">
+                                    <div class="text-xs sm:text-sm font-black text-white truncate" x-text="pendingTicket ? pendingTicket.customer_name : ''"></div>
+                                    <div class="text-[10px] text-emerald-400 font-bold truncate" x-text="pendingTicket ? pendingTicket.category_name : ''"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <!-- Switch Camera Button -->
+                                <button type="button" @click="switchCamera()" 
+                                    x-show="cameraDevices && cameraDevices.length > 1 && !capturedPhoto"
+                                    class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 transition active:scale-95"
+                                    title="Ganti Lensa Kamera">
+                                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </button>
+
+                                <!-- Torch Toggle Button -->
+                                <button type="button" @click="toggleTorch()" 
+                                    x-show="hasTorch && !capturedPhoto"
+                                    :class="torchOn ? 'bg-amber-500 text-black border-amber-400' : 'bg-white/10 text-white border-white/15'"
+                                    class="p-2 rounded-xl border transition active:scale-95"
+                                    title="Flashlight">
+                                    <svg class="w-4 h-4" :class="torchOn ? 'text-black' : 'text-amber-400'" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Center Viewport: Either Live Camera Framing Guide OR Captured Photo Preview -->
+                        <div class="w-full max-w-sm sm:max-w-md aspect-[3/4] relative my-auto flex items-center justify-center">
+                            <!-- Live Camera Mode (Waiting for crew to click capture) -->
+                            <template x-if="!capturedPhoto">
+                                <div class="w-full h-full rounded-3xl border-2 border-dashed border-emerald-400/60 relative overflow-hidden flex flex-col items-center justify-between p-6 bg-transparent">
+                                    <div class="text-center bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg">
+                                        <p class="text-[11px] font-black uppercase tracking-wider text-emerald-300">Arahkan Kamera ke Pengunjung</p>
+                                        <p class="text-[9px] text-slate-300">Ambil foto orang yang me-redeem tiket</p>
+                                    </div>
+
+                                    <!-- Face Reticle Guide -->
+                                    <div class="w-44 h-56 sm:w-52 sm:h-64 rounded-full border-2 border-emerald-400/50 relative flex items-center justify-center opacity-70 pointer-events-none">
+                                        <div class="absolute inset-0 rounded-full border border-emerald-400/30 animate-ping duration-1000 opacity-30"></div>
+                                        <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                                    </div>
+
+                                    <p class="text-[10px] text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full font-semibold text-center border border-white/10">Tekan tombol Ambil Foto di bawah</p>
+                                </div>
+                            </template>
+
+                            <!-- Preview Mode (Photo Captured: Show Snapshot with Retake / Redeem options) -->
+                            <template x-if="capturedPhoto">
+                                <div class="w-full h-full rounded-3xl border-2 border-emerald-500 overflow-hidden relative shadow-2xl bg-black animate-in zoom-in-95 duration-200">
+                                    <img :src="capturedPhoto" class="w-full h-full object-cover">
+                                    <div class="absolute top-3 left-3 right-3 flex items-center justify-between px-3 py-1.5 bg-black/70 backdrop-blur-md rounded-xl text-[10px] font-bold text-slate-200 border border-white/10">
+                                        <span>PREVIEW FOTO</span>
+                                        <span class="text-emerald-400 font-black">✓ SIAP REDEEM</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Bottom Controls -->
+                        <div class="w-full max-w-lg flex flex-col items-center gap-3 z-10">
+                            <!-- Live Camera State: Capture Shutter & Cancel -->
+                            <template x-if="!capturedPhoto">
+                                <div class="w-full flex items-center justify-between gap-3">
+                                    <button type="button" @click="cancelCapture()" 
+                                        class="px-5 py-4 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white rounded-2xl text-xs font-black uppercase tracking-wider transition active:scale-95">
+                                        Batal
+                                    </button>
+                                    
+                                    <button type="button" @click="capturePhoto()" 
+                                        class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2.5 active:scale-98">
+                                        <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span>Ambil Foto</span>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <!-- Preview Mode: Ulangi vs Redeem Sekarang -->
+                            <template x-if="capturedPhoto">
+                                <div class="w-full flex items-center gap-3">
+                                    <button type="button" @click="retakePhoto()" 
+                                        class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition border border-white/15 flex items-center justify-center gap-2 active:scale-98">
+                                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        <span>Ulangi Foto</span>
+                                    </button>
+
+                                    <button type="button" @click="confirmRedeem()" :disabled="processing"
+                                        class="flex-[1.5] py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50">
+                                        <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Redeem Sekarang</span>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
@@ -410,6 +525,9 @@
                 lastScanTime: 0,
                 autoResetTimer: 0,
                 autoResetInterval: null,
+                showCaptureModal: false,
+                pendingTicket: null,
+                capturedPhoto: null,
                 mode: localStorage.getItem('redeem_mode_{{ $event->id }}') || 'online',
                 offlineTickets: JSON.parse(localStorage.getItem('offline_tickets_{{ $event->id }}')) || [],
                 pendingSync: JSON.parse(localStorage.getItem('pending_sync_{{ $event->id }}')) || [],
@@ -424,15 +542,27 @@
                     });
 
                     document.addEventListener('click', () => { 
-                        if (this.inputType === 'auto') this.focusInput(); 
+                        if (this.inputType === 'auto' && !this.showCaptureModal) this.focusInput(); 
                     });
                     setInterval(() => { 
-                        if (this.inputType === 'auto' && !this.result && !this.processing) this.focusInput(); 
+                        if (this.inputType === 'auto' && !this.result && !this.processing && !this.showCaptureModal) this.focusInput(); 
                     }, 1000);
 
                     // Dismiss by Space, Enter, or Escape key
                     window.addEventListener('keydown', (e) => {
-                        if ((e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') && this.result) {
+                        if (this.showCaptureModal) {
+                            if (e.key === 'Escape') {
+                                e.preventDefault();
+                                this.cancelCapture();
+                            } else if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault();
+                                if (!this.capturedPhoto) {
+                                    this.capturePhoto();
+                                } else {
+                                    this.confirmRedeem();
+                                }
+                            }
+                        } else if ((e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') && this.result) {
                             e.preventDefault();
                             this.resetScanner();
                         }
@@ -691,7 +821,7 @@
                 },
 
                 async onScanSuccess(decodedText) {
-                    if (this.processing || this.result) return;
+                    if (this.processing || this.result || this.showCaptureModal) return;
                     this.processing = true;
                     
                     if (this.mode === 'online') {
@@ -711,8 +841,25 @@
                                 return;
                             }
                             
-                            const photo = this.takePhoto();
-                            await this.processOnline(decodedText, photo);
+                            // Ticket Valid! Open visitor photo capture mode
+                            this.pendingTicket = {
+                                code: decodedText,
+                                customer_name: checkData.customer_name || '-',
+                                category_name: checkData.category_name || '-',
+                                details: checkData
+                            };
+                            this.capturedPhoto = null;
+                            this.showCaptureModal = true;
+                            
+                            // Play success audio indicator
+                            try {
+                                const sound = document.getElementById('sound-success');
+                                if (sound) { sound.currentTime = 0; sound.play().catch(() => {}); }
+                            } catch (e) {}
+
+                            if (!this.cameraStarted) {
+                                await this.startCamera(true);
+                            }
                             
                         } catch (err) {
                             console.error("Check failed", err);
@@ -721,10 +868,95 @@
                             this.startAutoReset(4);
                         }
                     } else {
-                        const photo = this.takePhoto();
-                        await this.processOffline(decodedText, photo);
+                        // Offline Validation
+                        const ticketIndex = this.offlineTickets.findIndex(t => t.code === decodedText);
+                        
+                        if (ticketIndex === -1) {
+                            this.result = { success: false, message: 'Tiket tidak terdaftar di database offline!' };
+                            this.playResultSound();
+                            this.startAutoReset(4);
+                        } else {
+                            const ticket = this.offlineTickets[ticketIndex];
+                            if (ticket.status === 'redeemed') {
+                                this.result = { 
+                                    success: false, 
+                                    message: 'Sudah pernah di-redeem (Offline)!',
+                                    details: {
+                                        redeemed_at: ticket.redeemed_at,
+                                        redeemed_by: 'Offline Mode',
+                                        photo: ticket.redeem_photo,
+                                        customer: ticket.customer,
+                                        category: ticket.category
+                                    }
+                                };
+                                this.playResultSound();
+                                this.startAutoReset(5);
+                            } else {
+                                // Valid Offline Ticket! Open visitor photo capture mode
+                                this.pendingTicket = {
+                                    code: decodedText,
+                                    customer_name: ticket.customer || '-',
+                                    category_name: ticket.category || '-',
+                                    details: ticket
+                                };
+                                this.capturedPhoto = null;
+                                this.showCaptureModal = true;
+                                
+                                try {
+                                    const sound = document.getElementById('sound-success');
+                                    if (sound) { sound.currentTime = 0; sound.play().catch(() => {}); }
+                                } catch (e) {}
+
+                                if (!this.cameraStarted) {
+                                    await this.startCamera(true);
+                                }
+                            }
+                        }
                     }
 
+                    this.processing = false;
+                },
+
+                capturePhoto() {
+                    const photo = this.takePhoto();
+                    if (!photo) {
+                        alert("Kamera belum siap. Pastikan lensa kamera aktif dan menghadap pengunjung.");
+                        return;
+                    }
+                    this.capturedPhoto = photo;
+                },
+
+                retakePhoto() {
+                    this.capturedPhoto = null;
+                },
+
+                cancelCapture() {
+                    this.showCaptureModal = false;
+                    this.pendingTicket = null;
+                    this.capturedPhoto = null;
+                    if (this.inputType !== 'camera') {
+                        this.stopCamera();
+                        this.$nextTick(() => this.focusInput());
+                    }
+                },
+
+                async confirmRedeem() {
+                    if (!this.pendingTicket || !this.capturedPhoto || this.processing) return;
+                    this.processing = true;
+
+                    const code = this.pendingTicket.code;
+                    const photo = this.capturedPhoto;
+                    
+                    this.showCaptureModal = false;
+
+                    if (this.mode === 'online') {
+                        await this.processOnline(code, photo);
+                    } else {
+                        await this.processOffline(code, photo);
+                    }
+
+                    this.pendingTicket = null;
+                    this.capturedPhoto = null;
                     this.processing = false;
                 },
 
@@ -851,6 +1083,9 @@
                         this.autoResetInterval = null;
                     }
                     this.result = null;
+                    this.showCaptureModal = false;
+                    this.pendingTicket = null;
+                    this.capturedPhoto = null;
                     if (this.inputType === 'auto') {
                         this.$nextTick(() => this.focusInput());
                     }
