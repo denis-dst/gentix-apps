@@ -158,7 +158,7 @@ class PublicEventController extends Controller
                     }
 
                     // If not paid (e.g. cancelled, back to merchant, expired)
-                    $dbTransaction->update(['payment_status' => 'cancelled']);
+                    $dbTransaction->update(['payment_status' => 'failed']);
                     if ($eventSlug) {
                         return redirect()->route('events.show', $eventSlug)
                             ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
@@ -916,9 +916,9 @@ class PublicEventController extends Controller
         $actionParam = strtolower(trim((string) request()->query('action', '')));
 
         // If user returned from a cancelled transaction attempt
-        if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED', 'FAILED']) || $actionParam === 'cancel') {
+        if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED', 'FAILED', 'EXPIRED']) || $actionParam === 'cancel') {
             if ($transaction->payment_status !== 'paid') {
-                $transaction->update(['payment_status' => 'cancelled']);
+                $transaction->update(['payment_status' => 'failed']);
                 if ($transaction->event) {
                     return redirect()->route('events.show', $transaction->event->slug)
                         ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
