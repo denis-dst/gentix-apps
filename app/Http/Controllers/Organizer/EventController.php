@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Organizer;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\TicketCategory;
+use App\Models\WristbandTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -80,6 +81,9 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:1024',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
+            'wristband_mode' => 'nullable|in:default,custom',
+            'wristband_custom_background' => 'nullable|image|max:10240',
+            'wristband_columns_json' => 'nullable|string',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
             'registration_proofs_json' => 'nullable|string',
@@ -122,6 +126,9 @@ class EventController extends Controller
             $validated['wristband_home_club_logo'],
             $validated['wristband_away_club_logo'],
             $validated['wristband_sponsor_logos'],
+            $validated['wristband_mode'],
+            $validated['wristband_custom_background'],
+            $validated['wristband_columns_json'],
             $validated['proof_ig_required'],
             $validated['proof_review_required']
         );
@@ -135,6 +142,7 @@ class EventController extends Controller
         }
 
         $event = Event::create($validated);
+        $this->syncWristbandTemplate($request, $event);
 
         return redirect()->route('organizer.events.edit', $event)->with('success', 'Event created. Now add ticket categories.');
     }
@@ -143,7 +151,7 @@ class EventController extends Controller
     {
         $this->authorizeTenant($event);
         
-        $event->load('ticketCategories');
+        $event->load(['ticketCategories', 'wristbandTemplate']);
         return view('organizer.events.edit', compact('event'));
     }
 
@@ -208,6 +216,9 @@ class EventController extends Controller
             'wristband_away_club_logo' => 'nullable|image|max:5120',
             'wristband_sponsor_logos' => 'nullable|array',
             'wristband_sponsor_logos.*' => 'nullable|image|max:5120',
+            'wristband_mode' => 'nullable|in:default,custom',
+            'wristband_custom_background' => 'nullable|image|max:10240',
+            'wristband_columns_json' => 'nullable|string',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
             'registration_proofs_json' => 'nullable|string',
@@ -248,7 +259,10 @@ class EventController extends Controller
             $validated['wristband_league_logo'],
             $validated['wristband_home_club_logo'],
             $validated['wristband_away_club_logo'],
-            $validated['wristband_sponsor_logos']
+            $validated['wristband_sponsor_logos'],
+            $validated['wristband_mode'],
+            $validated['wristband_custom_background'],
+            $validated['wristband_columns_json']
         );
 
         if ($request->hasFile('background_image')) {
@@ -257,6 +271,7 @@ class EventController extends Controller
         }
 
         $event->update($validated);
+        $this->syncWristbandTemplate($request, $event);
 
         return redirect()->route('organizer.events.edit', $event)->with('success', 'Event updated successfully.');
     }
@@ -423,5 +438,37 @@ class EventController extends Controller
             \Illuminate\Support\Facades\DB::rollBack();
             return back()->with('error', 'Gagal menduplikasi event: ' . $e->getMessage());
         }
+    }
+
+    private function syncWristbandTemplate(Request $request, Event $event): WristbandTemplate
+    {
+        $template = WristbandTemplate::firstOrNew(['event_id' => $event->id]);
+        $template->tenant_id = $event->tenant_id;
+        $template->name = 'Wristband ' . $event->name;
+        $template->mode = $request->input('wristband_mode', 'default') === 'custom' ? 'custom' : 'default';
+
+        if ($request->hasFile('wristband_custom_background')) {
+            if ($template->background_image) {
+                Storage::disk('public')->delete($template->background_image);
+            }
+            $template->background_image = \App\Services\ImageOptimizerService::uploadAndOptimize(
+                $request->file('wristband_custom_background'),
+                'wristbands/backgrounds',
+                2560,
+                90
+            );
+        }
+
+        if ($request->filled('wristband_columns_json')) {
+            $decoded = json_decode($request->input('wristband_columns_json'), true);
+            if (is_array($decoded)) {
+                $template->columns_config = $decoded;
+            }
+        } elseif (!$template->columns_config) {
+            $template->columns_config = WristbandTemplate::getDefaultColumns();
+        }
+
+        $template->save();
+        return $template;
     }
 }

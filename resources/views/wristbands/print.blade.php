@@ -278,12 +278,32 @@
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
-            .wristband, .ticket-band, .league-logo, .qr-section, .event-section, .category-section, .club-logo, .sponsor-section {
+            .wristband, .wristband-custom, .ticket-band, .league-logo, .qr-section, .event-section, .category-section, .club-logo, .sponsor-section {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
             .no-print { display: none !important; }
+        }
+
+        .wristband-custom {
+            position: relative;
+            width: 215mm;
+            height: 22mm;
+            border-bottom: 1px dashed #cfcfcf;
+            overflow: hidden;
+            background-color: #ffffff;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-sizing: border-box;
+        }
+
+        .wristband-custom .wb-element {
+            position: absolute;
+            z-index: 10;
+            box-sizing: border-box;
+            transform-origin: top left;
         }
 
         .controls {
@@ -315,8 +335,15 @@
 </head>
 <body>
     <div class="controls no-print" style="width: 260px;">
-        <div style="font-size: 11px; font-weight: bold; color: #1e293b; margin-bottom: 6px;">
-            {{ $category->name }}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div style="font-size: 11px; font-weight: bold; color: #1e293b;">
+                {{ $category->name }}
+            </div>
+            @if(($activeMode ?? 'default') === 'custom')
+                <span style="font-size: 8px; font-weight: bold; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 6px; border-radius: 9999px;">Mode Custom</span>
+            @else
+                <span style="font-size: 8px; font-weight: bold; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 2px 6px; border-radius: 9999px;">Mode Default</span>
+            @endif
         </div>
         <div style="font-size: 10px; color: #64748b; margin-bottom: 10px;">
             Total Stok/Kuota: <strong>{{ $categoryQuota ?? $category->quota }}</strong> Gelang<br>
@@ -324,7 +351,22 @@
         </div>
         <button class="btn" onclick="window.print()">🖨️ Cetak {{ count($tickets) }} Gelang</button>
 
+        @if(isset($wristbandTemplate) && $wristbandTemplate && $wristbandTemplate->background_image)
+            <div style="margin-top: 8px; text-align: center;">
+                @if(($activeMode ?? 'default') === 'custom')
+                    <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'default', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}" style="font-size: 9px; color: #4338ca; font-weight: 600; text-decoration: underline;">
+                        Switch ke Mode Default Sistem
+                    </a>
+                @else
+                    <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'custom', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}" style="font-size: 9px; color: #15803d; font-weight: 600; text-decoration: underline;">
+                        Switch ke Mode Custom Desain
+                    </a>
+                @endif
+            </div>
+        @endif
+
         <form method="GET" action="{{ route('organizer.categories.print-wristbands', $category) }}" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+            <input type="hidden" name="mode" value="{{ $activeMode ?? 'default' }}">
             <div style="font-size: 9px; font-weight: bold; color: #475569; margin-bottom: 4px;">Cetak Sebagian (Batch):</div>
             <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 6px;">
                 <input type="number" name="start" value="{{ $startNumber ?? 1 }}" min="1" placeholder="Mulai" style="width: 50%; font-size: 10px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;">
@@ -420,69 +462,131 @@
             $bandColor = $normalizeHex($ticket->category?->hex_color ?? $category->hex_color ?? '#d71920');
             $bandPalette = $contrastPalette($bandColor);
         @endphp
-        <div class="wristband">
-            <div class="blank-space"></div>
 
-            <div class="league-logo">
-                @if($leagueLogo)
-                    <img src="{{ $leagueLogo }}" alt="League Logo">
-                @else
-                    <div>SUPER<br>LEAGUE</div>
-                @endif
+        @if(($activeMode ?? 'default') === 'custom' && isset($wristbandTemplate) && $wristbandTemplate && $wristbandTemplate->background_image)
+            {{-- Custom Mode: 15 tickets with custom uploaded background and dynamic columns --}}
+            <div class="wristband-custom" style="background-image: url('{{ $wristbandTemplate->getBackgroundImageUrl() }}');">
+                @php $cols = $wristbandTemplate->getMergedColumnsConfig(); @endphp
+                @foreach($cols as $cKey => $col)
+                    @if(!empty($col['enabled']))
+                        @php
+                            $x = (float) ($col['x'] ?? 0);
+                            $y = (float) ($col['y'] ?? 0);
+                            $color = $col['color'] ?? '#111827';
+                            $fontSize = $col['font_size'] ?? '6pt';
+                            $fontWeight = $col['font_weight'] ?? '700';
+                            $align = $col['align'] ?? 'left';
+                        @endphp
+
+                        @if($cKey === 'qr_code')
+                            @php $qrSizeMm = (float) ($col['qr_size'] ?? 14); @endphp
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; width: {{ $qrSizeMm }}mm; height: {{ $qrSizeMm }}mm; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 0.5mm; border-radius: 1px; box-shadow: 0 0 1px rgba(0,0,0,0.15);">
+                                {!! QrCode::size((int)($qrSizeMm * 3.78))->margin(0)->generate($ticket->ticket_code) !!}
+                            </div>
+                        @elseif($cKey === 'wristband_code')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; line-height: 1;">
+                                {{ $ticket->ticket_code }}
+                            </div>
+                        @elseif($cKey === 'category_name')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; text-transform: uppercase; line-height: 1;">
+                                {{ $ticketCategoryName }}
+                            </div>
+                        @elseif($cKey === 'event_name')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; text-transform: uppercase; line-height: 1; max-width: 90mm; overflow: hidden; text-overflow: ellipsis;">
+                                {{ $event->name }}
+                            </div>
+                        @elseif($cKey === 'event_date')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; text-transform: uppercase; line-height: 1;">
+                                {{ $event->event_start_date->format('d M Y') }}
+                                @if($event->gate_open_at) • {{ $event->gate_open_at->format('H.i') }} WIB @endif
+                            </div>
+                        @elseif($cKey === 'venue')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; text-transform: uppercase; line-height: 1; max-width: 90mm; overflow: hidden; text-overflow: ellipsis;">
+                                {{ $event->venue }}{{ $event->city ? ', ' . $event->city : '' }}
+                            </div>
+                        @elseif($cKey === 'seat_number')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; line-height: 1;">
+                                #{{ sprintf('%04d', $ticket->index ?? 1) }}
+                            </div>
+                        @elseif($cKey === 'price')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; line-height: 1;">
+                                {{ $category->price > 0 ? 'Rp ' . number_format($category->price, 0, ',', '.') : 'FREE' }}
+                            </div>
+                        @elseif($cKey === 'custom_text')
+                            <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; font-size: {{ $fontSize }}; font-weight: {{ $fontWeight }}; color: {{ $color }}; text-align: {{ $align }}; white-space: nowrap; line-height: 1;">
+                                {{ $col['custom_value'] ?? 'NON-REFUNDABLE' }}
+                            </div>
+                        @endif
+                    @endif
+                @endforeach
             </div>
+        @else
+            {{-- Default Mode: Standard Gentix Wristband Layout --}}
+            <div class="wristband">
+                <div class="blank-space"></div>
 
-            <div class="ticket-band" style="--band-primary: {{ $bandColor }}; --band-dark: {{ $bandPalette['dark'] }}; --band-light: {{ $bandPalette['light'] }}; --band-edge: {{ $bandPalette['edge'] }}; --band-panel: {{ $bandPalette['panel'] }}; --band-text: {{ $bandPalette['text'] }}; --band-accent-text: {{ $bandPalette['accentText'] }}; --band-text-shadow: {{ $bandPalette['shadow'] }};">
-                <div class="qr-section">
-                    {!! QrCode::size(62)->margin(0)->generate($ticket->ticket_code) !!}
-                    <div class="code">{{ $ticket->ticket_code }}</div>
-                </div>
-
-                <div class="category-section">{{ $ticketCategoryName }}</div>
-
-                <div class="club-logo">
-                    @if($homeLogo)
-                        <img src="{{ $homeLogo }}" alt="Home Club Logo">
+                <div class="league-logo">
+                    @if($leagueLogo)
+                        <img src="{{ $leagueLogo }}" alt="League Logo">
                     @else
-                        <div class="club-placeholder">{{ $homeInitial ?: 'HOME' }}</div>
+                        <div>SUPER<br>LEAGUE</div>
                     @endif
                 </div>
 
-                <div class="event-section">
-                    <div class="league-title">{{ $leagueName }}</div>
-                    <div class="event-name">{{ $event->name }}</div>
-                    <div class="event-details">
-                        {{ $event->event_start_date->format('l, d M Y') }}
-                        @if($event->gate_open_at)
-                            - KICK OFF {{ $event->gate_open_at->format('H.i') }} WIB
+                <div class="ticket-band" style="--band-primary: {{ $bandColor }}; --band-dark: {{ $bandPalette['dark'] }}; --band-light: {{ $bandPalette['light'] }}; --band-edge: {{ $bandPalette['edge'] }}; --band-panel: {{ $bandPalette['panel'] }}; --band-text: {{ $bandPalette['text'] }}; --band-accent-text: {{ $bandPalette['accentText'] }}; --band-text-shadow: {{ $bandPalette['shadow'] }};">
+                    <div class="qr-section">
+                        {!! QrCode::size(62)->margin(0)->generate($ticket->ticket_code) !!}
+                        <div class="code">{{ $ticket->ticket_code }}</div>
+                    </div>
+
+                    <div class="category-section">{{ $ticketCategoryName }}</div>
+
+                    <div class="club-logo">
+                        @if($homeLogo)
+                            <img src="{{ $homeLogo }}" alt="Home Club Logo">
+                        @else
+                            <div class="club-placeholder">{{ $homeInitial ?: 'HOME' }}</div>
                         @endif
-                        <br>{{ $event->venue }}{{ $event->city ? ', ' . $event->city : '' }}
+                    </div>
+
+                    <div class="event-section">
+                        <div class="league-title">{{ $leagueName }}</div>
+                        <div class="event-name">{{ $event->name }}</div>
+                        <div class="event-details">
+                            {{ $event->event_start_date->format('l, d M Y') }}
+                            @if($event->gate_open_at)
+                                - KICK OFF {{ $event->gate_open_at->format('H.i') }} WIB
+                            @endif
+                            <br>{{ $event->venue }}{{ $event->city ? ', ' . $event->city : '' }}
+                        </div>
+                    </div>
+
+                    <div class="club-logo">
+                        @if($awayLogo)
+                            <img src="{{ $awayLogo }}" alt="Away Club Logo">
+                        @else
+                            <div class="club-placeholder">AWAY</div>
+                        @endif
+                    </div>
+
+                    <div class="sponsor-section">
+                        @forelse($sponsorLogos as $sponsorLogo)
+                            @php $sponsorLogoUrl = $assetUrl($sponsorLogo); @endphp
+                            @if($sponsorLogoUrl)
+                                <div class="sponsor-item"><img src="{{ $sponsorLogoUrl }}" alt="Sponsor Logo"></div>
+                            @endif
+                        @empty
+                            @foreach($sponsorNames as $sponsorName)
+                                <div class="sponsor-item">{{ $sponsorName }}</div>
+                            @endforeach
+                        @endforelse
                     </div>
                 </div>
 
-                <div class="club-logo">
-                    @if($awayLogo)
-                        <img src="{{ $awayLogo }}" alt="Away Club Logo">
-                    @else
-                        <div class="club-placeholder">AWAY</div>
-                    @endif
-                </div>
-
-                <div class="sponsor-section">
-                    @forelse($sponsorLogos as $sponsorLogo)
-                        @php $sponsorLogoUrl = $assetUrl($sponsorLogo); @endphp
-                        @if($sponsorLogoUrl)
-                            <div class="sponsor-item"><img src="{{ $sponsorLogoUrl }}" alt="Sponsor Logo"></div>
-                        @endif
-                    @empty
-                        @foreach($sponsorNames as $sponsorName)
-                            <div class="sponsor-item">{{ $sponsorName }}</div>
-                        @endforeach
-                    @endforelse
-                </div>
+                <div class="right-blank"></div>
             </div>
-
-            <div class="right-blank"></div>
-        </div>
+        @endif
+        @endforeach
         @endforeach
 
         @for($i = count($chunk); $i < 15; $i++)

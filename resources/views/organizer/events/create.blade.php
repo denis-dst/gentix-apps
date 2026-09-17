@@ -98,31 +98,7 @@
                         }
                     </script>
 
-                    <div class="pt-6 border-t border-slate-50 space-y-4">
-                        <h4 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">Wristband Layout</h4>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">League Name</label>
-                            <input type="text" name="wristband_league_name" value="{{ old('wristband_league_name', 'BRI Super League 2025-26') }}" class="w-full rounded-2xl border-slate-200 focus:border-purple-500 focus:ring-purple-500 transition py-3 px-5">
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">League Logo</label>
-                                <input type="file" name="wristband_league_logo" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Home Club Logo</label>
-                                <input type="file" name="wristband_home_club_logo" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Away Club Logo</label>
-                                <input type="file" name="wristband_away_club_logo" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Sponsor Logos</label>
-                            <input type="file" name="wristband_sponsor_logos[]" multiple class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                        </div>
-                    </div>
+                    @include('organizer.events._wristband_designer', ['event' => null])
 
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Informasi E-Voucher Tambahan (Dinamis)</label>

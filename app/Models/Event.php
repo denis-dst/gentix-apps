@@ -79,6 +79,16 @@ class Event extends Model
         return $this->hasMany(KorwilAllocation::class);
     }
 
+    public function wristbandTemplate()
+    {
+        return $this->hasOne(WristbandTemplate::class)->latestOfMany();
+    }
+
+    public function getEffectiveWristbandTemplate(): ?WristbandTemplate
+    {
+        return $this->wristbandTemplate;
+    }
+
     // Current occupancy calculation
     public function getCurrentOccupancyAttribute()
     {

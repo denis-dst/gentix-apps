@@ -45,6 +45,16 @@ class TicketCategory extends Model
         return $this->belongsToMany(Gate::class, 'gate_ticket_category');
     }
 
+    public function wristbandTemplate()
+    {
+        return $this->hasOne(WristbandTemplate::class)->latestOfMany();
+    }
+
+    public function getEffectiveWristbandTemplate(): ?WristbandTemplate
+    {
+        return $this->wristbandTemplate ?: $this->event?->getEffectiveWristbandTemplate();
+    }
+
     public function isAvailable()
     {
         if (!$this->is_active) return false;

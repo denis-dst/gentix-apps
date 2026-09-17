@@ -19,8 +19,11 @@ class WristbandPrintController extends Controller
         // Check authorization
         $this->authorizeAccess($category->event);
 
-        $category->load('event');
+        $category->load(['event.tenant', 'wristbandTemplate', 'event.wristbandTemplate']);
         $event = $category->event;
+        $wristbandTemplate = $category->getEffectiveWristbandTemplate();
+        $requestedMode = $request->get('mode');
+        $activeMode = in_array($requestedMode, ['default', 'custom']) ? $requestedMode : ($wristbandTemplate?->mode ?? 'default');
 
         // Total count based on category stock/quota
         $quota = (int) ($category->quota > 0 ? $category->quota : 50);
@@ -44,6 +47,8 @@ class WristbandPrintController extends Controller
             'tickets' => $wristbands,
             'category' => $category,
             'event' => $event,
+            'wristbandTemplate' => $wristbandTemplate,
+            'activeMode' => $activeMode,
             'totalCount' => $count,
             'startNumber' => $start,
             'categoryQuota' => $quota

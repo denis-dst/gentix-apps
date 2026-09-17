@@ -70,4 +70,9 @@ class Tenant extends Model
     {
         return $this->hasMany(FanQuiz::class);
     }
+
+    public function wristbandTemplates()
+    {
+        return $this->hasMany(WristbandTemplate::class);
+    }
 }
