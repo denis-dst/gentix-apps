@@ -73,8 +73,11 @@ Route::post('/join/{slug}', [App\Http\Controllers\Fan\FanRegistrationController:
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\SuperAdmin\DashboardController::class, 'index'])->name('dashboard');
     
-    // User & Staff Management (Directory & Impersonation)
+    // User & Staff Management (Directory, Impersonation & Tenant Assignment)
     Route::get('users', [App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('users.index');
+    Route::post('users', [App\Http\Controllers\SuperAdmin\UserController::class, 'store'])->name('users.store');
+    Route::patch('users/{user}/assign-tenant', [App\Http\Controllers\SuperAdmin\UserController::class, 'assignTenant'])->name('users.assign-tenant');
+    Route::post('users/batch-assign-tenant', [App\Http\Controllers\SuperAdmin\UserController::class, 'batchAssignTenant'])->name('users.batch-assign-tenant');
 
     // Tenants Trash & Resource
     Route::get('tenants/trash', [App\Http\Controllers\SuperAdmin\TenantController::class, 'trash'])->name('tenants.trash');
