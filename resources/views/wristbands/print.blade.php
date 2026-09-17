@@ -587,7 +587,6 @@
             </div>
         @endif
         @endforeach
-        @endforeach
 
         @for($i = count($chunk); $i < 15; $i++)
             <div class="empty-slot">Empty Wristband Slot</div>

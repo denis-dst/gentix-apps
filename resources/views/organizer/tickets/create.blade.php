@@ -58,13 +58,21 @@
                                 <input type="number" name="quota" value="{{ old('quota') }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Theme Color</label>
-                            <div class="flex items-center gap-4">
-                                <input type="color" name="hex_color" value="{{ old('hex_color', '#6366F1') }}" class="w-16 h-12 rounded-xl border-gray-200 p-1 cursor-pointer">
-                                <span class="text-sm text-gray-500">This color will be used for e-voucher accents.</span>
+                        @php
+                            $isCustomWristband = $event->getEffectiveWristbandTemplate()?->isCustomMode() ?? false;
+                        @endphp
+
+                        @if($isCustomWristband)
+                            <input type="hidden" name="hex_color" value="{{ old('hex_color', '#6366F1') }}">
+                        @else
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Theme Color</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="color" name="hex_color" value="{{ old('hex_color', '#6366F1') }}" class="w-16 h-12 rounded-xl border-gray-200 p-1 cursor-pointer">
+                                    <span class="text-sm text-gray-500">This color will be used for e-voucher accents.</span>
+                                </div>
                             </div>
-                        </div>
+                        @endif
 
                         <div class="pt-4 border-t border-gray-50 space-y-4">
                             <div>
@@ -104,24 +112,39 @@
                                 <input type="datetime-local" name="sale_end_at" value="{{ old('sale_end_at') }}" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-Voucher Background</label>
-                            <div class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-200 border-dashed rounded-2xl hover:border-purple-300 transition group">
-                                <div class="space-y-1 text-center">
-                                    <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-purple-500 transition" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <div class="flex text-sm text-gray-600">
-                                        <label class="relative cursor-pointer bg-white rounded-md font-bold text-purple-600 hover:text-purple-500 focus-within:outline-none">
-                                            <span>Upload a file</span>
-                                            <input type="file" name="background_image" class="sr-only">
-                                        </label>
-                                        <p class="pl-1">or drag and drop</p>
-                                    </div>
-                                    <p class="text-xs text-gray-400">PNG, JPG, GIF up to 2MB</p>
+
+                        @if($isCustomWristband)
+                            <div class="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-start gap-3">
+                                <span class="p-2 rounded-xl bg-purple-100 text-purple-700 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </span>
+                                <div>
+                                    <h4 class="text-xs font-bold text-purple-900">Mode Wristband Custom Aktif</h4>
+                                    <p class="text-xs text-purple-700 mt-0.5 leading-relaxed">
+                                        Event ini menggunakan <strong>Mode Custom</strong>. Desain background dan warna elemen gelang telah diatur terpusat pada event, sehingga warna dan background kategori tidak perlu diisi.
+                                    </p>
                                 </div>
                             </div>
-                        </div>
+                        @else
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-Voucher Background</label>
+                                <div class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-200 border-dashed rounded-2xl hover:border-purple-300 transition group">
+                                    <div class="space-y-1 text-center">
+                                        <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-purple-500 transition" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600">
+                                            <label class="relative cursor-pointer bg-white rounded-md font-bold text-purple-600 hover:text-purple-500 focus-within:outline-none">
+                                                <span>Upload a file</span>
+                                                <input type="file" name="background_image" class="sr-only">
+                                            </label>
+                                            <p class="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p class="text-xs text-gray-400">PNG, JPG, GIF up to 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                     </div>
                 </div>

@@ -19,6 +19,7 @@ class TicketCategoryController extends Controller
     public function store(Request $request, Event $event)
     {
         $this->authorizeTenant($event);
+        $this->filterEmptyFileUploads($request);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -37,6 +38,7 @@ class TicketCategoryController extends Controller
         $data = $validated;
         $data['event_id'] = $event->id;
         $data['tenant_id'] = $event->tenant_id;
+        $data['hex_color'] = !empty($data['hex_color']) ? $data['hex_color'] : '#6366F1';
         if ($event->is_free) {
             $data['price'] = 0;
         }
@@ -66,6 +68,7 @@ class TicketCategoryController extends Controller
     {
         $this->authorizeTenant($event);
         $event = $this->resolveEventForCategory($event, $category);
+        $this->filterEmptyFileUploads($request);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -84,6 +87,9 @@ class TicketCategoryController extends Controller
         $data = $validated;
         if ($event->is_free) {
             $data['price'] = 0;
+        }
+        if (isset($data['hex_color']) && empty($data['hex_color'])) {
+            $data['hex_color'] = $category->hex_color ?? '#6366F1';
         }
 
         if ($request->hasFile('category_image')) {
@@ -108,6 +114,33 @@ class TicketCategoryController extends Controller
 
         $category->delete();
         return redirect()->route('organizer.events.edit', $event)->with('success', 'Ticket category deleted.');
+    }
+
+    private function filterEmptyFileUploads(Request $request): void
+    {
+        $singleInputs = ['category_image', 'background_image'];
+
+        $ref = new \ReflectionClass($request);
+        $convertedProp = $ref->hasProperty('convertedFiles') ? $ref->getProperty('convertedFiles') : null;
+        if ($convertedProp) {
+            $convertedProp->setAccessible(true);
+        }
+
+        foreach ($singleInputs as $input) {
+            if ($request->files->has($input)) {
+                $file = $request->files->get($input);
+                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE || !$file->isValid()) {
+                    $request->files->remove($input);
+                    if ($convertedProp) {
+                        $converted = $convertedProp->getValue($request);
+                        if (is_array($converted)) {
+                            unset($converted[$input]);
+                            $convertedProp->setValue($request, $converted);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private function authorizeTenant(Event $event)

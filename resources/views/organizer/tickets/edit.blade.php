@@ -59,13 +59,21 @@
                                 <input type="number" name="quota" value="{{ old('quota', $category->quota) }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Theme Color</label>
-                            <div class="flex items-center gap-4">
-                                <input type="color" name="hex_color" value="{{ old('hex_color', $category->hex_color ?? '#6366F1') }}" class="w-16 h-12 rounded-xl border-gray-200 p-1 cursor-pointer">
-                                <span class="text-sm text-gray-500">Update the color theme for this tier.</span>
+                        @php
+                            $isCustomWristband = $event->getEffectiveWristbandTemplate()?->isCustomMode() ?? false;
+                        @endphp
+
+                        @if($isCustomWristband)
+                            <input type="hidden" name="hex_color" value="{{ old('hex_color', $category->hex_color ?? '#6366F1') }}">
+                        @else
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Theme Color</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="color" name="hex_color" value="{{ old('hex_color', $category->hex_color ?? '#6366F1') }}" class="w-16 h-12 rounded-xl border-gray-200 p-1 cursor-pointer">
+                                    <span class="text-sm text-gray-500">Update the color theme for this tier.</span>
+                                </div>
                             </div>
-                        </div>
+                        @endif
 
                         <div class="pt-4 border-t border-gray-50 space-y-4">
                             <div>
@@ -105,16 +113,31 @@
                                 <input type="datetime-local" name="sale_end_at" value="{{ old('sale_end_at', $category->sale_end_at ? $category->sale_end_at->format('Y-m-d\TH:i') : '') }}" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-Voucher Background</label>
-                            @if($category->background_image)
-                                <div class="mb-4 relative group">
-                                    <img src="{{ Storage::url($category->background_image) }}" class="w-full h-32 object-cover rounded-2xl shadow-sm">
-                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-2xl flex items-center justify-center text-white text-xs font-bold">Current Background</div>
+
+                        @if($isCustomWristband)
+                            <div class="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-start gap-3">
+                                <span class="p-2 rounded-xl bg-purple-100 text-purple-700 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </span>
+                                <div>
+                                    <h4 class="text-xs font-bold text-purple-900">Mode Wristband Custom Aktif</h4>
+                                    <p class="text-xs text-purple-700 mt-0.5 leading-relaxed">
+                                        Event ini menggunakan <strong>Mode Custom</strong>. Desain background dan warna elemen gelang telah diatur terpusat pada event, sehingga warna dan background kategori tidak perlu diisi.
+                                    </p>
                                 </div>
-                            @endif
-                            <input type="file" name="background_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
-                        </div>
+                            </div>
+                        @else
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-Voucher Background</label>
+                                @if($category->background_image)
+                                    <div class="mb-4 relative group">
+                                        <img src="{{ Storage::url($category->background_image) }}" class="w-full h-32 object-cover rounded-2xl shadow-sm">
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-2xl flex items-center justify-center text-white text-xs font-bold">Current Background</div>
+                                    </div>
+                                @endif
+                                <input type="file" name="background_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">
+                            </div>
+                        @endif
 
                     </div>
                 </div>
