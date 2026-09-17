@@ -81,12 +81,17 @@ class Event extends Model
 
     public function wristbandTemplate()
     {
-        return $this->hasOne(WristbandTemplate::class)->latestOfMany();
+        return $this->hasOne(WristbandTemplate::class)->whereNull('ticket_category_id')->latestOfMany();
     }
 
     public function getEffectiveWristbandTemplate(): ?WristbandTemplate
     {
-        return $this->wristbandTemplate;
+        if ($this->relationLoaded('wristbandTemplate') && $this->wristbandTemplate) {
+            return $this->wristbandTemplate;
+        }
+
+        return $this->wristbandTemplate()->first()
+            ?: WristbandTemplate::where('event_id', $this->id)->latest()->first();
     }
 
     // Current occupancy calculation

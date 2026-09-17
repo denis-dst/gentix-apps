@@ -21,7 +21,19 @@ class WristbandPrintController extends Controller
 
         $category->load(['event.tenant', 'wristbandTemplate', 'event.wristbandTemplate']);
         $event = $category->event;
-        $wristbandTemplate = $category->getEffectiveWristbandTemplate();
+        $wristbandTemplate = $category->getEffectiveWristbandTemplate()
+            ?: ($event ? \App\Models\WristbandTemplate::where('event_id', $event->id)->latest()->first() : null);
+
+        if (!$wristbandTemplate && $event) {
+            $wristbandTemplate = new \App\Models\WristbandTemplate([
+                'tenant_id' => $event->tenant_id,
+                'event_id' => $event->id,
+                'name' => 'Wristband ' . $event->name,
+                'mode' => 'default',
+                'columns_config' => \App\Models\WristbandTemplate::getDefaultColumns(),
+            ]);
+        }
+
         $requestedMode = $request->get('mode');
         $activeMode = in_array($requestedMode, ['default', 'custom']) ? $requestedMode : ($wristbandTemplate?->mode ?? 'default');
 

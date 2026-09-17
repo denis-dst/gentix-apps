@@ -345,25 +345,24 @@
                 <span style="font-size: 8px; font-weight: bold; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 2px 6px; border-radius: 9999px;">Mode Default</span>
             @endif
         </div>
-        <div style="font-size: 10px; color: #64748b; margin-bottom: 10px;">
+        <div style="font-size: 10px; color: #64748b; margin-bottom: 8px;">
             Total Stok/Kuota: <strong>{{ $categoryQuota ?? $category->quota }}</strong> Gelang<br>
             Menampilkan: <strong>{{ $startNumber ?? 1 }}</strong> s/d <strong>{{ ($startNumber ?? 1) + count($tickets) - 1 }}</strong> ({{ count($tickets) }} gelang)
         </div>
-        <button class="btn" onclick="window.print()">🖨️ Cetak {{ count($tickets) }} Gelang</button>
 
-        @if(isset($wristbandTemplate) && $wristbandTemplate && $wristbandTemplate->background_image)
-            <div style="margin-top: 8px; text-align: center;">
-                @if(($activeMode ?? 'default') === 'custom')
-                    <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'default', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}" style="font-size: 9px; color: #4338ca; font-weight: 600; text-decoration: underline;">
-                        Switch ke Mode Default Sistem
-                    </a>
-                @else
-                    <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'custom', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}" style="font-size: 9px; color: #15803d; font-weight: 600; text-decoration: underline;">
-                        Switch ke Mode Custom Desain
-                    </a>
-                @endif
-            </div>
-        @endif
+        <!-- Mode Switcher Tabs -->
+        <div style="display: flex; gap: 4px; margin-bottom: 10px; background: #f1f5f9; padding: 3px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'default', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}"
+               style="flex: 1; text-align: center; padding: 6px 4px; font-size: 10px; font-weight: 800; border-radius: 6px; text-decoration: none; transition: all 0.2s; {{ ($activeMode ?? 'default') !== 'custom' ? 'background: #ffffff; color: #4338ca; box-shadow: 0 1px 3px rgba(0,0,0,0.1);' : 'color: #64748b;' }}">
+                Mode Default
+            </a>
+            <a href="{{ route('organizer.categories.print-wristbands', ['category' => $category, 'mode' => 'custom', 'start' => $startNumber ?? 1, 'count' => count($tickets)]) }}"
+               style="flex: 1; text-align: center; padding: 6px 4px; font-size: 10px; font-weight: 800; border-radius: 6px; text-decoration: none; transition: all 0.2s; {{ ($activeMode ?? 'default') === 'custom' ? 'background: #ffffff; color: #15803d; box-shadow: 0 1px 3px rgba(0,0,0,0.1);' : 'color: #64748b;' }}">
+                Mode Custom
+            </a>
+        </div>
+
+        <button class="btn" onclick="window.print()">🖨️ Cetak {{ count($tickets) }} Gelang</button>
 
         <form method="GET" action="{{ route('organizer.categories.print-wristbands', $category) }}" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
             <input type="hidden" name="mode" value="{{ $activeMode ?? 'default' }}">
@@ -463,9 +462,9 @@
             $bandPalette = $contrastPalette($bandColor);
         @endphp
 
-        @if(($activeMode ?? 'default') === 'custom' && isset($wristbandTemplate) && $wristbandTemplate && $wristbandTemplate->background_image)
+        @if(($activeMode ?? 'default') === 'custom' && isset($wristbandTemplate) && $wristbandTemplate)
             {{-- Custom Mode: 15 tickets with custom uploaded background and dynamic columns --}}
-            <div class="wristband-custom" style="background-image: url('{{ $wristbandTemplate->getBackgroundImageUrl() }}');">
+            <div class="wristband-custom" style="{{ $wristbandTemplate->getBackgroundImageUrl() ? "background-image: url('{$wristbandTemplate->getBackgroundImageUrl()}');" : "background-color: #ffffff;" }}">
                 @php $cols = $wristbandTemplate->getMergedColumnsConfig(); @endphp
                 @foreach($cols as $cKey => $col)
                     @if(!empty($col['enabled']))

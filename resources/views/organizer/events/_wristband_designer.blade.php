@@ -1,5 +1,5 @@
 @php
-    $template = $event?->wristbandTemplate;
+    $template = $event?->getEffectiveWristbandTemplate() ?: $event?->wristbandTemplate;
     $currentMode = old('wristband_mode', $template?->mode ?? 'default');
     $currentBg = $template?->getBackgroundImageUrl();
     $currentCols = $template ? $template->getMergedColumnsConfig() : \App\Models\WristbandTemplate::getDefaultColumns();
@@ -87,8 +87,8 @@
     </div>
 
     <!-- Hidden Fields for Form Submit -->
-    <input type="hidden" name="wristband_mode" :value="mode">
-    <input type="hidden" name="wristband_columns_json" :value="columnsJson">
+    <input type="hidden" name="wristband_mode" value="{{ $currentMode }}" :value="mode">
+    <input type="hidden" name="wristband_columns_json" value="{{ json_encode($currentCols) }}" :value="columnsJson">
     <input type="hidden" name="wristband_remove_background" :value="removeBackgroundFlag ? '1' : '0'">
 
     <!-- ========================================================== -->
