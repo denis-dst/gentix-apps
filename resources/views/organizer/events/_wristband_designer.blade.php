@@ -90,6 +90,7 @@
     <input type="hidden" name="wristband_mode" value="{{ $currentMode }}" :value="mode">
     <input type="hidden" name="wristband_columns_json" value="{{ json_encode($currentCols) }}" :value="columnsJson">
     <input type="hidden" name="wristband_remove_background" :value="removeBackgroundFlag ? '1' : '0'">
+    <input type="hidden" name="wristband_custom_background_base64" id="wristband_custom_background_base64_input" value="">
 
     <!-- ========================================================== -->
     <!-- 1. MODE DEFAULT (Template Bawaan Liga / Klub / Sponsor) -->
@@ -223,7 +224,7 @@
                 <!-- Wristband Strip Canvas with strict 215:22 aspect ratio -->
                 <div id="wb-interactive-canvas"
                     class="relative w-full overflow-hidden select-none cursor-default shadow-lg"
-                    :style="backgroundPreview ? 'aspect-ratio: 215/22; background-image: url(' + backgroundPreview + '); background-size: 100% 100%; background-repeat: no-repeat; background-position: center; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;' : 'aspect-ratio: 215/22; background: linear-gradient(90deg, #1e293b 0%, #334155 100%); border: 1px dashed rgba(255,255,255,0.4); border-radius: 4px;'">
+                    :style="backgroundPreview ? 'aspect-ratio: 215/22; background-image: url(\'' + backgroundPreview + '\'); background-size: 100% 100%; background-repeat: no-repeat; background-position: center; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;' : 'aspect-ratio: 215/22; background: linear-gradient(90deg, #1e293b 0%, #334155 100%); border: 1px dashed rgba(255,255,255,0.4); border-radius: 4px;'">
 
                     <!-- Guide watermark if no background -->
                     <template x-if="!backgroundPreview">
@@ -468,7 +469,38 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
                 this.removeBackgroundFlag = false;
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    this.backgroundPreview = event.target.result;
+                    const dataUrl = event.target.result;
+                    this.backgroundPreview = dataUrl;
+
+                    // Automatically downscale and compress via HTML5 canvas to guarantee upload succeeds regardless of php.ini limits
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            let w = img.naturalWidth || img.width;
+                            let h = img.naturalHeight || img.height;
+                            const maxW = 2560;
+                            if (w > maxW) {
+                                h = Math.round(h * (maxW / w));
+                                w = maxW;
+                            }
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            
+                            let compressed = canvas.toDataURL('image/webp', 0.9);
+                            if (!compressed || !compressed.startsWith('data:image/webp')) {
+                                compressed = canvas.toDataURL('image/jpeg', 0.9);
+                            }
+                            const base64Input = document.getElementById('wristband_custom_background_base64_input');
+                            if (base64Input) base64Input.value = compressed;
+                        } catch (err) {
+                            const base64Input = document.getElementById('wristband_custom_background_base64_input');
+                            if (base64Input) base64Input.value = dataUrl;
+                        }
+                    };
+                    img.src = dataUrl;
                 };
                 reader.readAsDataURL(file);
             }
@@ -479,6 +511,8 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
             this.removeBackgroundFlag = true;
             const input = document.getElementById('wristband_custom_background_input');
             if (input) input.value = '';
+            const base64Input = document.getElementById('wristband_custom_background_base64_input');
+            if (base64Input) base64Input.value = '';
         },
 
         onColMouseDown(e, key) {

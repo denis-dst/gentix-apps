@@ -364,6 +364,18 @@
 
         <button class="btn" onclick="window.print()">🖨️ Cetak {{ count($tickets) }} Gelang</button>
 
+        @if(($activeMode ?? 'default') === 'custom' && (!$wristbandTemplate || !$wristbandTemplate->background_image))
+            <div style="margin-top: 8px; padding: 6px 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 8.5px; color: #92400e; line-height: 1.3;">
+                ⚠️ <strong>Background belum ada:</strong> Gambar background belum diunggah atau belum tersimpan di event.
+            </div>
+        @endif
+
+        <div style="margin-top: 8px;">
+            <a href="{{ route('organizer.events.edit', $event) }}" target="_blank" style="display: block; text-align: center; font-size: 9px; color: #6b21a8; background: #faf5ff; border: 1px solid #e9d5ff; padding: 5px 8px; border-radius: 6px; font-weight: 700; text-decoration: none;">
+                ✏️ Edit Desain & Background Gelang
+            </a>
+        </div>
+
         <form method="GET" action="{{ route('organizer.categories.print-wristbands', $category) }}" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
             <input type="hidden" name="mode" value="{{ $activeMode ?? 'default' }}">
             <div style="font-size: 9px; font-weight: bold; color: #475569; margin-bottom: 4px;">Cetak Sebagian (Batch):</div>

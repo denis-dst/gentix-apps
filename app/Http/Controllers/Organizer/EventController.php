@@ -58,6 +58,7 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:1024',
             'wristband_mode' => 'nullable|in:default,custom',
             'wristband_custom_background' => 'nullable|image|max:10240',
+            'wristband_custom_background_base64' => 'nullable|string',
             'wristband_columns_json' => 'nullable|string',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
@@ -103,6 +104,7 @@ class EventController extends Controller
             $validated['wristband_sponsor_logos'],
             $validated['wristband_mode'],
             $validated['wristband_custom_background'],
+            $validated['wristband_custom_background_base64'],
             $validated['wristband_columns_json'],
             $validated['proof_ig_required'],
             $validated['proof_review_required']
@@ -167,6 +169,7 @@ class EventController extends Controller
             'wristband_sponsor_logos.*' => 'nullable|image|max:5120',
             'wristband_mode' => 'nullable|in:default,custom',
             'wristband_custom_background' => 'nullable|image|max:10240',
+            'wristband_custom_background_base64' => 'nullable|string',
             'wristband_columns_json' => 'nullable|string',
             'proof_ig_required' => 'nullable|boolean',
             'proof_review_required' => 'nullable|boolean',
@@ -211,6 +214,7 @@ class EventController extends Controller
             $validated['wristband_sponsor_logos'],
             $validated['wristband_mode'],
             $validated['wristband_custom_background'],
+            $validated['wristband_custom_background_base64'],
             $validated['wristband_columns_json']
         );
 
@@ -411,7 +415,17 @@ class EventController extends Controller
         foreach ($singleInputs as $input) {
             if ($request->files->has($input)) {
                 $file = $request->files->get($input);
-                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE || !$file->isValid()) {
+                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                    $request->files->remove($input);
+                    if ($convertedProp) {
+                        $converted = $convertedProp->getValue($request);
+                        if (is_array($converted)) {
+                            unset($converted[$input]);
+                            $convertedProp->setValue($request, $converted);
+                        }
+                    }
+                } elseif (!$file->isValid() && $request->filled($input . '_base64')) {
+                    // Remove failed upload if base64 payload is available so validation passes
                     $request->files->remove($input);
                     if ($convertedProp) {
                         $converted = $convertedProp->getValue($request);
@@ -455,17 +469,39 @@ class EventController extends Controller
 
     private function syncWristbandTemplate(Request $request, Event $event): WristbandTemplate
     {
-        $template = WristbandTemplate::firstOrNew(['event_id' => $event->id]);
+        $template = WristbandTemplate::where('event_id', $event->id)->whereNull('ticket_category_id')->latest()->first()
+            ?: WristbandTemplate::firstOrNew(['event_id' => $event->id]);
         $template->tenant_id = $event->tenant_id;
         $template->name = 'Wristband ' . $event->name;
         $template->mode = $request->input('wristband_mode', 'default') === 'custom' ? 'custom' : 'default';
 
-        if ($request->boolean('wristband_remove_background') && !$request->hasFile('wristband_custom_background')) {
+        $base64Input = $request->input('wristband_custom_background_base64');
+        $hasBase64Bg = !empty($base64Input) && str_starts_with($base64Input, 'data:image/');
+        $hasFileBg = $request->hasFile('wristband_custom_background');
+
+        if ($request->boolean('wristband_remove_background') && !$hasFileBg && !$hasBase64Bg) {
             if ($template->background_image) {
                 Storage::disk('public')->delete($template->background_image);
                 $template->background_image = null;
             }
-        } elseif ($request->hasFile('wristband_custom_background')) {
+        } elseif ($hasBase64Bg) {
+            if ($template->background_image) {
+                Storage::disk('public')->delete($template->background_image);
+            }
+            $data = substr($base64Input, strpos($base64Input, ',') + 1);
+            $decoded = base64_decode($data);
+            if ($decoded !== false) {
+                $ext = 'webp';
+                if (str_contains($base64Input, 'image/png')) {
+                    $ext = 'png';
+                } elseif (str_contains($base64Input, 'image/jpeg') || str_contains($base64Input, 'image/jpg')) {
+                    $ext = 'jpg';
+                }
+                $filename = 'wristbands/backgrounds/' . \Illuminate\Support\Str::random(40) . '.' . $ext;
+                Storage::disk('public')->put($filename, $decoded);
+                $template->background_image = $filename;
+            }
+        } elseif ($hasFileBg) {
             if ($template->background_image) {
                 Storage::disk('public')->delete($template->background_image);
             }
