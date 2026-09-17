@@ -36,6 +36,8 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
+        $this->filterEmptyFileUploads($request);
+
         $validated = $request->validate([
             'tenant_id' => 'required|exists:tenants,id',
             'name' => 'required|string|max:255',
@@ -99,6 +101,8 @@ class EventController extends Controller
      */
     public function update(Request $request, Event $event)
     {
+        $this->filterEmptyFileUploads($request);
+
         $validated = $request->validate([
             'tenant_id' => 'required|exists:tenants,id',
             'name' => 'required|string|max:255',
@@ -302,6 +306,69 @@ class EventController extends Controller
             return back()->with('error', 'Gagal menduplikasi event: ' . $e->getMessage());
         }
     }
+    /**
+     * Filter out empty or invalid file uploads from both Symfony FileBag and Laravel convertedFiles.
+     */
+    private function filterEmptyFileUploads(Request $request): void
+    {
+        $singleInputs = [
+            'banner_image',
+            'wristband_league_logo',
+            'wristband_home_club_logo',
+            'wristband_away_club_logo',
+            'wristband_custom_background',
+        ];
+
+        $ref = new \ReflectionClass($request);
+        $convertedProp = $ref->hasProperty('convertedFiles') ? $ref->getProperty('convertedFiles') : null;
+        if ($convertedProp) {
+            $convertedProp->setAccessible(true);
+        }
+
+        foreach ($singleInputs as $input) {
+            if ($request->files->has($input)) {
+                $file = $request->files->get($input);
+                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE || !$file->isValid()) {
+                    $request->files->remove($input);
+                    if ($convertedProp) {
+                        $converted = $convertedProp->getValue($request);
+                        if (is_array($converted)) {
+                            unset($converted[$input]);
+                            $convertedProp->setValue($request, $converted);
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($request->files->has('wristband_sponsor_logos')) {
+            $files = $request->files->get('wristband_sponsor_logos');
+            if (is_array($files)) {
+                $filtered = array_filter($files, function ($f) {
+                    return $f && $f->isValid() && $f->getError() !== UPLOAD_ERR_NO_FILE;
+                });
+                if (empty($filtered)) {
+                    $request->files->remove('wristband_sponsor_logos');
+                    if ($convertedProp) {
+                        $converted = $convertedProp->getValue($request);
+                        if (is_array($converted)) {
+                            unset($converted['wristband_sponsor_logos']);
+                            $convertedProp->setValue($request, $converted);
+                        }
+                    }
+                } else {
+                    $request->files->set('wristband_sponsor_logos', array_values($filtered));
+                    if ($convertedProp) {
+                        $converted = $convertedProp->getValue($request);
+                        if (is_array($converted)) {
+                            $converted['wristband_sponsor_logos'] = array_values($filtered);
+                            $convertedProp->setValue($request, $converted);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private function syncWristbandTemplate(Request $request, Event $event): WristbandTemplate
     {
@@ -310,7 +377,12 @@ class EventController extends Controller
         $template->name = 'Wristband ' . $event->name;
         $template->mode = $request->input('wristband_mode', 'default') === 'custom' ? 'custom' : 'default';
 
-        if ($request->hasFile('wristband_custom_background')) {
+        if ($request->boolean('wristband_remove_background') && !$request->hasFile('wristband_custom_background')) {
+            if ($template->background_image) {
+                Storage::disk('public')->delete($template->background_image);
+                $template->background_image = null;
+            }
+        } elseif ($request->hasFile('wristband_custom_background')) {
             if ($template->background_image) {
                 Storage::disk('public')->delete($template->background_image);
             }
@@ -325,6 +397,17 @@ class EventController extends Controller
         if ($request->filled('wristband_columns_json')) {
             $decoded = json_decode($request->input('wristband_columns_json'), true);
             if (is_array($decoded)) {
+                foreach ($decoded as $key => &$col) {
+                    if (isset($col['x'])) {
+                        $col['x'] = (float) str_replace(',', '.', (string) $col['x']);
+                    }
+                    if (isset($col['y'])) {
+                        $col['y'] = (float) str_replace(',', '.', (string) $col['y']);
+                    }
+                    if (isset($col['qr_size'])) {
+                        $col['qr_size'] = (float) str_replace(',', '.', (string) $col['qr_size']);
+                    }
+                }
                 $template->columns_config = $decoded;
             }
         } elseif (!$template->columns_config) {

@@ -13,42 +13,83 @@
         @js($currentCols)
     )">
 
-    <!-- Section Header & Mode Switcher -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2">
-                <span class="p-2 rounded-xl bg-purple-100 text-purple-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+    <!-- Section Header -->
+    <div class="space-y-1">
+        <div class="flex items-center gap-2">
+            <span class="p-2 rounded-xl bg-purple-100 text-purple-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+            </span>
+            <h3 class="text-lg font-black text-slate-800">Model Gelang Tiket (Wristband)</h3>
+        </div>
+        <p class="text-xs text-slate-500">
+            Pilih model desain gelang tiket: gunakan template sistem bawaan Gentix atau mode kustom dengan unggahan background sendiri.
+        </p>
+    </div>
+
+    <!-- Mode Selection Cards (High contrast, clearly visible under all circumstances) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- Option 1: Mode Default -->
+        <div @click="mode = 'default'"
+            class="relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-start justify-between gap-3"
+            :class="mode === 'default' 
+                ? 'border-purple-600 bg-purple-50/70 ring-2 ring-purple-500/20 shadow-sm' 
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'">
+            <div class="flex items-start gap-3">
+                <span class="p-2.5 rounded-xl shrink-0 transition-colors"
+                    :class="mode === 'default' ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
                 </span>
-                <h3 class="text-lg font-black text-slate-800">Model Gelang Tiket (Wristband)</h3>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black text-slate-800">Mode Default (Sistem)</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Layout standar Gentix dengan Logo Penyelenggara/Liga, Logo Tim, dan Grid Sponsor.
+                    </p>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 mt-1">
-                Pilih apakah ingin menggunakan template sistem bawaan Gentix atau mode kustom dengan desain background sendiri.
-            </p>
+            <div class="shrink-0 pt-0.5">
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                    :class="mode === 'default' ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'">
+                    <svg x-show="mode === 'default'" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                </div>
+            </div>
         </div>
 
-        <!-- Mode Toggle Selector (Cards) -->
-        <div class="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200">
-            <button type="button" 
-                @click="mode = 'default'"
-                :class="mode === 'default' ? 'bg-white text-purple-700 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
-                class="px-4 py-2 text-xs rounded-xl transition flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                Mode Default (Sistem)
-            </button>
-            <button type="button" 
-                @click="mode = 'custom'"
-                :class="mode === 'custom' ? 'bg-purple-600 text-white shadow-md font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
-                class="px-4 py-2 text-xs rounded-xl transition flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-                Mode Custom (Desain Sendiri)
-            </button>
+        <!-- Option 2: Mode Custom -->
+        <div @click="mode = 'custom'"
+            class="relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-start justify-between gap-3"
+            :class="mode === 'custom' 
+                ? 'border-purple-600 bg-purple-50/70 ring-2 ring-purple-500/20 shadow-sm' 
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'">
+            <div class="flex items-start gap-3">
+                <span class="p-2.5 rounded-xl shrink-0 transition-colors"
+                    :class="mode === 'custom' ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                </span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black text-slate-800">Mode Custom (Desain Sendiri)</span>
+                        <span class="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md uppercase">Drag & Drop</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Upload background desain sendiri & geser posisi kolom langsung pada gelang sebelum dicetak ke F4.
+                    </p>
+                </div>
+            </div>
+            <div class="shrink-0 pt-0.5">
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                    :class="mode === 'custom' ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'">
+                    <svg x-show="mode === 'custom'" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Hidden Fields for Form Submit -->
     <input type="hidden" name="wristband_mode" :value="mode">
     <input type="hidden" name="wristband_columns_json" :value="columnsJson">
+    <input type="hidden" name="wristband_remove_background" :value="removeBackgroundFlag ? '1' : '0'">
 
     <!-- ========================================================== -->
     <!-- 1. MODE DEFAULT (Template Bawaan Liga / Klub / Sponsor) -->
@@ -176,7 +217,7 @@
             <div class="p-3 sm:p-4 bg-slate-900 rounded-2xl overflow-hidden shadow-inner border border-slate-800">
                 <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-2 px-1">
                     <span>KANVAS TIKET GELANG SATUAN (215 mm x 22 mm)</span>
-                    <span class="text-purple-300" x-text="'Elemen Terpilih: ' + (columns[selectedColKey]?.label || '-')"></span>
+                    <span class="text-purple-300" x-text="'Elemen Terpilih: ' + (columns[selectedColKey]?.label || '-') + ' (X: ' + (columns[selectedColKey]?.x || 0) + ' mm, Y: ' + (columns[selectedColKey]?.y || 0) + ' mm)'"></span>
                 </div>
 
                 <!-- Wristband Strip Canvas with strict 215:22 aspect ratio -->
@@ -198,13 +239,13 @@
                             @touchstart="onColTouchStart($event, key)"
                             @click="selectedColKey = key"
                             :class="{
-                                'ring-2 ring-purple-500 shadow-md bg-purple-500/20': selectedColKey === key,
+                                'ring-2 ring-purple-400 shadow-lg bg-purple-500/25': selectedColKey === key,
                                 'hover:ring-1 hover:ring-amber-400 hover:bg-amber-400/10': selectedColKey !== key
                             }"
                             class="absolute cursor-move transition-shadow duration-75 rounded px-0.5 py-0.5 select-none"
                             :style="{
-                                left: (col.x / 215 * 100) + '%',
-                                top: (col.y / 22 * 100) + '%',
+                                left: ((parseFloat(String(col.x).replace(',', '.')) || 0) / 215 * 100) + '%',
+                                top: ((parseFloat(String(col.y).replace(',', '.')) || 0) / 22 * 100) + '%',
                                 zIndex: selectedColKey === key ? 30 : 20,
                             }">
 
@@ -212,8 +253,8 @@
                             <template x-if="key === 'qr_code'">
                                 <div class="bg-white p-0.5 rounded shadow-xs flex items-center justify-center"
                                     :style="{
-                                        width: ((col.qr_size || 14) / 215 * 100 * 4) + 'px',
-                                        height: ((col.qr_size || 14) / 22 * 100 * 0.4) + 'px',
+                                        width: ((parseFloat(String(col.qr_size || 14).replace(',', '.')) || 14) / 215 * 100 * 4) + 'px',
+                                        height: ((parseFloat(String(col.qr_size || 14).replace(',', '.')) || 14) / 22 * 100 * 0.4) + 'px',
                                     }">
                                     <svg class="w-full h-full text-slate-900" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm14 0h4v4h-4v-4zm-4 4h4v4h-4v-4zm0-4h4v4h-4v-4zm4-4h4v4h-4v-4zm-8 4h4v4h-4v-4z"/>
@@ -305,7 +346,7 @@
         <div class="space-y-4">
             <h4 class="text-sm font-black text-slate-800 flex items-center justify-between">
                 <span>3. Pilih Kolom & Pengaturan Detail</span>
-                <span class="text-xs font-normal text-slate-500">Centang kolom yang ingin dicetak pada gelang</span>
+                <span class="text-xs font-normal text-slate-500">Bisa menggunakan angka bulat atau desimal (misal 17.2 atau 17,2)</span>
             </h4>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -334,21 +375,27 @@
                             <div class="pt-2.5 border-t border-slate-200/80 space-y-2 text-xs">
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-400">Posisi X (mm)</label>
-                                        <input type="number" step="0.5" min="0" max="215" x-model.number="col.x"
-                                            class="w-full text-xs py-1 px-2 rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500">
+                                        <label class="block text-[10px] font-bold text-slate-500">Posisi X (mm)</label>
+                                        <input type="text" inputmode="decimal"
+                                            :value="col.x"
+                                            @input="col.x = $event.target.value"
+                                            placeholder="Contoh: 17.2 atau 17,2"
+                                            class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500 font-mono bg-white">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-400">Posisi Y (mm)</label>
-                                        <input type="number" step="0.5" min="0" max="22" x-model.number="col.y"
-                                            class="w-full text-xs py-1 px-2 rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500">
+                                        <label class="block text-[10px] font-bold text-slate-500">Posisi Y (mm)</label>
+                                        <input type="text" inputmode="decimal"
+                                            :value="col.y"
+                                            @input="col.y = $event.target.value"
+                                            placeholder="Contoh: 5.5 atau 5,5"
+                                            class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500 font-mono bg-white">
                                     </div>
                                 </div>
 
                                 <div class="flex items-center justify-between gap-2">
                                     <template x-if="key !== 'qr_code'">
                                         <div class="flex-1">
-                                            <label class="block text-[10px] font-bold text-slate-400">Warna Teks</label>
+                                            <label class="block text-[10px] font-bold text-slate-500">Warna Teks</label>
                                             <div class="flex items-center gap-1.5 mt-0.5">
                                                 <input type="color" x-model="col.color" class="w-6 h-6 rounded cursor-pointer border-0 p-0">
                                                 <span class="text-[10px] font-mono text-slate-600" x-text="col.color"></span>
@@ -357,18 +404,21 @@
                                     </template>
                                     <template x-if="key === 'qr_code'">
                                         <div class="flex-1">
-                                            <label class="block text-[10px] font-bold text-slate-400">Ukuran QR (mm)</label>
-                                            <input type="number" step="1" min="8" max="20" x-model.number="col.qr_size"
-                                                class="w-full text-xs py-1 px-2 rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 mt-0.5">
+                                            <label class="block text-[10px] font-bold text-slate-500">Ukuran QR (mm)</label>
+                                            <input type="text" inputmode="decimal"
+                                                :value="col.qr_size"
+                                                @input="col.qr_size = $event.target.value"
+                                                placeholder="Contoh: 14"
+                                                class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500 font-mono mt-0.5 bg-white">
                                         </div>
                                     </template>
                                 </div>
 
                                 <template x-if="key === 'custom_text'">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-400">Isi Teks Kustom</label>
+                                        <label class="block text-[10px] font-bold text-slate-500">Isi Teks Kustom</label>
                                         <input type="text" x-model="col.custom_value"
-                                            class="w-full text-xs py-1 px-2 rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 mt-0.5">
+                                            class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500 mt-0.5 bg-white">
                                     </div>
                                 </template>
                             </div>
@@ -386,6 +436,7 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
     return {
         mode: initialMode || 'default',
         backgroundPreview: initialBackground || null,
+        removeBackgroundFlag: false,
         selectedColKey: 'category_name',
         isDragging: false,
         draggedKey: null,
@@ -396,12 +447,25 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
         columns: initialColumns || {},
 
         get columnsJson() {
-            return JSON.stringify(this.columns);
+            const cleaned = JSON.parse(JSON.stringify(this.columns));
+            for (let k in cleaned) {
+                if (cleaned[k].x !== undefined) {
+                    cleaned[k].x = parseFloat(String(cleaned[k].x).replace(',', '.')) || 0;
+                }
+                if (cleaned[k].y !== undefined) {
+                    cleaned[k].y = parseFloat(String(cleaned[k].y).replace(',', '.')) || 0;
+                }
+                if (cleaned[k].qr_size !== undefined) {
+                    cleaned[k].qr_size = parseFloat(String(cleaned[k].qr_size).replace(',', '.')) || 14;
+                }
+            }
+            return JSON.stringify(cleaned);
         },
 
         onFileChange(e) {
             const file = e.target.files[0];
             if (file) {
+                this.removeBackgroundFlag = false;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     this.backgroundPreview = event.target.result;
@@ -412,6 +476,7 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
 
         removeBackground() {
             this.backgroundPreview = null;
+            this.removeBackgroundFlag = true;
             const input = document.getElementById('wristband_custom_background_input');
             if (input) input.value = '';
         },
@@ -423,8 +488,8 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
             this.draggedKey = key;
             this.dragStartX = e.clientX;
             this.dragStartY = e.clientY;
-            this.dragStartColX = parseFloat(this.columns[key].x) || 0;
-            this.dragStartColY = parseFloat(this.columns[key].y) || 0;
+            this.dragStartColX = parseFloat(String(this.columns[key].x).replace(',', '.')) || 0;
+            this.dragStartColY = parseFloat(String(this.columns[key].y).replace(',', '.')) || 0;
 
             const onMouseMove = (moveEvent) => {
                 if (!this.isDragging || !this.draggedKey) return;
@@ -466,8 +531,8 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
             this.draggedKey = key;
             this.dragStartX = touch.clientX;
             this.dragStartY = touch.clientY;
-            this.dragStartColX = parseFloat(this.columns[key].x) || 0;
-            this.dragStartColY = parseFloat(this.columns[key].y) || 0;
+            this.dragStartColX = parseFloat(String(this.columns[key].x).replace(',', '.')) || 0;
+            this.dragStartColY = parseFloat(String(this.columns[key].y).replace(',', '.')) || 0;
 
             const onTouchMove = (moveEvent) => {
                 if (!this.isDragging || !this.draggedKey || moveEvent.touches.length !== 1) return;
@@ -523,4 +588,19 @@ function wristbandDesigner(initialMode, initialBackground, initialColumns) {
         }
     };
 }
+
+// Automatically disable empty custom background file input before submit
+document.addEventListener('DOMContentLoaded', () => {
+    const bgInput = document.getElementById('wristband_custom_background_input');
+    if (bgInput) {
+        const form = bgInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', () => {
+                if (!bgInput.files || bgInput.files.length === 0) {
+                    bgInput.disabled = true;
+                }
+            });
+        }
+    }
+});
 </script>

@@ -470,8 +470,8 @@
                 @foreach($cols as $cKey => $col)
                     @if(!empty($col['enabled']))
                         @php
-                            $x = (float) ($col['x'] ?? 0);
-                            $y = (float) ($col['y'] ?? 0);
+                            $x = (float) str_replace(',', '.', (string)($col['x'] ?? 0));
+                            $y = (float) str_replace(',', '.', (string)($col['y'] ?? 0));
                             $color = $col['color'] ?? '#111827';
                             $fontSize = $col['font_size'] ?? '6pt';
                             $fontWeight = $col['font_weight'] ?? '700';
@@ -479,7 +479,7 @@
                         @endphp
 
                         @if($cKey === 'qr_code')
-                            @php $qrSizeMm = (float) ($col['qr_size'] ?? 14); @endphp
+                            @php $qrSizeMm = (float) str_replace(',', '.', (string)($col['qr_size'] ?? 14)); @endphp
                             <div class="wb-element" style="left: {{ $x }}mm; top: {{ $y }}mm; width: {{ $qrSizeMm }}mm; height: {{ $qrSizeMm }}mm; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 0.5mm; border-radius: 1px; box-shadow: 0 0 1px rgba(0,0,0,0.15);">
                                 {!! QrCode::size((int)($qrSizeMm * 3.78))->margin(0)->generate($ticket->ticket_code) !!}
                             </div>

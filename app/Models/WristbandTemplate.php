@@ -165,6 +165,15 @@ class WristbandTemplate extends Model
             if (isset($configured[$key]) && is_array($configured[$key])) {
                 $defaults[$key] = array_merge($defaultData, $configured[$key]);
             }
+            if (isset($defaults[$key]['x'])) {
+                $defaults[$key]['x'] = (float) str_replace(',', '.', (string) $defaults[$key]['x']);
+            }
+            if (isset($defaults[$key]['y'])) {
+                $defaults[$key]['y'] = (float) str_replace(',', '.', (string) $defaults[$key]['y']);
+            }
+            if (isset($defaults[$key]['qr_size'])) {
+                $defaults[$key]['qr_size'] = (float) str_replace(',', '.', (string) $defaults[$key]['qr_size']);
+            }
         }
 
         return $defaults;
