@@ -68,6 +68,10 @@ Route::post('/ranger-bhayangkara', [App\Http\Controllers\RangerRegistrationContr
 Route::get('/join/{slug}', [App\Http\Controllers\Fan\FanRegistrationController::class, 'show'])->name('fan.register.show');
 Route::post('/join/{slug}', [App\Http\Controllers\Fan\FanRegistrationController::class, 'store'])->name('fan.register.store');
 
+// Tenant Specific Public Event Listing (e.g. /lampung-youth/list-event/)
+Route::get('/{slug}/list-event', [App\Http\Controllers\TenantPublicController::class, 'listEvents'])->name('tenant.events');
+Route::get('/{slug}/events', [App\Http\Controllers\TenantPublicController::class, 'listEvents'])->name('tenant.events.alias');
+
 
 
 Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {

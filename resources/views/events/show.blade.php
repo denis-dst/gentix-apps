@@ -471,6 +471,28 @@
                                 <div class="text-sm text-slate-400 italic" x-text="lang === 'id' ? 'Deskripsi belum tersedia.' : 'Description is not available yet.'"></div>
                             @endif
                         </div>
+
+                        @if($event->tenant)
+                            <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs text-orange-600">
+                                        @if($event->tenant->logo)
+                                            <img src="{{ str_starts_with($event->tenant->logo, 'http') ? $event->tenant->logo : asset('storage/' . $event->tenant->logo) }}" alt="" class="w-full h-full object-contain">
+                                        @else
+                                            {{ strtoupper(substr($event->tenant->name, 0, 1)) }}
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <span class="text-[11px] text-slate-400 font-medium block">Penyelenggara</span>
+                                        <span class="text-xs font-bold text-slate-800">{{ $event->tenant->name }}</span>
+                                    </div>
+                                </div>
+                                <a href="{{ route('tenant.events', $event->tenant->slug) }}" class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline inline-flex items-center gap-1">
+                                    <span>Lihat Semua Event</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

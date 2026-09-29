@@ -39,6 +39,12 @@
                             <svg class="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                             Buat Event Baru
                         </a>
+                        @if(Auth::user()->tenant)
+                            <a href="{{ route('tenant.events', Auth::user()->tenant->slug) }}" target="_blank" class="px-5 py-3 md:px-8 md:py-4 bg-white/20 hover:bg-white/30 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider transition shadow-lg flex items-center gap-2 border border-white/25 backdrop-blur">
+                                <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                Halaman Publik Event Saya
+                            </a>
+                        @endif
                     </div>
                 </div>
 
