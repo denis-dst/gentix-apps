@@ -103,6 +103,30 @@
             outline: 2px solid #f97316;
             outline-offset: 2px;
         }
+
+        /* High-Contrast Form Inputs & Selects Overrides for Dark Mode */
+        .dark-input,
+        input[type="search"].dark-input,
+        select.dark-input {
+            background-color: #121826 !important;
+            color: #f1f5f9 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .dark-input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+        .dark-input:focus {
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important;
+            background-color: #182236 !important;
+        }
+        select.dark-input option {
+            background-color: #121826 !important;
+            color: #f1f5f9 !important;
+        }
     </style>
 </head>
 <body class="antialiased bg-[#0b0f19] text-[#f1f5f9] min-h-screen flex flex-col selection:bg-orange-500/30"
@@ -323,8 +347,8 @@
                                name="q" 
                                value="{{ $search }}" 
                                placeholder="Cari nama event, venue..."
-                               class="w-full min-h-[44px] bg-[#121826] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               class="dark-input w-full min-h-[44px] !bg-[#121826] !text-[#f1f5f9] border border-white/20 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm placeholder-slate-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition shadow-inner">
+                        <svg class="w-4 h-4 text-orange-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
@@ -335,11 +359,14 @@
                         <select id="event-sort"
                                 name="sort" 
                                 onchange="this.form.submit()"
-                                class="w-full sm:w-auto min-h-[44px] bg-[#121826] border border-white/10 rounded-xl px-4 py-2 text-xs sm:text-sm text-white font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition cursor-pointer">
-                            <option value="date_asc" {{ $sort === 'date_asc' ? 'selected' : '' }}>Tanggal Terdekat</option>
-                            <option value="date_desc" {{ $sort === 'date_desc' ? 'selected' : '' }}>Tanggal Terbaru</option>
-                            <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Nama Event (A-Z)</option>
+                                class="dark-input w-full sm:w-auto min-h-[44px] !bg-[#121826] !text-[#f1f5f9] border border-white/20 rounded-xl pl-4 pr-10 py-2 text-xs sm:text-sm font-bold focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition cursor-pointer shadow-inner">
+                            <option value="date_asc" class="bg-[#121826] text-white" {{ $sort === 'date_asc' ? 'selected' : '' }}>Tanggal Terdekat</option>
+                            <option value="date_desc" class="bg-[#121826] text-white" {{ $sort === 'date_desc' ? 'selected' : '' }}>Tanggal Terbaru</option>
+                            <option value="name_asc" class="bg-[#121826] text-white" {{ $sort === 'name_asc' ? 'selected' : '' }}>Nama Event (A-Z)</option>
                         </select>
+                        <svg class="w-4 h-4 text-orange-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
                     </div>
 
                     @if(!empty($search))
