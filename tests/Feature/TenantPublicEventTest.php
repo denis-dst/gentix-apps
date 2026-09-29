@@ -124,4 +124,11 @@ class TenantPublicEventTest extends TestCase
         $response = $this->get('/non-existent-tenant-slug/list-event');
         $response->assertStatus(404);
     }
+
+    public function test_organizer_events_route_is_not_hijacked_by_tenant_route(): void
+    {
+        // Unauthenticated request to /organizer/events should redirect to login, not 404
+        $response = $this->get('/organizer/events');
+        $response->assertRedirect('/login');
+    }
 }
