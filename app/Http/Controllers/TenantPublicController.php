@@ -114,7 +114,7 @@ class TenantPublicController extends Controller
             ->exists();
 
         $hasSeasonPass = SeasonPass::where('tenant_id', $tenant->id)
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->exists();
 
         // 9. Fetch global settings

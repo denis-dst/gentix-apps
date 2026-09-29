@@ -131,4 +131,26 @@ class TenantPublicEventTest extends TestCase
         $response = $this->get('/organizer/events');
         $response->assertRedirect('/login');
     }
+
+    public function test_tenant_with_membership_and_season_pass_renders_without_sql_error(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Bhayangkara FC',
+            'slug' => 'bhayangkara-fc',
+            'email' => 'admin@bhayangkarafc.id',
+            'status' => 'active',
+        ]);
+
+        \App\Models\MembershipTier::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'VIP Member',
+            'slug' => 'vip-member',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get('/bhayangkara-fc/list-event');
+        $response->assertStatus(200);
+        $response->assertSee('Bhayangkara FC');
+        $response->assertSee('Daftar Member Fans');
+    }
 }
