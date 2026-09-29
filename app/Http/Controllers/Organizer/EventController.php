@@ -13,10 +13,17 @@ class EventController extends Controller
 {
     public function index()
     {
-        $events = Event::where('tenant_id', auth()->user()->tenant_id)
+        $tenantId = auth()->user()->tenant_id;
+        $events = Event::where('tenant_id', $tenantId)
+            ->withCount(['ticketCategories', 'gates'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        return view('organizer.events.index', compact('events'));
+            ->paginate(15);
+
+        $allEvents = Event::where('tenant_id', $tenantId)
+            ->orderBy('event_start_date', 'desc')
+            ->get(['id', 'name', 'event_start_date', 'venue', 'city', 'status']);
+
+        return view('organizer.events.index', compact('events', 'allEvents'));
     }
 
     public function create()
@@ -319,79 +326,269 @@ class EventController extends Controller
     }
 
     /**
-     * Duplikasi / Copy Event beserta seluruh kategori tiket dan gate
-     * Kecuali kode verifikasi event (dibuatkan baru secara acak)
+     * Internal helper to perform a complete duplication of an event and all its related entities:
+     * - Event model attributes (clean new slug, status, new security code)
+     * - Ticket Categories (replicated with sold_count = 0)
+     * - Gates & Category associations
+     * - Event-level Wristband Template (mode, background, columns config, layout)
+     * - Category-level Wristband Templates
      */
-    public function duplicate(Event $event)
+    public function performDuplicateEvent(Event $event, array $options = []): Event
+    {
+        $index = $options['index'] ?? 1;
+        $totalCopies = $options['total_copies'] ?? 1;
+        $namingPattern = $options['naming_pattern'] ?? 'copy'; // 'copy', 'session', 'match', 'stage', 'custom'
+        $customPrefix = $options['custom_prefix'] ?? null;
+        $status = $options['status'] ?? 'draft';
+        $offsetMode = $options['date_offset_mode'] ?? 'none'; // 'none', 'hours', 'days'
+        $offsetValue = (int) ($options['date_offset_value'] ?? 0);
+
+        // 1. Calculate Name
+        $baseName = trim(preg_replace('/\s*\((Salinan|Sesi|Match|Stage).*$/i', '', $event->name));
+        if ($namingPattern === 'session') {
+            $newName = $baseName . ' - Sesi ' . $index;
+        } elseif ($namingPattern === 'match') {
+            $newName = $baseName . ' - Match ' . $index;
+        } elseif ($namingPattern === 'stage') {
+            $newName = $baseName . ' - Stage ' . $index;
+        } elseif ($namingPattern === 'custom' && !empty($customPrefix)) {
+            $newName = trim($customPrefix) . ' ' . $index;
+        } else {
+            $newName = $totalCopies > 1 ? $baseName . ' (Salinan ' . $index . ')' : $baseName . ' (Salinan)';
+        }
+
+        // 2. Calculate Dates with offset if requested
+        $startDate = $event->event_start_date ? $event->event_start_date->copy() : now();
+        $endDate = $event->event_end_date ? $event->event_end_date->copy() : $startDate->copy()->addHours(3);
+        $gateOpen = $event->gate_open_at ? $event->gate_open_at->copy() : null;
+        $gateClose = $event->gate_close_at ? $event->gate_close_at->copy() : null;
+
+        if ($offsetMode === 'hours' && $offsetValue > 0) {
+            $hoursToAdd = ($index - 1) * $offsetValue;
+            $startDate->addHours($hoursToAdd);
+            $endDate->addHours($hoursToAdd);
+            if ($gateOpen) $gateOpen->addHours($hoursToAdd);
+            if ($gateClose) $gateClose->addHours($hoursToAdd);
+        } elseif ($offsetMode === 'days' && $offsetValue > 0) {
+            $daysToAdd = ($index - 1) * $offsetValue;
+            $startDate->addDays($daysToAdd);
+            $endDate->addDays($daysToAdd);
+            if ($gateOpen) $gateOpen->addDays($daysToAdd);
+            if ($gateClose) $gateClose->addDays($daysToAdd);
+        }
+
+        // 3. Replicate Event
+        $newEvent = $event->replicate([
+            'slug',
+            'security_code',
+            'status',
+            'event_start_date',
+            'event_end_date',
+            'gate_open_at',
+            'gate_close_at',
+        ]);
+
+        $newEvent->name = $newName;
+        $newEvent->slug = \Illuminate\Support\Str::slug($newName) . '-' . strtolower(\Illuminate\Support\Str::random(5));
+        $newEvent->status = in_array($status, ['draft', 'published']) ? $status : 'draft';
+        $newEvent->event_start_date = $startDate;
+        $newEvent->event_end_date = $endDate;
+        $newEvent->gate_open_at = $gateOpen;
+        $newEvent->gate_close_at = $gateClose;
+        // Generate a fresh unique 6-digit PIN
+        $newEvent->security_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $newEvent->created_at = now();
+        $newEvent->updated_at = now();
+        $newEvent->save();
+
+        // 4. Replicate Ticket Categories
+        $categoryMap = [];
+        $originalCategories = TicketCategory::where('event_id', $event->id)->get();
+        foreach ($originalCategories as $cat) {
+            $newCat = $cat->replicate([
+                'event_id',
+                'sold_count',
+            ]);
+            $newCat->event_id = $newEvent->id;
+            $newCat->tenant_id = $newEvent->tenant_id;
+            $newCat->sold_count = 0;
+            $newCat->created_at = now();
+            $newCat->updated_at = now();
+            $newCat->save();
+
+            $categoryMap[$cat->id] = $newCat->id;
+
+            // 4a. Replicate Category-Level Wristband Template if any
+            $catTemplates = WristbandTemplate::where('ticket_category_id', $cat->id)->get();
+            foreach ($catTemplates as $catTmpl) {
+                $newCatTmpl = $catTmpl->replicate([
+                    'event_id',
+                    'ticket_category_id',
+                ]);
+                $newCatTmpl->event_id = $newEvent->id;
+                $newCatTmpl->ticket_category_id = $newCat->id;
+                $newCatTmpl->tenant_id = $newEvent->tenant_id;
+                $newCatTmpl->created_at = now();
+                $newCatTmpl->updated_at = now();
+                $newCatTmpl->save();
+            }
+        }
+
+        // 5. Replicate Gates and sync category associations
+        $originalGates = \App\Models\Gate::where('event_id', $event->id)->with('ticketCategories')->get();
+        foreach ($originalGates as $gate) {
+            $newGate = $gate->replicate([
+                'event_id',
+            ]);
+            $newGate->event_id = $newEvent->id;
+            $newGate->tenant_id = $newEvent->tenant_id;
+            $newGate->created_at = now();
+            $newGate->updated_at = now();
+            $newGate->save();
+
+            $mappedCategoryIds = [];
+            foreach ($gate->ticketCategories as $gateCat) {
+                if (isset($categoryMap[$gateCat->id])) {
+                    $mappedCategoryIds[] = $categoryMap[$gateCat->id];
+                }
+            }
+            if (!empty($mappedCategoryIds)) {
+                $newGate->ticketCategories()->sync($mappedCategoryIds);
+            }
+        }
+
+        // 6. Replicate Event-Level Wristband Templates (model gelang tiket event)
+        $eventTemplates = WristbandTemplate::where('event_id', $event->id)
+            ->whereNull('ticket_category_id')
+            ->get();
+        foreach ($eventTemplates as $tmpl) {
+            $newTmpl = $tmpl->replicate(['event_id']);
+            $newTmpl->event_id = $newEvent->id;
+            $newTmpl->tenant_id = $newEvent->tenant_id;
+            $newTmpl->created_at = now();
+            $newTmpl->updated_at = now();
+            $newTmpl->save();
+        }
+
+        return $newEvent;
+    }
+
+    /**
+     * Single Event Duplicate (with optional multi-copy support).
+     */
+    public function duplicate(Request $request, Event $event)
     {
         $this->authorizeTenant($event);
 
+        $copies = max(1, min(30, (int) $request->input('copies', 1)));
+        $namingPattern = $request->input('naming_pattern', 'copy');
+        $status = $request->input('status', 'draft');
+        $offsetMode = $request->input('date_offset_mode', 'none');
+        $offsetValue = (int) $request->input('date_offset_value', 0);
+
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
-            // 1. Replicate Event
-            $newEvent = $event->replicate([
-                'slug',
-                'security_code',
-                'status',
-            ]);
-
-            $newEvent->name = $event->name . ' (Salinan)';
-            $newEvent->slug = \Illuminate\Support\Str::slug($newEvent->name) . '-' . rand(1000, 9999);
-            $newEvent->status = 'draft';
-            // Generate kode verifikasi event baru (6 digit angka acak)
-            $newEvent->security_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            $newEvent->created_at = now();
-            $newEvent->updated_at = now();
-            $newEvent->save();
-
-            // 2. Replicate Ticket Categories
-            $categoryMap = [];
-            $originalCategories = TicketCategory::where('event_id', $event->id)->get();
-            foreach ($originalCategories as $cat) {
-                $newCat = $cat->replicate([
-                    'event_id',
-                    'sold_count',
+            $lastCreated = null;
+            for ($i = 1; $i <= $copies; $i++) {
+                $lastCreated = $this->performDuplicateEvent($event, [
+                    'index' => $i,
+                    'total_copies' => $copies,
+                    'naming_pattern' => $namingPattern,
+                    'status' => $status,
+                    'date_offset_mode' => $offsetMode,
+                    'date_offset_value' => $offsetValue,
                 ]);
-                $newCat->event_id = $newEvent->id;
-                $newCat->sold_count = 0;
-                $newCat->created_at = now();
-                $newCat->updated_at = now();
-                $newCat->save();
-
-                $categoryMap[$cat->id] = $newCat->id;
-            }
-
-            // 3. Replicate Gates and sync category associations
-            $originalGates = \App\Models\Gate::where('event_id', $event->id)->with('ticketCategories')->get();
-            foreach ($originalGates as $gate) {
-                $newGate = $gate->replicate([
-                    'event_id',
-                ]);
-                $newGate->event_id = $newEvent->id;
-                $newGate->created_at = now();
-                $newGate->updated_at = now();
-                $newGate->save();
-
-                $mappedCategoryIds = [];
-                foreach ($gate->ticketCategories as $gateCat) {
-                    if (isset($categoryMap[$gateCat->id])) {
-                        $mappedCategoryIds[] = $categoryMap[$gateCat->id];
-                    }
-                }
-                if (!empty($mappedCategoryIds)) {
-                    $newGate->ticketCategories()->sync($mappedCategoryIds);
-                }
             }
 
             \Illuminate\Support\Facades\DB::commit();
 
-            return redirect()->route('organizer.events.edit', $newEvent)
-                ->with('success', 'Event berhasil diduplikasi beserta seluruh kategori tiket dan gerbang gate! Kode verifikasi baru telah di-generate.');
+            if ($copies > 1) {
+                return redirect()->route('organizer.events.index')
+                    ->with('success', "Berhasil menduplikasi {$copies} event sekaligus beserta seluruh tiket, gate, dan model gelang tiket (wristband)!");
+            }
+
+            return redirect()->route('organizer.events.edit', $lastCreated)
+                ->with('success', 'Event berhasil diduplikasi beserta seluruh kategori tiket, gerbang gate, dan model gelang tiket (wristband)!');
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\DB::rollBack();
             return back()->with('error', 'Gagal menduplikasi event: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Bulk Duplication of single or multiple selected events.
+     */
+    public function bulkDuplicate(Request $request)
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $request->validate([
+            'source_event_id' => 'nullable|exists:events,id',
+            'event_ids' => 'nullable|array',
+            'event_ids.*' => 'exists:events,id',
+            'copies_count' => 'nullable|integer|min:1|max:30',
+            'naming_pattern' => 'required|in:copy,session,match,stage,custom',
+            'custom_prefix' => 'nullable|string|max:100',
+            'status' => 'required|in:draft,published',
+            'date_offset_mode' => 'required|in:none,hours,days',
+            'date_offset_value' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        $copiesCount = max(1, min(30, (int) $request->input('copies_count', 1)));
+        $namingPattern = $request->input('naming_pattern', 'copy');
+        $customPrefix = $request->input('custom_prefix');
+        $status = $request->input('status', 'draft');
+        $offsetMode = $request->input('date_offset_mode', 'none');
+        $offsetValue = (int) $request->input('date_offset_value', 0);
+
+        // Gather source events
+        $eventIds = (array) $request->input('event_ids', []);
+        if ($request->filled('source_event_id')) {
+            $eventIds[] = $request->input('source_event_id');
+        }
+        $eventIds = array_unique(array_filter($eventIds));
+
+        if (empty($eventIds)) {
+            return back()->with('error', 'Pilih minimal 1 event untuk diduplikasi.');
+        }
+
+        $sourceEvents = Event::where('tenant_id', $tenantId)
+            ->whereIn('id', $eventIds)
+            ->get();
+
+        if ($sourceEvents->isEmpty()) {
+            return back()->with('error', 'Event tidak ditemukan atau bukan milik tenant Anda.');
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $totalCreated = 0;
+
+            foreach ($sourceEvents as $sourceEvent) {
+                for ($i = 1; $i <= $copiesCount; $i++) {
+                    $this->performDuplicateEvent($sourceEvent, [
+                        'index' => $i,
+                        'total_copies' => $copiesCount,
+                        'naming_pattern' => $namingPattern,
+                        'custom_prefix' => $customPrefix,
+                        'status' => $status,
+                        'date_offset_mode' => $offsetMode,
+                        'date_offset_value' => $offsetValue,
+                    ]);
+                    $totalCreated++;
+                }
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->route('organizer.events.index')
+                ->with('success', "Sukses! Berhasil menduplikasi {$totalCreated} event baru secara massal beserta seluruh kategori tiket, gate, dan model gelang tiket (wristband)!");
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return back()->with('error', 'Gagal melakukan duplikasi massal: ' . $e->getMessage());
+        }
+    }
+
 
     /**
      * Filter out empty or invalid file uploads from both Symfony FileBag and Laravel convertedFiles.

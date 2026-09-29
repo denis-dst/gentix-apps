@@ -172,6 +172,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::get('/dashboard', [App\Http\Controllers\Organizer\DashboardController::class, 'index'])->name('dashboard');
     
     // Event Management
+    Route::post('events/bulk-duplicate', [App\Http\Controllers\Organizer\EventController::class, 'bulkDuplicate'])->name('events.bulk-duplicate');
     Route::post('events/{event}/duplicate', [App\Http\Controllers\Organizer\EventController::class, 'duplicate'])->name('events.duplicate');
     Route::resource('events', App\Http\Controllers\Organizer\EventController::class);
     Route::resource('events.categories', App\Http\Controllers\Organizer\TicketCategoryController::class);

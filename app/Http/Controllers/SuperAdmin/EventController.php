@@ -277,6 +277,18 @@ class EventController extends Controller
                 $newCat->save();
 
                 $categoryMap[$cat->id] = $newCat->id;
+
+                // Replicate Category-Level Wristband Template if any
+                $catTemplates = WristbandTemplate::where('ticket_category_id', $cat->id)->get();
+                foreach ($catTemplates as $catTmpl) {
+                    $newCatTmpl = $catTmpl->replicate(['event_id', 'ticket_category_id']);
+                    $newCatTmpl->event_id = $newEvent->id;
+                    $newCatTmpl->ticket_category_id = $newCat->id;
+                    $newCatTmpl->tenant_id = $newEvent->tenant_id;
+                    $newCatTmpl->created_at = now();
+                    $newCatTmpl->updated_at = now();
+                    $newCatTmpl->save();
+                }
             }
 
             // 3. Replicate Gates and sync category associations
@@ -299,6 +311,19 @@ class EventController extends Controller
                 if (!empty($mappedCategoryIds)) {
                     $newGate->ticketCategories()->sync($mappedCategoryIds);
                 }
+            }
+
+            // 4. Replicate Event-Level Wristband Templates
+            $eventTemplates = WristbandTemplate::where('event_id', $event->id)
+                ->whereNull('ticket_category_id')
+                ->get();
+            foreach ($eventTemplates as $tmpl) {
+                $newTmpl = $tmpl->replicate(['event_id']);
+                $newTmpl->event_id = $newEvent->id;
+                $newTmpl->tenant_id = $newEvent->tenant_id;
+                $newTmpl->created_at = now();
+                $newTmpl->updated_at = now();
+                $newTmpl->save();
             }
 
             \Illuminate\Support\Facades\DB::commit();
