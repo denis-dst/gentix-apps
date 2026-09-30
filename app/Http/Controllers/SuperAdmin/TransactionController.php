@@ -46,10 +46,144 @@ class TransactionController extends Controller
             ->orderByDesc('created_at')
             ->get(['id', 'name']);
         
-        $ticketCategories = TicketCategory::when($request->filled('event_id'), fn($q) => $q->where('event_id', $request->event_id))
+        $ticketCategories = TicketCategory::when($request->filled('tenant_id'), fn($q) => $q->where('tenant_id', $request->tenant_id))
+            ->when($request->filled('event_id'), fn($q) => $q->where('event_id', $request->event_id))
             ->get(['id', 'name']);
 
-        return view('superadmin.transactions.index', compact('transactions', 'tenantOptions', 'eventOptions', 'ticketCategories'));
+        // Stats calculation for the sales dashboard monitoring widget
+        $selectedTenantId = $request->tenant_id;
+        $selectedEventId = $request->event_id;
+        $selectedCategoryId = $request->ticket_category_id;
+
+        $categoriesQuery = TicketCategory::query()
+            ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('id', $selectedCategoryId));
+
+        $allCategories = $categoriesQuery->orderBy('sort_order')->orderBy('name')->get();
+
+        $totalQuota = (int) $allCategories->sum('quota');
+
+        $soldTicketsCount = Ticket::query()
+            ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->count();
+
+        $totalSold = max($soldTicketsCount, (int) $allCategories->sum('sold_count'));
+        $totalUnsold = max(0, $totalQuota - $totalSold);
+
+        $totalRevenue = (float) Transaction::query()
+            ->where('payment_status', 'paid')
+            ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->sum('total_amount');
+
+        $soldByCategory = Ticket::query()
+            ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->selectRaw('ticket_category_id, COUNT(*) as count')
+            ->groupBy('ticket_category_id')
+            ->pluck('count', 'ticket_category_id')
+            ->toArray();
+
+        $categoryStats = $allCategories->map(function ($cat) use ($soldByCategory) {
+            $catSold = $soldByCategory[$cat->id] ?? $cat->sold_count ?? 0;
+            $sold = (int) $catSold;
+            $unsold = max(0, (int) $cat->quota - $sold);
+
+            return (object) [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'quota' => (int) $cat->quota,
+                'sold' => $sold,
+                'unsold' => $unsold,
+                'hex_color' => $cat->hex_color ?: '#0284c7',
+            ];
+        });
+
+        // Throughput data
+        $daysCount = 7;
+        $startDate = now()->subDays($daysCount - 1)->startOfDay();
+
+        $ticketSales = Ticket::query()
+            ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->where('created_at', '>=', $startDate)
+            ->selectRaw("DATE(created_at) as sales_date, COUNT(*) as total_sold")
+            ->groupBy('sales_date')
+            ->pluck('total_sold', 'sales_date')
+            ->toArray();
+
+        $throughputChart = [];
+        $maxCount = 1;
+        for ($i = $daysCount - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dateKey = $date->format('Y-m-d');
+            $count = (int) ($ticketSales[$dateKey] ?? 0);
+            if ($count > $maxCount) {
+                $maxCount = $count;
+            }
+            $throughputChart[] = [
+                'date' => $dateKey,
+                'label' => $date->format('d M'),
+                'count' => $count,
+            ];
+        }
+
+        $hasRecentSales = array_sum($ticketSales) > 0;
+        if (!$hasRecentSales && $totalSold > 0) {
+            $historicalSales = Ticket::query()
+                ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
+                ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+                ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+                ->whereIn('status', ['sold', 'redeemed'])
+                ->selectRaw("DATE(created_at) as sales_date, COUNT(*) as total_sold")
+                ->groupBy('sales_date')
+                ->orderByDesc('sales_date')
+                ->limit($daysCount)
+                ->get()
+                ->reverse();
+
+            if ($historicalSales->isNotEmpty()) {
+                $throughputChart = [];
+                $maxCount = max(1, $historicalSales->max('total_sold'));
+                foreach ($historicalSales as $sale) {
+                    $dt = \Carbon\Carbon::parse($sale->sales_date);
+                    $throughputChart[] = [
+                        'date' => $sale->sales_date,
+                        'label' => $dt->format('d M'),
+                        'count' => (int) $sale->total_sold,
+                    ];
+                }
+            }
+        }
+
+        foreach ($throughputChart as &$item) {
+            $item['height_pct'] = $maxCount > 0 && $item['count'] > 0 
+                ? max(12, round(($item['count'] / $maxCount) * 100)) 
+                : 6;
+        }
+        unset($item);
+
+        return view('superadmin.transactions.index', compact(
+            'transactions', 
+            'tenantOptions', 
+            'eventOptions', 
+            'ticketCategories',
+            'totalQuota',
+            'totalSold',
+            'totalUnsold',
+            'totalRevenue',
+            'categoryStats',
+            'throughputChart'
+        ));
     }
 
     public function resendEvoucher(Transaction $transaction)
