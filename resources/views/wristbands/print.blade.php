@@ -444,6 +444,11 @@
                     <strong style="color: #4338ca;">{{ ceil(count($tickets) / 15) }} Lembar F4 (15/lembar)</strong>
                 @endif
             </div>
+            @if(($categoryQuota ?? $category->quota) > count($tickets))
+                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #cbd5e1; font-size: 8.5px; color: #0369a1; line-height: 1.3;">
+                    💡 Batch aktif: {{ count($tickets) }} gelang dari total {{ $categoryQuota ?? $category->quota }} kuota. Gunakan form batch di bawah untuk mencetak rentang lainnya.
+                </div>
+            @endif
         </div>
 
         <!-- Paper Size Switcher (F4 vs A3+) -->

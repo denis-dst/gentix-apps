@@ -193,4 +193,86 @@ class WristbandExportDocxTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_export_docx_large_batch_f4_runs_fast_and_succeeds(): void
+    {
+        $startTime = microtime(true);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('organizer.categories.export-wristbands-docx', [
+                'category' => $this->category,
+                'paper' => 'f4',
+                'mode' => 'default',
+                'start' => 1,
+                'count' => 60,
+            ]));
+
+        $elapsed = microtime(true) - $startTime;
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $this->assertLessThan(10.0, $elapsed, "Large batch F4 export took {$elapsed}s, expected under 10s");
+    }
+
+    public function test_export_docx_large_batch_a3_runs_fast_and_succeeds(): void
+    {
+        $startTime = microtime(true);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('organizer.categories.export-wristbands-docx', [
+                'category' => $this->category,
+                'paper' => 'a3',
+                'mode' => 'default',
+                'start' => 1,
+                'count' => 52, // exactly 2 pages of A3+ (26 x 2)
+            ]));
+
+        $elapsed = microtime(true) - $startTime;
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $this->assertLessThan(10.0, $elapsed, "Large batch A3 export took {$elapsed}s, expected under 10s");
+    }
+
+    public function test_export_docx_custom_template_with_background_image(): void
+    {
+        // Create a temporary mock background image
+        $tempBg = tempnam(sys_get_temp_dir(), 'bg_') . '.png';
+        $bgImg = imagecreatetruecolor(1270, 130);
+        $blue = imagecolorallocate($bgImg, 30, 64, 175);
+        imagefilledrectangle($bgImg, 0, 0, 1270, 130, $blue);
+        imagepng($bgImg, $tempBg);
+        imagedestroy($bgImg);
+
+        $template = WristbandTemplate::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->event->id,
+            'ticket_category_id' => $this->category->id,
+            'name' => 'Custom BG Template',
+            'mode' => 'custom',
+            'background_image' => $tempBg,
+            'columns_config' => WristbandTemplate::getDefaultColumns(),
+        ]);
+
+        $startTime = microtime(true);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('organizer.categories.export-wristbands-docx', [
+                'category' => $this->category,
+                'paper' => 'a3',
+                'mode' => 'custom',
+                'start' => 1,
+                'count' => 26,
+            ]));
+
+        $elapsed = microtime(true) - $startTime;
+
+        if (file_exists($tempBg)) {
+            @unlink($tempBg);
+        }
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $this->assertLessThan(8.0, $elapsed, "Custom BG template export took {$elapsed}s, expected under 8s");
+    }
 }

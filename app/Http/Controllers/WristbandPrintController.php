@@ -42,8 +42,9 @@ class WristbandPrintController extends Controller
 
         // Total count based on category stock/quota
         $quota = (int) ($category->quota > 0 ? $category->quota : 50);
-        $count = (int) $request->get('count', $quota);
-        $count = max(1, min($count, 5000));
+        $defaultCount = min($quota, 260);
+        $count = (int) $request->get('count', $defaultCount);
+        $count = max(1, min($count, 2000));
         $start = max(1, (int) $request->get('start', 1));
 
         $wristbands = collect();
@@ -76,6 +77,11 @@ class WristbandPrintController extends Controller
      */
     public function exportDocx(Request $request, TicketCategory $category, \App\Services\WristbandExportService $exportService)
     {
+        // Increase memory and execution time limits for document generation
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
+
         // Check authorization
         $this->authorizeAccess($category->event);
 
@@ -91,8 +97,9 @@ class WristbandPrintController extends Controller
         $paperSize = in_array($requestedPaper, ['f4', 'a3']) ? $requestedPaper : 'f4';
 
         $quota = (int) ($category->quota > 0 ? $category->quota : 50);
-        $count = (int) $request->get('count', $quota);
-        $count = max(1, min($count, 2000));
+        $defaultCount = min($quota, 260); // 260 is 10 sheets A3+ (26/sheet) or ~17 sheets F4 (15/sheet)
+        $count = (int) $request->get('count', $defaultCount);
+        $count = max(1, min($count, 500)); // Limit maximum single file batch to 500
         $start = max(1, (int) $request->get('start', 1));
 
         $wristbands = collect();
@@ -118,7 +125,7 @@ class WristbandPrintController extends Controller
 
         $categorySlug = Str::slug($category->name) ?: 'category-' . $category->id;
         $paperLabel = strtoupper($paperSize === 'a3' ? 'A3-Plus' : 'F4');
-        $fileName = sprintf('Gelang-Tiket-%s-%s-%s.docx', $categorySlug, $paperLabel, ucfirst($activeMode));
+        $fileName = sprintf('Gelang-Tiket-%s-%s-%s-%d-%d.docx', $categorySlug, $paperLabel, ucfirst($activeMode), $start, $start + $count - 1);
 
         return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
     }

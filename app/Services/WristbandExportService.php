@@ -21,11 +21,36 @@ class WristbandExportService
     protected ?string $fontRegular = null;
     protected ?\GdImage $cachedDefaultBase = null;
     protected ?string $cachedDefaultKey = null;
+    protected ?\GdImage $cachedCustomBase = null;
+    protected ?string $cachedCustomKey = null;
 
     public function __construct()
     {
         $this->fontBold = $this->resolveFont(true);
         $this->fontRegular = $this->resolveFont(false);
+    }
+
+    public function __destruct()
+    {
+        $this->clearCanvasCache();
+    }
+
+    /**
+     * Clear GD image base canvas caches.
+     */
+    public function clearCanvasCache(): void
+    {
+        if ($this->cachedDefaultBase) {
+            imagedestroy($this->cachedDefaultBase);
+            $this->cachedDefaultBase = null;
+            $this->cachedDefaultKey = null;
+        }
+
+        if ($this->cachedCustomBase) {
+            imagedestroy($this->cachedCustomBase);
+            $this->cachedCustomBase = null;
+            $this->cachedCustomKey = null;
+        }
     }
 
     /**
@@ -47,6 +72,11 @@ class WristbandExportService
         string $paperSize = 'f4',
         string $mode = 'default'
     ): string {
+        // Prevent timeout during batch document processing
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
+
         $paperSize = strtolower($paperSize) === 'a3' ? 'a3' : 'f4';
         $mode = $mode === 'custom' ? 'custom' : 'default';
 
@@ -55,13 +85,20 @@ class WristbandExportService
             mkdir($tempDir, 0755, true);
         }
 
+        $tickets = $tickets->values();
         $imageFiles = [];
 
         // Generate an image for each ticket
         foreach ($tickets as $idx => $ticket) {
+            // Keep resetting time limit in long loops so server doesn't abort
+            if ($idx % 50 === 0) {
+                @set_time_limit(60);
+            }
+
             $img = $this->generateWristbandImage($ticket, $category, $event, $template, $mode);
             $imgPath = $tempDir . '/wb_' . $idx . '.png';
-            imagepng($img, $imgPath);
+            // Use fast PNG compression level 1 (10-20x faster than default level 6, 100% lossless)
+            imagepng($img, $imgPath, 1);
             imagedestroy($img);
             $imageFiles[$idx] = $imgPath;
         }
@@ -200,10 +237,7 @@ class WristbandExportService
             }
         }
 
-        if ($this->cachedDefaultBase) {
-            imagedestroy($this->cachedDefaultBase);
-            $this->cachedDefaultBase = null;
-        }
+        $this->clearCanvasCache();
 
         return $outDocx;
     }
@@ -464,26 +498,26 @@ class WristbandExportService
         int $height,
         float $scale
     ): \GdImage {
-        $im = imagecreatetruecolor($width, $height);
-        imagealphablending($im, true);
-        imagesavealpha($im, true);
-
-        $white = imagecolorallocate($im, 255, 255, 255);
-        imagefilledrectangle($im, 0, 0, $width, $height, $white);
-
-        // Background Image
-        $bgPath = $this->resolveAssetPath($template->background_image);
-        $bgImg = $this->loadGdImage($bgPath);
-        if ($bgImg) {
-            imagecopyresampled($im, $bgImg, 0, 0, 0, 0, $width, $height, imagesx($bgImg), imagesy($bgImg));
-            imagedestroy($bgImg);
+        $cacheKey = $template->id . '_' . $category->id . '_' . $event->id . '_' . ($template->updated_at?->timestamp ?? 0) . '_' . ($template->background_image ?? '');
+        if (!$this->cachedCustomBase || $this->cachedCustomKey !== $cacheKey) {
+            if ($this->cachedCustomBase) {
+                imagedestroy($this->cachedCustomBase);
+            }
+            $this->cachedCustomBase = $this->buildCustomBaseCanvas($category, $event, $template, $width, $height, $scale);
+            $this->cachedCustomKey = $cacheKey;
         }
+
+        // Clone pre-rendered base canvas (background image & static texts)
+        $im = imagecreatetruecolor($width, $height);
+        imagecopy($im, $this->cachedCustomBase, 0, 0, 0, 0, $width, $height);
 
         $code = $ticket->ticket_code ?? $ticket->wristband_code ?? 'WB-0000';
         $cols = $template->getMergedColumnsConfig();
+        $white = imagecolorallocate($im, 255, 255, 255);
 
+        // Render only ticket-specific dynamic elements
         foreach ($cols as $cKey => $col) {
-            if (empty($col['enabled'])) {
+            if (empty($col['enabled']) || !in_array($cKey, ['qr_code', 'wristband_code', 'seat_number'])) {
                 continue;
             }
 
@@ -499,7 +533,6 @@ class WristbandExportService
             $isBold = !empty($col['font_weight']) && (int)$col['font_weight'] >= 700;
             $font = $isBold ? $this->fontBold : $this->fontRegular;
 
-            // Approximate pt font size to px
             $ptSize = (float) preg_replace('/[^0-9.]/', '', (string)($col['font_size'] ?? '6')) ?: 6.0;
             $fontSize = max(5.0, $ptSize * 1.5);
 
@@ -528,7 +561,66 @@ class WristbandExportService
                 }
             } elseif ($cKey === 'wristband_code') {
                 $this->drawTextBaseline($im, $code, $xPx, $yPx, $fontSize, $textColor, $font);
-            } elseif ($cKey === 'category_name') {
+            } elseif ($cKey === 'seat_number') {
+                $sStr = '#' . sprintf('%04d', $ticket->index ?? 1);
+                $this->drawTextBaseline($im, $sStr, $xPx, $yPx, $fontSize, $textColor, $font);
+            }
+        }
+
+        return $im;
+    }
+
+    /**
+     * Build the reusable base canvas for custom mode (background and static texts).
+     */
+    protected function buildCustomBaseCanvas(
+        TicketCategory $category,
+        Event $event,
+        WristbandTemplate $template,
+        int $width,
+        int $height,
+        float $scale
+    ): \GdImage {
+        $im = imagecreatetruecolor($width, $height);
+        imagealphablending($im, true);
+        imagesavealpha($im, true);
+
+        $white = imagecolorallocate($im, 255, 255, 255);
+        imagefilledrectangle($im, 0, 0, $width, $height, $white);
+
+        // Load & resample background image once
+        $bgPath = $this->resolveAssetPath($template->background_image);
+        $bgImg = $this->loadGdImage($bgPath);
+        if ($bgImg) {
+            imagecopyresampled($im, $bgImg, 0, 0, 0, 0, $width, $height, imagesx($bgImg), imagesy($bgImg));
+            imagedestroy($bgImg);
+        }
+
+        $cols = $template->getMergedColumnsConfig();
+
+        // Render static texts once
+        foreach ($cols as $cKey => $col) {
+            if (empty($col['enabled']) || in_array($cKey, ['qr_code', 'wristband_code', 'seat_number'])) {
+                continue;
+            }
+
+            $xMm = (float) str_replace(',', '.', (string)($col['x'] ?? 0));
+            $yMm = (float) str_replace(',', '.', (string)($col['y'] ?? 0));
+            $xPx = (int) round($xMm * $scale);
+            $yPx = (int) round($yMm * $scale);
+
+            $colHex = $this->normalizeHex($col['color'] ?? '#111827');
+            [$cr, $cg, $cb] = $this->hexToRgb($colHex);
+            $textColor = imagecolorallocate($im, $cr, $cg, $cb);
+
+            $isBold = !empty($col['font_weight']) && (int)$col['font_weight'] >= 700;
+            $font = $isBold ? $this->fontBold : $this->fontRegular;
+
+            // Approximate pt font size to px
+            $ptSize = (float) preg_replace('/[^0-9.]/', '', (string)($col['font_size'] ?? '6')) ?: 6.0;
+            $fontSize = max(5.0, $ptSize * 1.5);
+
+            if ($cKey === 'category_name') {
                 $this->drawTextBaseline($im, strtoupper($category->name), $xPx, $yPx, $fontSize, $textColor, $font);
             } elseif ($cKey === 'event_name') {
                 $this->drawTextBaseline($im, strtoupper($event->name), $xPx, $yPx, $fontSize, $textColor, $font);
@@ -541,9 +633,6 @@ class WristbandExportService
             } elseif ($cKey === 'venue') {
                 $vStr = strtoupper(trim(($event->venue ?? '') . ($event->city ? ', ' . $event->city : '')));
                 $this->drawTextBaseline($im, $vStr, $xPx, $yPx, $fontSize, $textColor, $font);
-            } elseif ($cKey === 'seat_number') {
-                $sStr = '#' . sprintf('%04d', $ticket->index ?? 1);
-                $this->drawTextBaseline($im, $sStr, $xPx, $yPx, $fontSize, $textColor, $font);
             } elseif ($cKey === 'price') {
                 $pStr = $category->price > 0 ? 'Rp ' . number_format($category->price, 0, ',', '.') : 'FREE';
                 $this->drawTextBaseline($im, $pStr, $xPx, $yPx, $fontSize, $textColor, $font);
