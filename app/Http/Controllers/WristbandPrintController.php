@@ -37,6 +37,9 @@ class WristbandPrintController extends Controller
         $requestedMode = $request->get('mode');
         $activeMode = in_array($requestedMode, ['default', 'custom']) ? $requestedMode : ($wristbandTemplate?->mode ?? 'default');
 
+        $requestedPaper = strtolower($request->get('paper', 'f4'));
+        $paperSize = in_array($requestedPaper, ['f4', 'a3']) ? $requestedPaper : 'f4';
+
         // Total count based on category stock/quota
         $quota = (int) ($category->quota > 0 ? $category->quota : 50);
         $count = (int) $request->get('count', $quota);
@@ -61,10 +64,63 @@ class WristbandPrintController extends Controller
             'event' => $event,
             'wristbandTemplate' => $wristbandTemplate,
             'activeMode' => $activeMode,
+            'paperSize' => $paperSize,
             'totalCount' => $count,
             'startNumber' => $start,
             'categoryQuota' => $quota
         ]);
+    }
+
+    /**
+     * Export wristbands to Microsoft Word (.docx) format with choice of F4 or A3+.
+     */
+    public function exportDocx(Request $request, TicketCategory $category, \App\Services\WristbandExportService $exportService)
+    {
+        // Check authorization
+        $this->authorizeAccess($category->event);
+
+        $category->load(['event.tenant', 'wristbandTemplate', 'event.wristbandTemplate']);
+        $event = $category->event;
+        $wristbandTemplate = $category->getEffectiveWristbandTemplate()
+            ?: ($event ? \App\Models\WristbandTemplate::where('event_id', $event->id)->latest()->first() : null);
+
+        $requestedMode = $request->get('mode');
+        $activeMode = in_array($requestedMode, ['default', 'custom']) ? $requestedMode : ($wristbandTemplate?->mode ?? 'default');
+
+        $requestedPaper = strtolower($request->get('paper', 'f4'));
+        $paperSize = in_array($requestedPaper, ['f4', 'a3']) ? $requestedPaper : 'f4';
+
+        $quota = (int) ($category->quota > 0 ? $category->quota : 50);
+        $count = (int) $request->get('count', $quota);
+        $count = max(1, min($count, 2000));
+        $start = max(1, (int) $request->get('start', 1));
+
+        $wristbands = collect();
+        for ($i = $start; $i < $start + $count; $i++) {
+            $code = sprintf('WB-C%d-%04d', $category->id, $i);
+            $wristbands->push((object) [
+                'ticket_code' => $code,
+                'wristband_code' => $code,
+                'category' => $category,
+                'event' => $event,
+                'index' => $i
+            ]);
+        }
+
+        $filePath = $exportService->exportDocx(
+            $wristbands,
+            $category,
+            $event,
+            $wristbandTemplate,
+            $paperSize,
+            $activeMode
+        );
+
+        $categorySlug = Str::slug($category->name) ?: 'category-' . $category->id;
+        $paperLabel = strtoupper($paperSize === 'a3' ? 'A3-Plus' : 'F4');
+        $fileName = sprintf('Gelang-Tiket-%s-%s-%s.docx', $categorySlug, $paperLabel, ucfirst($activeMode));
+
+        return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
     }
 
     /**
