@@ -37,9 +37,14 @@ class EventController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $allEvents = Event::where('tenant_id', $tenantId)
-            ->orderBy('event_start_date', 'desc')
-            ->get(['id', 'name', 'event_start_date', 'venue', 'city', 'status']);
+        $allEventsQuery = Event::where('tenant_id', $tenantId)
+            ->orderBy('event_start_date', 'desc');
+
+        if (!empty($status) && $status !== 'all') {
+            $allEventsQuery->where('status', $status);
+        }
+
+        $allEvents = $allEventsQuery->get(['id', 'name', 'event_start_date', 'venue', 'city', 'status']);
 
         // Status counts for filter tabs
         $statusCounts = [
