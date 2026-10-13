@@ -49,17 +49,26 @@ class TransactionController extends Controller
 
         $transactions = $query->paginate(20)->withQueryString();
 
-        $eventOptions = Event::where('tenant_id', $tenantId)->orderByDesc('created_at')->get(['id', 'name']);
+        $eventOptions = Event::where('tenant_id', $tenantId)
+            ->where(function ($q) {
+                $q->where('status', 'published')
+                    ->orWhereHas('transactions', fn ($t) => $t->salesOnly());
+            })
+            ->orderByDesc('created_at')
+            ->get(['id', 'name']);
+
         $ticketCategories = TicketCategory::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($request->filled('event_id'), fn($q) => $q->where('event_id', $request->event_id))
             ->get(['id', 'name']);
 
-        // Stats calculation for the sales dashboard monitoring widget
+        // Stats calculation for the sales dashboard monitoring widget (strictly published events)
         $selectedEventId = $request->event_id;
         $selectedCategoryId = $request->ticket_category_id;
         $selectedChannel = $request->channel;
 
         $categoriesQuery = TicketCategory::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('id', $selectedCategoryId));
 
@@ -68,6 +77,7 @@ class TransactionController extends Controller
         $totalQuota = (int) $allCategories->sum('quota');
 
         $soldTicketsQuery = Ticket::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
@@ -86,12 +96,14 @@ class TransactionController extends Controller
         $totalRevenue = (float) Transaction::where('tenant_id', $tenantId)
             ->salesOnly()
             ->where('payment_status', 'paid')
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->when($selectedChannel, fn($q) => $q->where('channel', $selectedChannel))
             ->sum('total_amount');
 
         $soldByCategory = Ticket::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
@@ -125,6 +137,7 @@ class TransactionController extends Controller
         $daysCount = 7;
         
         $latestSaleDate = Ticket::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
@@ -141,6 +154,7 @@ class TransactionController extends Controller
         $startDate = (clone $endDate)->subDays($daysCount - 1)->startOfDay();
 
         $ticketSales = Ticket::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
