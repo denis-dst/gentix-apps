@@ -17,6 +17,7 @@ class TransactionController extends Controller
         $tenantId = auth()->user()->tenant_id;
 
         $query = Transaction::where('tenant_id', $tenantId)
+            ->salesOnly()
             ->with([
                 'event:id,name,slug',
                 'category:id,name,hex_color',
@@ -42,6 +43,10 @@ class TransactionController extends Controller
             $query->where('event_id', $request->event_id);
         }
 
+        if ($request->filled('channel')) {
+            $query->where('channel', $request->channel);
+        }
+
         $transactions = $query->paginate(20)->withQueryString();
 
         $eventOptions = Event::where('tenant_id', $tenantId)->orderByDesc('created_at')->get(['id', 'name']);
@@ -52,6 +57,7 @@ class TransactionController extends Controller
         // Stats calculation for the sales dashboard monitoring widget
         $selectedEventId = $request->event_id;
         $selectedCategoryId = $request->ticket_category_id;
+        $selectedChannel = $request->channel;
 
         $categoriesQuery = TicketCategory::where('tenant_id', $tenantId)
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
@@ -61,25 +67,40 @@ class TransactionController extends Controller
 
         $totalQuota = (int) $allCategories->sum('quota');
 
-        $soldTicketsCount = Ticket::where('tenant_id', $tenantId)
+        $soldTicketsQuery = Ticket::where('tenant_id', $tenantId)
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
-            ->count();
+            ->whereHas('transaction', function ($q) use ($selectedChannel) {
+                $q->salesOnly();
+                if ($selectedChannel) {
+                    $q->where('channel', $selectedChannel);
+                }
+            });
 
-        $totalSold = max($soldTicketsCount, (int) $allCategories->sum('sold_count'));
+        $soldTicketsCount = $soldTicketsQuery->count();
+
+        $totalSold = max($soldTicketsCount, $selectedChannel ? $soldTicketsCount : (int) $allCategories->sum('sold_count'));
         $totalUnsold = max(0, $totalQuota - $totalSold);
 
         $totalRevenue = (float) Transaction::where('tenant_id', $tenantId)
+            ->salesOnly()
             ->where('payment_status', 'paid')
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->when($selectedChannel, fn($q) => $q->where('channel', $selectedChannel))
             ->sum('total_amount');
 
         $soldByCategory = Ticket::where('tenant_id', $tenantId)
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
+            ->whereHas('transaction', function ($q) use ($selectedChannel) {
+                $q->salesOnly();
+                if ($selectedChannel) {
+                    $q->where('channel', $selectedChannel);
+                }
+            })
             ->selectRaw('ticket_category_id, COUNT(*) as count')
             ->groupBy('ticket_category_id')
             ->pluck('count', 'ticket_category_id')
@@ -107,6 +128,12 @@ class TransactionController extends Controller
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
+            ->whereHas('transaction', function ($q) use ($selectedChannel) {
+                $q->salesOnly();
+                if ($selectedChannel) {
+                    $q->where('channel', $selectedChannel);
+                }
+            })
             ->latest('created_at')
             ->value('created_at');
 
@@ -117,6 +144,12 @@ class TransactionController extends Controller
             ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
             ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
             ->whereIn('status', ['sold', 'redeemed'])
+            ->whereHas('transaction', function ($q) use ($selectedChannel) {
+                $q->salesOnly();
+                if ($selectedChannel) {
+                    $q->where('channel', $selectedChannel);
+                }
+            })
             ->whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw("DATE(created_at) as sales_date, COUNT(*) as total_sold")
             ->groupBy('sales_date')
