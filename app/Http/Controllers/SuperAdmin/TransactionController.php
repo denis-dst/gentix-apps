@@ -71,9 +71,6 @@ class TransactionController extends Controller
             ->whereIn('status', ['sold', 'redeemed'])
             ->count();
 
-        $totalSold = max($soldTicketsCount, (int) $allCategories->sum('sold_count'));
-        $totalUnsold = max(0, $totalQuota - $totalSold);
-
         $totalRevenue = (float) Transaction::query()
             ->where('payment_status', 'paid')
             ->when($selectedTenantId, fn($q) => $q->where('tenant_id', $selectedTenantId))
@@ -92,8 +89,8 @@ class TransactionController extends Controller
             ->toArray();
 
         $categoryStats = $allCategories->map(function ($cat) use ($soldByCategory) {
-            $catSold = $soldByCategory[$cat->id] ?? $cat->sold_count ?? 0;
-            $sold = (int) $catSold;
+            $catSold = $soldByCategory[$cat->id] ?? 0;
+            $sold = max(0, (int) $catSold);
             $unsold = max(0, (int) $cat->quota - $sold);
 
             return (object) [
@@ -105,6 +102,9 @@ class TransactionController extends Controller
                 'hex_color' => $cat->hex_color ?: '#0284c7',
             ];
         });
+
+        $totalSold = (int) $categoryStats->sum('sold');
+        $totalUnsold = max(0, $totalQuota - $totalSold);
 
         // Throughput data (7-day window anchored to active sales)
         $daysCount = 7;
@@ -252,7 +252,9 @@ class TransactionController extends Controller
             $ticket->update(['status' => 'void']);
 
             if ($ticket->category) {
-                $ticket->category->decrement('sold_count', 1);
+                $ticket->category->update([
+                    'sold_count' => max(0, (int) $ticket->category->sold_count - 1),
+                ]);
             }
 
             $transaction = $ticket->transaction;
@@ -295,7 +297,9 @@ class TransactionController extends Controller
             foreach ($activeTickets as $ticket) {
                 $ticket->update(['status' => 'void']);
                 if ($ticket->category) {
-                    $ticket->category->decrement('sold_count', 1);
+                    $ticket->category->update([
+                        'sold_count' => max(0, (int) $ticket->category->sold_count - 1),
+                    ]);
                 }
             }
 
@@ -340,7 +344,9 @@ class TransactionController extends Controller
             foreach ($ticketsToCancel as $ticket) {
                 $ticket->update(['status' => 'void']);
                 if ($ticket->category) {
-                    $ticket->category->decrement('sold_count', 1);
+                    $ticket->category->update([
+                        'sold_count' => max(0, (int) $ticket->category->sold_count - 1),
+                    ]);
                 }
             }
 

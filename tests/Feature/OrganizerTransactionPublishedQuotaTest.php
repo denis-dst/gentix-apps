@@ -139,4 +139,81 @@ class OrganizerTransactionPublishedQuotaTest extends TestCase
         $categoryStats = $response->viewData('categoryStats');
         $this->assertCount(0, $categoryStats);
     }
+
+    public function test_transactions_summary_never_displays_negative_sold_count_when_tickets_deleted(): void
+    {
+        // Create a published category with no active tickets and manually set raw negative sold_count
+        $emptyCategory = TicketCategory::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->publishedEvent->id,
+            'name' => 'Premenly Round Day 2',
+            'price' => 15000,
+            'quota' => 500,
+            'sold_count' => 0,
+            'is_active' => true,
+        ]);
+        // Simulate historical raw database decrement that made it negative
+        \DB::table('ticket_categories')->where('id', $emptyCategory->id)->update(['sold_count' => -2]);
+
+        $response = $this->actingAs($this->user)->get(route('organizer.transactions.index'));
+
+        $response->assertStatus(200);
+
+        $categoryStats = $response->viewData('categoryStats');
+        $cat2 = $categoryStats->firstWhere('id', $emptyCategory->id);
+
+        $this->assertNotNull($cat2);
+        // Sold must be 0, never -2!
+        $this->assertEquals(0, $cat2->sold);
+        // Unsold must be 500, never 502!
+        $this->assertEquals(500, $cat2->unsold);
+
+        // Top-level totalSold and totalUnsold must be fully synchronized
+        $this->assertEquals($categoryStats->sum('sold'), $response->viewData('totalSold'));
+        $this->assertEquals($categoryStats->sum('unsold'), $response->viewData('totalUnsold'));
+    }
+
+    public function test_cancelling_ticket_does_not_decrement_sold_count_below_zero(): void
+    {
+        $category = TicketCategory::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->publishedEvent->id,
+            'name' => 'Single Ticket Category',
+            'price' => 50000,
+            'quota' => 10,
+            'sold_count' => 0, // already 0
+            'is_active' => true,
+        ]);
+
+        $tx = Transaction::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->publishedEvent->id,
+            'ticket_category_id' => $category->id,
+            'reference_no' => 'INV-TEST-CANCEL-001',
+            'customer_name' => 'Cancel Test',
+            'customer_email' => 'cancel@test.com',
+            'customer_phone' => '08123456789',
+            'quantity' => 1,
+            'total_amount' => 50000,
+            'payment_status' => 'paid',
+            'channel' => 'online',
+        ]);
+
+        $ticket = Ticket::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->publishedEvent->id,
+            'transaction_id' => $tx->id,
+            'ticket_category_id' => $category->id,
+            'ticket_code' => 'GTX-CANCEL-001',
+            'status' => 'sold',
+        ]);
+
+        // Cancel this ticket via organizer
+        $response = $this->actingAs($this->user)->post(route('organizer.tickets.cancel', $ticket));
+        $response->assertSessionHas('success');
+
+        $category->refresh();
+        $this->assertGreaterThanOrEqual(0, $category->sold_count);
+        $this->assertEquals(0, $category->sold_count);
+    }
 }
