@@ -21,6 +21,7 @@ class EVoucherMail extends Mailable
      */
     public function __construct(\App\Models\Transaction $transaction)
     {
+        $transaction->loadMissing(['tickets.category', 'event']);
         $this->transaction = $transaction;
     }
 

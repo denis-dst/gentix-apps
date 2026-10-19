@@ -19,7 +19,7 @@
         .badge { padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
         .badge-success { background: #dcfce7; color: #166534; }
         .section-title { font-size: 16px; font-weight: 800; color: #1e293b; margin-top: 32px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .button { display: block; width: 100%; background: #f97316; color: #000000; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 32px; }
+        .button { display: block; width: 100%; background: #ea580c; color: #ffffff !important; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 32px; box-sizing: border-box; }
         .footer { padding: 24px; text-align: center; font-size: 12px; color: #94a3b8; }
         .price-summary { background: #fafafa; padding: 20px; border-radius: 12px; margin-top: 24px; }
         .price-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
@@ -38,11 +38,16 @@
             $evoucherUrl = $evoucherTicket
                 ? route('tickets.view', $evoucherTicket->ticket_code)
                 : url('/');
+            $ticketCount = $transaction->tickets->count();
         @endphp
         <div class="content">
             <p>Halo <strong>{{ $transaction->customer_name }}</strong>,</p>
             <p>Terima kasih sudah memesan tiket <strong>{{ $transaction->event->name }}</strong>.</p>
-            <p>Proses pemesanan dan pembayaran kamu telah kami terima! Tiket untuk event ini sudah kami terbitkan, ya. Klik tombol di bawah atau <a href="{{ $evoucherUrl }}" style="color: #f97316; font-weight: bold;">klik di sini</a> untuk melihat E-Voucher.</p>
+            @if($ticketCount > 1)
+                <p>Proses pemesanan dan pembayaran kamu telah kami terima! Sebanyak <strong>{{ $ticketCount }} tiket</strong> untuk event ini sudah kami terbitkan. Kamu dapat membuka masing-masing link e-voucher pada daftar tiket di bawah, atau <a href="{{ $evoucherUrl }}" style="color: #ea580c; font-weight: bold;">klik di sini untuk melihat semua tiket</a>.</p>
+            @else
+                <p>Proses pemesanan dan pembayaran kamu telah kami terima! Tiket untuk event ini sudah kami terbitkan, ya. Klik tombol di bawah atau <a href="{{ $evoucherUrl }}" style="color: #ea580c; font-weight: bold;">klik di sini</a> untuk melihat E-Voucher.</p>
+            @endif
 
             <div class="event-card">
                 <div class="event-title">{{ $transaction->event->name }}</div>
@@ -69,13 +74,38 @@
                 </tr>
             </table>
 
-            <div class="section-title">Informasi Pengunjung</div>
+            <div class="section-title">
+                Daftar Tiket &amp; Link E-Voucher @if($ticketCount > 1)({{ $ticketCount }} Tiket)@endif
+            </div>
+
             @foreach($transaction->tickets as $index => $ticket)
-                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
-                    <div style="font-weight: 800; font-size: 13px; color: #1e293b; margin-bottom: 4px; text-transform: uppercase;">{{ $ticket->category->name }}</div>
-                    <div style="font-size: 12px; color: #64748b;">Pesanan {{ $index + 1 }}</div>
-                    <div style="margin-top: 8px; font-weight: 700; color: #334155;">{{ $transaction->customer_name }}</div>
-                    <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">{{ $ticket->ticket_code }}</div>
+                @php
+                    $individualUrl = route('tickets.view', $ticket->ticket_code);
+                @endphp
+                <div style="background: #f8fafc; padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="vertical-align: top;">
+                                <div style="font-weight: 800; font-size: 13px; color: #1e293b; text-transform: uppercase;">
+                                    Tiket #{{ $index + 1 }} &bull; {{ $ticket->category->name ?? 'Tiket' }}
+                                </div>
+                                <div style="font-size: 13px; color: #334155; font-weight: 700; margin-top: 4px;">
+                                    {{ $ticket->visitor_data['name'] ?? $transaction->customer_name }}
+                                </div>
+                                <div style="font-size: 12px; color: #64748b; font-family: monospace; margin-top: 2px;">
+                                    Kode: <strong style="color: #0f172a;">{{ $ticket->ticket_code }}</strong>
+                                </div>
+                            </td>
+                            <td style="vertical-align: middle; text-align: right; width: 130px;">
+                                <a href="{{ $individualUrl }}" style="display: inline-block; background: #0f172a; color: #ffffff !important; padding: 9px 14px; border-radius: 8px; text-decoration: none; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.03em;">
+                                    Buka Tiket &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b; word-break: break-all;">
+                        Link: <a href="{{ $individualUrl }}" style="color: #ea580c; text-decoration: underline;">{{ $individualUrl }}</a>
+                    </div>
                 </div>
             @endforeach
 
@@ -83,7 +113,7 @@
             <div class="price-summary">
                 <div style="display: table; width: 100%;">
                     <div style="display: table-row;">
-                        <div style="display: table-cell; padding: 4px 0; font-size: 14px; color: #64748b;">Total Harga ({{ $transaction->quantity }} Barang)</div>
+                        <div style="display: table-cell; padding: 4px 0; font-size: 14px; color: #64748b;">Total Harga ({{ $transaction->quantity }} Tiket)</div>
                         <div style="display: table-cell; padding: 4px 0; text-align: right; font-weight: 700;">Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</div>
                     </div>
                     <div style="display: table-row;">
@@ -92,12 +122,16 @@
                     </div>
                     <div style="display: table-row;">
                         <div style="display: table-cell; padding: 12px 0 0 0; font-size: 16px; font-weight: 800; color: #1e293b; border-top: 2px solid #f1f5f9;">Total Tagihan</div>
-                        <div style="display: table-cell; padding: 12px 0 0 0; text-align: right; font-weight: 800; font-size: 20px; color: #f97316; border-top: 2px solid #f1f5f9;">Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</div>
+                        <div style="display: table-cell; padding: 12px 0 0 0; text-align: right; font-weight: 800; font-size: 20px; color: #ea580c; border-top: 2px solid #f1f5f9;">Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</div>
                     </div>
                 </div>
             </div>
 
-            <a href="{{ $evoucherUrl }}" class="button">Lihat E-Voucher</a>
+            @if($ticketCount > 1)
+                <a href="{{ $evoucherUrl }}" class="button">Lihat Semua E-Voucher ({{ $ticketCount }} Tiket)</a>
+            @else
+                <a href="{{ $evoucherUrl }}" class="button">Lihat E-Voucher</a>
+            @endif
         </div>
         <div class="footer">
             &copy; {{ date('Y') }} GenTix Platform. Semua Hak Dilindungi.<br>

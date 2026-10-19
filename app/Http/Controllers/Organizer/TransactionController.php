@@ -284,8 +284,9 @@ class TransactionController extends Controller
             
             // Check if tickets already exist to prevent duplicate generation
             if ($transaction->tickets()->count() === 0) {
+                $createdTickets = [];
                 for ($i = 0; $i < $transaction->quantity; $i++) {
-                    $ticket = \App\Models\Ticket::create([
+                    $createdTickets[] = \App\Models\Ticket::create([
                         'tenant_id' => $transaction->tenant_id,
                         'event_id' => $transaction->event_id,
                         'transaction_id' => $transaction->id,
@@ -293,14 +294,16 @@ class TransactionController extends Controller
                         'ticket_code' => 'GTX-' . strtoupper(\Illuminate\Support\Str::random(10)),
                         'status' => 'sold',
                     ]);
+                }
 
-                    // Send Notification
-                    try {
+                // Send Notification once per transaction
+                try {
+                    if (!empty($createdTickets)) {
                         $notificationService = new \App\Services\TicketNotificationService();
-                        $notificationService->sendEVoucher($ticket);
-                    } catch (\Exception $e) {
-                        // Ignore mail/WA error in admin panel
+                        $notificationService->sendEVoucher($createdTickets[0]);
                     }
+                } catch (\Exception $e) {
+                    // Ignore mail/WA error in admin panel
                 }
 
                 if ($category) {
