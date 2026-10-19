@@ -268,6 +268,16 @@ class ReportController extends Controller
                 $checkedInCount      = $checkedInTickets->count();
                 $isPartialScan       = $totalTickets > 1 && $checkedInCount > 0 && $checkedInCount < $totalTickets;
 
+                $firstTicket = $transaction->tickets->first();
+                $firstVisitorData = $firstTicket && is_array($firstTicket->visitor_data) ? $firstTicket->visitor_data : [];
+                $customFields = $this->resolveCustomFields($transaction->event, $firstVisitorData, $transaction);
+                $customQuestionLabel = !empty($customFields)
+                    ? collect($customFields)->pluck('label')->implode(' | ')
+                    : '-';
+                $customAnswerSummary = !empty($customFields)
+                    ? collect($customFields)->pluck('value')->implode(' | ')
+                    : ($transaction->customer_umroh_answer ?: '-');
+
                 return [
                     'reference_no' => $transaction->reference_no,
                     'created_at' => $transaction->created_at,
@@ -276,8 +286,9 @@ class ReportController extends Controller
                     'customer_email' => $transaction->customer_email,
                     'customer_phone' => $transaction->customer_phone,
                     'customer_gender' => $transaction->customer_gender,
-                    'customer_umroh_answer' => $transaction->customer_umroh_answer,
-                    'custom_question_label' => $this->customQuestionLabel($transaction->event),
+                    'customer_umroh_answer' => $customAnswerSummary,
+                    'custom_question_label' => $customQuestionLabel,
+                    'custom_fields' => $customFields,
                     'event_name' => $transaction->event->name ?? '-',
                     'category_name' => $transaction->category->name ?? 'Mixed',
                     'quantity' => $transaction->quantity,
@@ -311,6 +322,14 @@ class ReportController extends Controller
                     $hasCheckin    = $inLogs->isNotEmpty();
                     $firstCheckin  = $inLogs->first()?->scanned_at;
 
+                    $customFields = $this->resolveCustomFields($transaction->event, $visitorData, $transaction);
+                    $customQuestionLabel = !empty($customFields)
+                        ? collect($customFields)->pluck('label')->implode(' | ')
+                        : '-';
+                    $customAnswerSummary = !empty($customFields)
+                        ? collect($customFields)->pluck('value')->implode(' | ')
+                        : ($visitorData['umroh_answer'] ?? ($transaction->customer_umroh_answer ?: '-'));
+
                     return [
                         'ticket_code' => $ticket->ticket_code,
                         'reference_no' => $transaction->reference_no,
@@ -319,8 +338,9 @@ class ReportController extends Controller
                         'email' => $visitorData['email'] ?? $transaction->customer_email,
                         'phone' => $visitorData['phone'] ?? $transaction->customer_phone,
                         'gender' => $visitorData['gender'] ?? $transaction->customer_gender,
-                        'umroh_answer' => $visitorData['umroh_answer'] ?? $transaction->customer_umroh_answer,
-                        'custom_question_label' => $this->customQuestionLabel($transaction->event),
+                        'umroh_answer' => $customAnswerSummary,
+                        'custom_question_label' => $customQuestionLabel,
+                        'custom_fields' => $customFields,
                         'event_name' => $transaction->event->name ?? '-',
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
@@ -334,6 +354,66 @@ class ReportController extends Controller
                 });
             })
             ->values();
+    }
+
+    private function resolveCustomFields(?Event $event, array $visitorData, ?Transaction $transaction = null): array
+    {
+        if (!$event) {
+            return [];
+        }
+
+        $formatted = [];
+        $processedFieldIds = [];
+        $customAnswers = is_array($visitorData['custom_answers'] ?? null) ? $visitorData['custom_answers'] : [];
+
+        $customFields = method_exists($event, 'getCustomFields') ? $event->getCustomFields() : [];
+        if (!empty($customFields)) {
+            foreach ($customFields as $field) {
+                $fId = (string) ($field['id'] ?? '');
+                $processedFieldIds[] = $fId;
+                $val = $customAnswers[$fId] ?? null;
+
+                if (($val === null || $val === '') && $fId === 'umroh_answer') {
+                    $val = $visitorData['umroh_answer'] ?? ($transaction->customer_umroh_answer ?? null);
+                }
+
+                if (($val === null || $val === '') && count($customFields) === 1) {
+                    $val = $visitorData['umroh_answer'] ?? ($transaction->customer_umroh_answer ?? null);
+                }
+
+                $valueStr = is_array($val) ? implode(', ', array_filter($val)) : trim((string) $val);
+
+                $formatted[] = [
+                    'id' => $fId,
+                    'label' => $field['label'] ?? 'Pertanyaan Custom',
+                    'value' => $valueStr !== '' ? $valueStr : '-',
+                ];
+            }
+        } elseif (!empty($visitorData['umroh_answer']) || !empty($transaction?->customer_umroh_answer)) {
+            $ans = $visitorData['umroh_answer'] ?? $transaction->customer_umroh_answer;
+            $formatted[] = [
+                'id' => 'umroh_answer',
+                'label' => $this->customQuestionLabel($event),
+                'value' => trim((string) $ans) !== '' ? trim((string) $ans) : '-',
+            ];
+            $processedFieldIds[] = 'umroh_answer';
+        }
+
+        if (is_array($customAnswers)) {
+            foreach ($customAnswers as $key => $val) {
+                if (!in_array((string) $key, $processedFieldIds, true) && $val !== null && $val !== '') {
+                    $label = ucwords(str_replace(['_', '-'], ' ', (string) $key));
+                    $valueStr = is_array($val) ? implode(', ', array_filter($val)) : trim((string) $val);
+                    $formatted[] = [
+                        'id' => (string) $key,
+                        'label' => $label,
+                        'value' => $valueStr !== '' ? $valueStr : '-',
+                    ];
+                }
+            }
+        }
+
+        return $formatted;
     }
 
     private function customQuestionLabel(?Event $event): string
