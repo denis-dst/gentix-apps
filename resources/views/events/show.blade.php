@@ -935,7 +935,7 @@
                                         </div>
 
                                         <!-- Validation Error Summary -->
-                                        <div x-show="formTouched && (!email || proofs.some(p => p.is_required && !uploadedProofs[p.id]) || attendees.some(a => !a.name || !a.gender))" 
+                                        <div x-show="formTouched && (!email || proofs.some(p => p.is_required && !uploadedProofs[p.id]) || attendees.some(a => !a.name || (genderSetting !== 'disabled' && !a.gender) || customFields.some(f => f.is_required && (!a.custom_answers || !a.custom_answers[f.id]))))" 
                                              x-cloak
                                              class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
                                             <div class="flex items-center gap-2 mb-1">
@@ -948,12 +948,15 @@
                                                     <li x-text="proof.label"></li>
                                                 </template>
                                                 <template x-for="(attendee, idx) in attendees" :key="idx">
-                                                    <template x-if="!attendee.name || !attendee.gender">
+                                                    <template x-if="!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || customFields.some(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id]))">
                                                         <li>
                                                             <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
                                                             <span x-show="!attendee.name">Nama</span>
-                                                            <span x-show="!attendee.name && !attendee.gender">, </span>
-                                                            <span x-show="!attendee.gender">Gender</span>
+                                                            <span x-show="!attendee.name && genderSetting !== 'disabled' && !attendee.gender">, </span>
+                                                            <span x-show="genderSetting !== 'disabled' && !attendee.gender">Gender</span>
+                                                            <template x-for="(f, fIdx) in customFields.filter(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id]))" :key="f.id">
+                                                                <span x-text="(!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || fIdx > 0 ? ', ' : '') + f.label"></span>
+                                                            </template>
                                                         </li>
                                                     </template>
                                                 </template>
