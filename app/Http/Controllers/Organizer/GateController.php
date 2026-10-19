@@ -131,14 +131,14 @@ class GateController extends Controller
     {
         $request->validate([
             'ticket_code' => 'required|string',
-            'event_id' => 'required|exists:events,id',
+            'event_id' => 'required|integer',
             'mode' => 'required|in:IN,OUT',
             'gate_name' => 'required|string'
         ]);
 
         $scanCode = trim($request->ticket_code);
 
-        // Fetch ticket with event, transaction, and category in a single query
+        // Fetch ticket with event, transaction, and category in eager queries
         $ticket = Ticket::where('event_id', $request->event_id)
             ->where(function ($q) use ($scanCode) {
                 $q->where('ticket_code', $scanCode)
@@ -146,8 +146,8 @@ class GateController extends Controller
             })
             ->with([
                 'category:id,name,hex_color',
-                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
-                'event:id,tenant_id,purchase_flow,name'
+                'transaction:id,customer_name,customer_email,customer_phone,reference_no,quantity,customer_gender,customer_umroh_answer',
+                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
             ])
             ->first();
 
@@ -174,8 +174,8 @@ class GateController extends Controller
                             ]);
                             $ticket = $unlinkedTicket->fresh([
                                 'category:id,name,hex_color',
-                                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
-                                'event:id,tenant_id,purchase_flow,name'
+                                'transaction:id,customer_name,customer_email,customer_phone,reference_no,quantity,customer_gender,customer_umroh_answer',
+                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
                             ]);
                         } else {
                             $stockTx = \App\Models\Transaction::firstOrCreate(
@@ -210,8 +210,8 @@ class GateController extends Controller
                             ]);
                             $ticket = $newTicket->fresh([
                                 'category:id,name,hex_color',
-                                'transaction:id,customer_name,customer_email,customer_phone,reference_no',
-                                'event:id,tenant_id,purchase_flow,name'
+                                'transaction:id,customer_name,customer_email,customer_phone,reference_no,quantity,customer_gender,customer_umroh_answer',
+                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
                             ]);
                         }
                     }
@@ -248,9 +248,9 @@ class GateController extends Controller
             ], 403);
         }
 
-        // Fetch latest log with scanner info using indexed lookup
+        // Fetch latest log with selective columns; scanner is lazy-loaded only on error
         $lastLog = GateLog::where('ticket_id', $ticket->id)
-            ->with('scanner:id,name')
+            ->select('id', 'ticket_id', 'type', 'scanned_at', 'scanned_by', 'gate_name')
             ->orderBy('scanned_at', 'desc')
             ->first();
 
@@ -266,6 +266,7 @@ class GateController extends Controller
         }
 
         if ($alreadyInState) {
+            $lastLog->loadMissing('scanner:id,name');
             $operatorName = $lastLog->scanner ? $lastLog->scanner->name : ($lastLog->gate_name ?? 'System');
             $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
             $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
@@ -288,24 +289,28 @@ class GateController extends Controller
             ], 400);
         }
 
-        // Group checking: Load group tickets in a single eager query if transaction exists
+        // Group checking: Only execute group queries when transaction has multiple tickets
         $transaction = $ticket->transaction;
-        if ($transaction) {
+        if ($transaction && (int) $transaction->quantity > 1) {
             $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
+                ->select('id', 'ticket_code', 'ticket_category_id', 'transaction_id', 'visitor_data', 'status')
                 ->with([
                     'category:id,name,hex_color',
-                    'gateLogs' => fn ($q) => $q->with('scanner:id,name')->orderBy('scanned_at', 'desc')
+                    'gateLogs' => fn ($q) => $q->select('id', 'ticket_id', 'type', 'scanned_at', 'scanned_by', 'gate_name')
+                        ->with('scanner:id,name')
+                        ->orderBy('scanned_at', 'desc')
                 ])
                 ->get();
 
             if ($ticketsInGroup->count() > 1) {
-                $attendeesList = $ticketsInGroup->map(function ($t) use ($event) {
+                $attendeesList = $ticketsInGroup->map(function ($t) use ($event, $transaction) {
+                    $t->setRelation('transaction', $transaction);
                     $tLastLog = $t->gateLogs->first();
                     $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
                     return [
                         'ticket_id' => $t->id,
                         'ticket_code' => $t->ticket_code,
-                        'name' => $t->visitor_data['name'] ?? $t->transaction->customer_name,
+                        'name' => $t->visitor_data['name'] ?? $transaction->customer_name,
                         'gender' => $t->visitor_data['gender'] ?? null,
                         'is_checked_in' => $isCheckedIn,
                         'category' => $t->category->name ?? '-',
@@ -347,7 +352,7 @@ class GateController extends Controller
                 }
             });
 
-            // Single aggregate query for live counts
+            // Single aggregate query using composite index (event_id, type)
             $counts = GateLog::where('event_id', $event->id)
                 ->selectRaw("
                     SUM(CASE WHEN type = 'IN' THEN 1 ELSE 0 END) as in_count,
@@ -381,7 +386,7 @@ class GateController extends Controller
     {
         $request->validate([
             'ticket_ids' => 'required|array',
-            'ticket_ids.*' => 'exists:tickets,id',
+            'ticket_ids.*' => 'required|integer',
             'mode' => 'required|in:IN,OUT',
             'gate_name' => 'required|string'
         ]);
@@ -389,17 +394,32 @@ class GateController extends Controller
         try {
             $now = now();
             $authId = auth()->id();
-            $ticketIds = array_unique($request->ticket_ids);
+            $ticketIds = array_values(array_unique($request->ticket_ids));
 
-            // Fetch latest logs for all tickets in a single batch query
-            $existingLogs = GateLog::whereIn('ticket_id', $ticketIds)
+            // Verify tickets belong to this event in a single query
+            $validTicketIds = Ticket::whereIn('id', $ticketIds)
+                ->where('event_id', $event->id)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($validTicketIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada tiket valid yang dipilih'
+                ], 400);
+            }
+
+            // Fetch latest logs for all selected tickets in a single batch query
+            $existingLogs = GateLog::whereIn('ticket_id', $validTicketIds)
+                ->select('id', 'ticket_id', 'type', 'scanned_at')
                 ->orderBy('scanned_at', 'desc')
                 ->get()
                 ->groupBy('ticket_id');
 
             $insertRows = [];
+            $redeemedTicketIds = [];
 
-            foreach ($ticketIds as $ticketId) {
+            foreach ($validTicketIds as $ticketId) {
                 $ticketLogs = $existingLogs->get($ticketId);
                 $lastLog = $ticketLogs ? $ticketLogs->first() : null;
                 $alreadyInState = $lastLog && $lastLog->type === $request->mode;
@@ -408,6 +428,7 @@ class GateController extends Controller
                     if ($alreadyInState) {
                         continue;
                     }
+                    $redeemedTicketIds[] = $ticketId;
                 } else {
                     $hasIn = $ticketLogs && $ticketLogs->contains('type', 'IN');
                     if (!$hasIn || $alreadyInState) {
@@ -431,8 +452,17 @@ class GateController extends Controller
             }
 
             if (!empty($insertRows)) {
-                DB::transaction(function () use ($insertRows) {
+                DB::transaction(function () use ($insertRows, $redeemedTicketIds, $now) {
                     GateLog::insert($insertRows);
+
+                    if (!empty($redeemedTicketIds)) {
+                        Ticket::whereIn('id', $redeemedTicketIds)
+                            ->where('status', 'sold')
+                            ->update([
+                                'status' => 'redeemed',
+                                'redeemed_at' => $now,
+                            ]);
+                    }
                 });
             }
 
