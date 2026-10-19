@@ -264,12 +264,24 @@
                     @endif
                 </div>
                 @if($isFree)
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Gender</span>
-                        <span class="text-sm font-bold {{ $transaction->customer_gender === 'ikhwan' ? 'text-blue-600' : 'text-pink-600' }} capitalize">
-                            {{ $transaction->customer_gender === 'ikhwan' ? '🧔 Ikhwan' : '🧕 Akhwat' }}
-                        </span>
-                    </div>
+                    @if(!empty($transaction->customer_gender))
+                        @php
+                            $genderLabels = [
+                                'ikhwan' => ['label' => '🧔 Ikhwan', 'class' => 'text-blue-600'],
+                                'akhwat' => ['label' => '🧕 Akhwat', 'class' => 'text-pink-600'],
+                                'laki-laki' => ['label' => '👨 Laki-laki', 'class' => 'text-blue-600'],
+                                'perempuan' => ['label' => '👩 Perempuan', 'class' => 'text-pink-600'],
+                            ];
+                            $genderKey = strtolower(trim($transaction->customer_gender));
+                            $genderDisplay = $genderLabels[$genderKey] ?? ['label' => ucfirst($transaction->customer_gender), 'class' => 'text-slate-700'];
+                        @endphp
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Gender</span>
+                            <span class="text-sm font-bold {{ $genderDisplay['class'] }} capitalize">
+                                {{ $genderDisplay['label'] }}
+                            </span>
+                        </div>
+                    @endif
                     <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Biaya</span>
                         <span class="text-sm font-black text-emerald-600">GRATIS</span>

@@ -77,7 +77,8 @@
 </head>
 <body class="text-slate-800" x-data="{
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},
-    umrohQuestionEnabled: {{ $event->umroh_question_enabled ? 'true' : 'false' }},
+    genderSetting: '{{ $event->getAttendeeGenderSetting() }}',
+    customFields: @js($event->getCustomFields()),
     proofs: @js($event->getRegistrationProofs()),
     step: 1,
     selectedCategory: null,
@@ -194,7 +195,17 @@
                 alert(this.lang === 'id' ? 'Silakan masukkan nomor WhatsApp.' : 'Please enter WhatsApp number.');
                 return;
             }
-            this.attendees = Array.from({length: this.quantity}, () => ({name: '', gender: '', umroh_answer: ''}));
+            this.attendees = Array.from({length: this.quantity}, () => {
+                let attendeeObj = {
+                    name: '',
+                    gender: '',
+                    custom_answers: {}
+                };
+                this.customFields.forEach(f => {
+                    attendeeObj.custom_answers[f.id] = '';
+                });
+                return attendeeObj;
+            });
             this.currentAttendee = 0;
         } else {
             if (this.nik.length < 16) {
@@ -220,9 +231,27 @@
         if (!this.email) { return; }
         const missingProof = this.proofs.some(p => p.is_required && !this.uploadedProofs[p.id]);
         if (missingProof) { return; }
-        const invalid = this.attendees.some((a) => !a.name || !a.gender);
+        const invalid = this.attendees.some((a) => {
+            if (!a.name) return true;
+            if (this.genderSetting !== 'disabled' && !a.gender) return true;
+            for (let f of this.customFields) {
+                if (f.is_required && (!a.custom_answers || !a.custom_answers[f.id])) {
+                    return true;
+                }
+            }
+            return false;
+        });
         if (invalid) {
-            const firstIdx = this.attendees.findIndex(a => !a.name || !a.gender);
+            const firstIdx = this.attendees.findIndex((a) => {
+                if (!a.name) return true;
+                if (this.genderSetting !== 'disabled' && !a.gender) return true;
+                for (let f of this.customFields) {
+                    if (f.is_required && (!a.custom_answers || !a.custom_answers[f.id])) {
+                        return true;
+                    }
+                }
+                return false;
+            });
             if (firstIdx !== -1) this.currentAttendee = firstIdx;
             return;
         }
@@ -748,7 +777,7 @@
                                                         :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
                                                         class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
                                                     Peserta <span x-text="index + 1"></span>
-                                                    <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
+                                                    <span x-show="formTouched && (!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || customFields.some(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id])))" x-cloak
                                                           class="absolute -top-1 -right-1 flex h-3 w-3">
                                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                                         <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
@@ -769,7 +798,7 @@
                                         <!-- Nama Lengkap -->
                                         <div>
                                             <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
-                                            <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
+                                            <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP / Identitas" required
                                                    :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
                                                    class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
                                             <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
@@ -778,66 +807,106 @@
                                             </p>
                                         </div>
 
-                                        <!-- Gender -->
-                                        <div>
-                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Gender *</label>
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <!-- Ikhwan -->
-                                                <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
-                                                       class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                    <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
-                                                    <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                        <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-sm font-black">🧔 Ikhwan</div>
-                                                        <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
-                                                    </div>
+                                        <!-- Gender (Conditional based on genderSetting) -->
+                                        <template x-if="genderSetting !== 'disabled'">
+                                            <div>
+                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">
+                                                    Jenis Kelamin / Gender *
                                                 </label>
-                                                <!-- Akhwat -->
-                                                <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
-                                                       class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                    <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
-                                                    <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                        <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-sm font-black">🧕 Akhwat</div>
-                                                        <div class="text-[9px] font-medium opacity-60">Perempuan</div>
-                                                    </div>
-                                                </label>
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <!-- Option 1: Male / Ikhwan -->
+                                                    <label :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki') ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" :value="genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki'" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki') ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki')" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black" x-text="genderSetting === 'islamic' ? '🧔 Ikhwan' : '👨 Laki-laki'"></div>
+                                                            <div class="text-[9px] font-medium opacity-60" x-text="genderSetting === 'islamic' ? 'Laki-laki' : 'Pria'"></div>
+                                                        </div>
+                                                    </label>
+                                                    <!-- Option 2: Female / Akhwat -->
+                                                    <label :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan') ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" :value="genderSetting === 'islamic' ? 'akhwat' : 'perempuan'" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan') ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan')" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black" x-text="genderSetting === 'islamic' ? '🧕 Akhwat' : '👩 Perempuan'"></div>
+                                                            <div class="text-[9px] font-medium opacity-60" x-text="genderSetting === 'islamic' ? 'Perempuan' : 'Wanita'"></div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    Pilihan jenis kelamin wajib diisi
+                                                </p>
                                             </div>
-                                            <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                Pilih gender wajib
-                                            </p>
-                                        </div>
+                                        </template>
 
-                                        <!-- Pertanyaan Umroh (conditional) -->
-                                        <div x-show="umrohQuestionEnabled" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                                            @php
-                                                $qText = $event->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?';
-                                                $qType = $event->meta['custom_question_type'] ?? 'text';
-                                                $qOptions = $event->meta['custom_question_options'] ?? [];
-                                            @endphp
-                                            <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest text-left">
-                                                🕌 {{ $qText }}
-                                            </label>
-                                            @if($qType === 'select')
-                                                <select x-model="attendees[currentAttendee].umroh_answer"
-                                                        class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
-                                                    <option value="" disabled selected>Pilih salah satu...</option>
-                                                    @foreach($qOptions as $opt)
-                                                        <option value="{{ $opt }}">{{ $opt }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @else
-                                                <p class="text-[10px] text-amber-600 text-left">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
-                                                <input type="text" x-model="attendees[currentAttendee].umroh_answer"
-                                                       placeholder="Contoh: 13 Januari 2024"
-                                                       class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
-                                            @endif
-                                        </div>
+                                        <!-- Custom Fields (Dynamic) -->
+                                        <template x-for="field in customFields" :key="field.id">
+                                            <div class="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
+                                                <div class="flex items-center justify-between">
+                                                    <label class="block text-[11px] font-black text-amber-900 uppercase tracking-wider text-left">
+                                                        <span x-text="field.label"></span>
+                                                        <span x-show="field.is_required" class="text-rose-500">*</span>
+                                                    </label>
+                                                    <span x-show="!field.is_required" class="text-[9px] font-bold text-amber-700/60 uppercase tracking-widest bg-amber-100/50 px-2 py-0.5 rounded-full">Opsional</span>
+                                                </div>
+                                                <template x-if="field.helper_text">
+                                                    <p class="text-[11px] text-amber-800/80 text-left" x-text="field.helper_text"></p>
+                                                </template>
+
+                                                <!-- Input text -->
+                                                <template x-if="field.type === 'text'">
+                                                    <input type="text" x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                           :placeholder="field.placeholder || 'Ketik jawaban di sini...'"
+                                                           :required="field.is_required"
+                                                           :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
+                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
+                                                </template>
+
+                                                <!-- Input textarea -->
+                                                <template x-if="field.type === 'textarea'">
+                                                    <textarea x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                              :placeholder="field.placeholder || 'Ketik penjelasan di sini...'"
+                                                              rows="3"
+                                                              :required="field.is_required"
+                                                              :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
+                                                              class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800"></textarea>
+                                                </template>
+
+                                                <!-- Input select -->
+                                                <template x-if="field.type === 'select'">
+                                                    <select x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                            :required="field.is_required"
+                                                            :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
+                                                            class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
+                                                        <option value="" disabled selected>Pilih salah satu...</option>
+                                                        <template x-for="opt in field.options" :key="opt">
+                                                            <option :value="opt" x-text="opt"></option>
+                                                        </template>
+                                                    </select>
+                                                </template>
+
+                                                <!-- Input number -->
+                                                <template x-if="field.type === 'number'">
+                                                    <input type="number" x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                           :placeholder="field.placeholder || 'Contoh: 1'"
+                                                           :required="field.is_required"
+                                                           :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
+                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
+                                                </template>
+
+                                                <p x-show="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id]" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                    <span x-text="field.label + ' wajib diisi'"></span>
+                                                </p>
+                                            </div>
+                                        </template>
                                     </div>
 
                                     <!-- Navigation buttons within form -->

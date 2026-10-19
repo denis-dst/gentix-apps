@@ -687,6 +687,8 @@ class PublicEventController extends Controller
         }
 
         $proofs = $event->getRegistrationProofs();
+        $genderSetting = $event->getAttendeeGenderSetting();
+        $customFields = $event->getCustomFields();
 
         $rules = [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
@@ -695,11 +697,33 @@ class PublicEventController extends Controller
             'email'              => 'required|email|max:255',
             'attendees'          => 'required|array|size:' . $request->input('quantity', 1),
             'attendees.*.name'   => 'required|string|max:255',
-            'attendees.*.gender' => 'required|in:ikhwan,akhwat',
-            'attendees.*.umroh_answer' => 'nullable|string|max:500',
         ];
 
         $messages = [];
+
+        if ($genderSetting === 'islamic') {
+            $rules['attendees.*.gender'] = 'required|in:ikhwan,akhwat';
+            $messages['attendees.*.gender.required'] = 'Gender (Ikhwan/Akhwat) wajib dipilih untuk setiap peserta.';
+        } elseif ($genderSetting === 'general') {
+            $rules['attendees.*.gender'] = 'required|in:laki-laki,perempuan';
+            $messages['attendees.*.gender.required'] = 'Jenis kelamin wajib dipilih untuk setiap peserta.';
+        } else {
+            $rules['attendees.*.gender'] = 'nullable|string|max:50';
+        }
+
+        $rules['attendees.*.umroh_answer'] = 'nullable|string|max:1000';
+        $rules['attendees.*.custom_answers'] = 'nullable|array';
+
+        foreach ($customFields as $field) {
+            $fieldKey = 'attendees.*.custom_answers.' . $field['id'];
+            if (!empty($field['is_required'])) {
+                $rules[$fieldKey] = 'required';
+                $messages[$fieldKey . '.required'] = $field['label'] . ' wajib diisi.';
+            } else {
+                $rules[$fieldKey] = 'nullable';
+            }
+        }
+
         foreach ($proofs as $proof) {
             $key = 'proofs.' . $proof['id'];
             $rules[$key] = ($proof['is_required'] ? 'required|' : 'nullable|') . 'file|max:2048|mimes:jpeg,jpg,png,webp';
@@ -776,6 +800,13 @@ class PublicEventController extends Controller
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $firstAttendee = $validated['attendees'][0];
+            $firstCustomAnswers = $firstAttendee['custom_answers'] ?? [];
+            $primaryAnswer = null;
+            if (!empty($firstCustomAnswers)) {
+                $primaryAnswer = reset($firstCustomAnswers);
+            } elseif (!empty($firstAttendee['umroh_answer'])) {
+                $primaryAnswer = $firstAttendee['umroh_answer'];
+            }
 
             // Create Transaction: immediately paid (free event)
             $transaction = Transaction::create([
@@ -788,8 +819,8 @@ class PublicEventController extends Controller
                 'customer_email'       => $validated['email'],
                 'customer_phone'       => $validated['phone'],
                 'customer_nik'         => null,
-                'customer_gender'      => $firstAttendee['gender'],
-                'customer_umroh_answer'=> $firstAttendee['umroh_answer'] ?? null,
+                'customer_gender'      => $firstAttendee['gender'] ?? null,
+                'customer_umroh_answer'=> $primaryAnswer,
                 'discount_amount'      => 0,
                 'total_amount'         => 0,
                 'payment_status'       => 'paid',
@@ -801,6 +832,14 @@ class PublicEventController extends Controller
             // Create Tickets immediately
             for ($i = 0; $i < $validated['quantity']; $i++) {
                 $attendee = $validated['attendees'][$i];
+                $customAnswers = $attendee['custom_answers'] ?? [];
+                $ticketAnswer = null;
+                if (!empty($customAnswers)) {
+                    $ticketAnswer = reset($customAnswers);
+                } elseif (!empty($attendee['umroh_answer'])) {
+                    $ticketAnswer = $attendee['umroh_answer'];
+                }
+
                 $ticket = Ticket::create([
                     'tenant_id'          => $event->tenant_id,
                     'event_id'           => $event->id,
@@ -809,14 +848,15 @@ class PublicEventController extends Controller
                     'ticket_code'        => 'GTX-' . strtoupper(Str::random(10)),
                     'status'             => 'sold',
                     'visitor_data'       => [
-                        'name'         => $attendee['name'],
-                        'gender'       => $attendee['gender'],
-                        'umroh_answer' => $attendee['umroh_answer'] ?? null,
-                        'email'        => $validated['email'],
-                        'phone'        => $validated['phone'],
-                        'proof_ig'     => $proofIgPath,
-                        'proof_review' => $proofReviewPath,
-                        'proofs'       => $uploadedProofs,
+                        'name'           => $attendee['name'],
+                        'gender'         => $attendee['gender'] ?? null,
+                        'umroh_answer'   => $ticketAnswer,
+                        'custom_answers' => $customAnswers,
+                        'email'          => $validated['email'],
+                        'phone'          => $validated['phone'],
+                        'proof_ig'       => $proofIgPath,
+                        'proof_review'   => $proofReviewPath,
+                        'proofs'         => $uploadedProofs,
                     ]
                 ]);
 

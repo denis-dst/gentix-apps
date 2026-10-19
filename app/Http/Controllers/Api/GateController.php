@@ -741,6 +741,31 @@ class GateController extends Controller
 
     private function customQuestionPayload(?Event $event, array $visitorData, ?string $fallbackAnswer = null): array
     {
+        $customFields = $event ? $event->getCustomFields() : [];
+        if (!empty($customFields)) {
+            $customAnswers = $visitorData['custom_answers'] ?? [];
+            $items = [];
+            foreach ($customFields as $field) {
+                $ans = $customAnswers[$field['id']] ?? null;
+                if ($ans === null && $field['id'] === 'umroh_answer') {
+                    $ans = $visitorData['umroh_answer'] ?? $fallbackAnswer;
+                }
+                if ($ans !== null && $ans !== '') {
+                    $items[] = [
+                        'label' => $field['label'],
+                        'answer' => is_array($ans) ? implode(', ', $ans) : (string) $ans,
+                    ];
+                }
+            }
+            if (!empty($items)) {
+                return [
+                    'label' => count($items) === 1 ? $items[0]['label'] : 'Data Tambahan',
+                    'answer' => count($items) === 1 ? $items[0]['answer'] : collect($items)->map(fn($i) => "{$i['label']}: {$i['answer']}")->implode(' | '),
+                    'fields' => $items,
+                ];
+            }
+        }
+
         $label = '-';
 
         if ($event && $event->umroh_question_enabled) {

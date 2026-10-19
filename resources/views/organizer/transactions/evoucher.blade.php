@@ -265,9 +265,23 @@
                                 <span class="text-slate-700 font-bold capitalize">{{ $ticket->visitor_data['gender'] }}</span>
                             </div>
                             @endif
-                            @if(isset($ticket->visitor_data['umroh_answer']) && $ticket->visitor_data['umroh_answer'])
+                            @php
+                                $customFieldsMap = collect($transaction->event->getCustomFields())->keyBy('id');
+                                $customAnswers = $ticket->visitor_data['custom_answers'] ?? [];
+                            @endphp
+                            @if(!empty($customAnswers))
+                                @foreach($customAnswers as $cId => $cAns)
+                                    @if(!empty($cAns))
+                                        @php $cLabel = $customFieldsMap[$cId]['label'] ?? ($transaction->event->meta['custom_question_text'] ?? 'Data Khusus'); @endphp
+                                        <div class="flex justify-between items-center text-xs">
+                                            <span class="text-slate-400 font-medium">{{ $cLabel }}</span>
+                                            <span class="text-slate-700 font-bold">{{ is_array($cAns) ? implode(', ', $cAns) : $cAns }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            @elseif(isset($ticket->visitor_data['umroh_answer']) && $ticket->visitor_data['umroh_answer'])
                             <div class="flex justify-between items-center text-xs">
-                                <span class="text-slate-400 font-medium">{{ $transaction->event->meta['custom_question_text'] ?? 'Umroh Batik Travel' }}</span>
+                                <span class="text-slate-400 font-medium">{{ $transaction->event->meta['custom_question_text'] ?? 'Jawaban Khusus' }}</span>
                                 <span class="text-slate-700 font-bold">{{ $ticket->visitor_data['umroh_answer'] }}</span>
                             </div>
                             @endif

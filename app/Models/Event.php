@@ -132,4 +132,54 @@ class Event extends Model
         }
         return $proofs;
     }
+
+    /**
+     * Get the attendee gender setting: 'disabled', 'general', or 'islamic'.
+     */
+    public function getAttendeeGenderSetting(): string
+    {
+        if (isset($this->meta['attendee_gender_type'])) {
+            return $this->meta['attendee_gender_type'];
+        }
+
+        // Backward compatibility: If legacy umroh question was enabled, default to 'islamic'
+        if ($this->umroh_question_enabled) {
+            return 'islamic';
+        }
+
+        return 'general';
+    }
+
+    /**
+     * Get the custom registration fields for attendees.
+     */
+    public function getCustomFields(): array
+    {
+        if (isset($this->meta['custom_fields']) && is_array($this->meta['custom_fields'])) {
+            return $this->meta['custom_fields'];
+        }
+
+        // Backward compatibility: If legacy umroh_question_enabled is true
+        if ($this->umroh_question_enabled) {
+            $label = $this->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?';
+            $type = $this->meta['custom_question_type'] ?? 'text';
+            $options = $this->meta['custom_question_options'] ?? [];
+            $helper = $this->meta['custom_question_helper'] ?? ($label === 'Alumni Grup Keberangkatan Tanggal Berapa?' ? 'Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir' : '');
+            $placeholder = $this->meta['custom_question_placeholder'] ?? ($label === 'Alumni Grup Keberangkatan Tanggal Berapa?' ? 'Contoh: 13 Januari 2024' : '');
+
+            return [
+                [
+                    'id' => 'umroh_answer',
+                    'label' => $label,
+                    'type' => $type,
+                    'placeholder' => $placeholder,
+                    'helper_text' => $helper,
+                    'options' => $options,
+                    'is_required' => false,
+                ]
+            ];
+        }
+
+        return [];
+    }
 }
