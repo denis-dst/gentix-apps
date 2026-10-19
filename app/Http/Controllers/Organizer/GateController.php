@@ -274,7 +274,8 @@ class GateController extends Controller
                 'success' => false,
                 'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
                 'customer' => $visitorName,
-                'category' => $ticket->category->name ?? '-'
+                'category' => $ticket->category->name ?? '-',
+                'custom_fields' => $this->formatCustomFields($event, $ticket),
             ], 400);
         }
 
@@ -298,7 +299,7 @@ class GateController extends Controller
                 ->get();
 
             if ($ticketsInGroup->count() > 1) {
-                $attendeesList = $ticketsInGroup->map(function ($t) {
+                $attendeesList = $ticketsInGroup->map(function ($t) use ($event) {
                     $tLastLog = $t->gateLogs->first();
                     $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
                     return [
@@ -310,6 +311,7 @@ class GateController extends Controller
                         'category' => $t->category->name ?? '-',
                         'checked_in_at' => ($isCheckedIn && $tLastLog->scanned_at) ? $tLastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
                         'checked_in_by' => ($isCheckedIn && $tLastLog->scanner) ? $tLastLog->scanner->name : ($tLastLog->gate_name ?? null),
+                        'custom_fields' => $this->formatCustomFields($event, $t),
                     ];
                 });
 
@@ -361,6 +363,7 @@ class GateController extends Controller
                 'message' => 'Berhasil ' . ($request->mode === 'IN' ? 'Check-in' : 'Check-out'),
                 'customer' => $ticket->visitor_data['name'] ?? $ticket->transaction->customer_name,
                 'category' => $ticket->category->name ?? '-',
+                'custom_fields' => $this->formatCustomFields($event, $ticket),
                 'in_count' => $inCount,
                 'out_count' => $outCount,
                 'occupancy' => max(0, $inCount - $outCount)
@@ -458,5 +461,57 @@ class GateController extends Controller
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Format custom registration fields and gender for display on the gate scanner.
+     */
+    private function formatCustomFields(Event $event, Ticket $ticket): array
+    {
+        $visitorData = is_array($ticket->visitor_data) ? $ticket->visitor_data : [];
+        $customAnswers = $visitorData['custom_answers'] ?? [];
+        $formatted = [];
+
+        // Include gender if present and gender is not disabled
+        $genderSetting = $event->getAttendeeGenderSetting();
+        $gender = $visitorData['gender'] ?? ($ticket->transaction->customer_gender ?? null);
+        if ($genderSetting !== 'disabled' && !empty($gender)) {
+            $g = strtolower(trim($gender));
+            $genderLabel = match($g) {
+                'ikhwan' => '🧔 Ikhwan',
+                'akhwat' => '🧕 Akhwat',
+                'laki-laki' => '👨 Laki-laki',
+                'perempuan' => '👩 Perempuan',
+                default => ucfirst($gender)
+            };
+            $formatted[] = [
+                'label' => 'Gender',
+                'value' => $genderLabel
+            ];
+        }
+
+        $customFields = $event->getCustomFields();
+        if (!empty($customFields)) {
+            foreach ($customFields as $field) {
+                $val = $customAnswers[$field['id']] ?? null;
+                if (($val === null || $val === '') && $field['id'] === 'umroh_answer') {
+                    $val = $visitorData['umroh_answer'] ?? ($ticket->transaction->customer_umroh_answer ?? null);
+                }
+                if ($val !== null && $val !== '') {
+                    $formatted[] = [
+                        'label' => $field['label'],
+                        'value' => is_array($val) ? implode(', ', $val) : (string) $val
+                    ];
+                }
+            }
+        } elseif (!empty($visitorData['umroh_answer']) || !empty($ticket->transaction->customer_umroh_answer)) {
+            $ans = $visitorData['umroh_answer'] ?? $ticket->transaction->customer_umroh_answer;
+            $formatted[] = [
+                'label' => $event->meta['custom_question_text'] ?? 'Jawaban Khusus',
+                'value' => (string) $ans
+            ];
+        }
+
+        return $formatted;
     }
 }

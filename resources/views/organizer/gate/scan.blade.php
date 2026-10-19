@@ -264,12 +264,25 @@
                         <div x-show="status === 'success'"
                             class="bg-[#065f46] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in fade-in duration-200 z-50 pointer-events-auto cursor-pointer select-none"
                             @click="dismissResult()">
-                            <div class="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-6 shadow-2xl animate-bounce">
-                                <svg class="w-16 h-16 sm:w-20 sm:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-4 shadow-2xl animate-bounce shrink-0">
+                                <svg class="w-12 h-12 sm:w-16 sm:h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-3 font-outfit px-4" x-text="result.customer"></h3>
-                            <div class="px-6 py-2 bg-white text-emerald-900 rounded-full font-black text-xs sm:text-sm uppercase tracking-[0.2em] mb-3" x-text="result.category"></div>
-                            <p class="text-lg sm:text-2xl font-black uppercase tracking-[0.4em] text-emerald-200/90 mb-6">BERHASIL</p>
+                            <h3 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight text-center mb-2 font-outfit px-4" x-text="result.customer"></h3>
+                            <div class="px-5 py-1.5 bg-white text-emerald-900 rounded-full font-black text-xs sm:text-sm uppercase tracking-[0.2em] mb-4" x-text="result.category"></div>
+
+                            <!-- Custom Questions Data / Details -->
+                            <template x-if="result.custom_fields && result.custom_fields.length > 0">
+                                <div class="w-full max-w-md mb-4 space-y-2 px-4 max-h-[35vh] overflow-y-auto custom-scrollbar">
+                                    <template x-for="(cf, idx) in result.custom_fields" :key="idx">
+                                        <div class="flex items-center justify-between p-3 bg-black/40 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg text-left">
+                                            <span class="text-[11px] font-bold text-emerald-200 uppercase tracking-wider" x-text="cf.label"></span>
+                                            <span class="text-xs sm:text-sm font-black text-white uppercase tracking-wide text-right pl-3" x-text="cf.value"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <p class="text-base sm:text-xl font-black uppercase tracking-[0.3em] text-emerald-200/90 mb-6">BERHASIL</p>
 
                             <!-- Confirm OK Button (especially useful in manual OK mode, or to dismiss immediately) -->
                             <button type="button" @click.stop="dismissResult()"
@@ -345,8 +358,21 @@
                                             <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider" x-text="attendee.ticket_code"></span>
                                             <span class="text-[8px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded uppercase" x-text="attendee.gender || 'n/a'"></span>
                                         </div>
+
+                                        <!-- Custom Questions Data in Group Modal -->
+                                        <template x-if="attendee.custom_fields && attendee.custom_fields.length > 0">
+                                            <div class="mt-2 space-y-1 bg-black/40 p-2.5 rounded-xl border border-white/10">
+                                                <template x-for="(cf, cIdx) in attendee.custom_fields" :key="cIdx">
+                                                    <div class="text-[10px] text-slate-300 flex items-center justify-between gap-3">
+                                                        <span class="font-bold text-indigo-300 uppercase tracking-wider" x-text="cf.label + ':'"></span>
+                                                        <span class="font-black text-white uppercase text-right" x-text="cf.value"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+
                                         <template x-if="attendee.is_checked_in">
-                                            <div class="text-[10px] text-emerald-400 font-bold mt-1" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
+                                            <div class="text-[10px] text-emerald-400 font-bold mt-1.5" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
                                         </template>
                                     </div>
                                 </div>
@@ -393,9 +419,16 @@
                                      :class="log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'">
                                     <span x-text="log.type"></span>
                                 </div>
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <div class="text-xs font-black text-white/90 truncate font-outfit" x-text="log.name || 'Access Denied'"></div>
                                     <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate" x-text="log.category || log.code"></div>
+                                    <template x-if="log.custom_fields && log.custom_fields.length > 0">
+                                        <div class="text-[9px] text-emerald-400 font-bold mt-1 truncate">
+                                            <template x-for="(cf, cIdx) in log.custom_fields" :key="cIdx">
+                                                <span x-text="(cIdx > 0 ? ' • ' : '') + cf.label + ': ' + cf.value"></span>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                             <div class="text-[9px] font-black text-slate-600 whitespace-nowrap bg-black/40 px-2 py-1 rounded-lg" x-text="log.time"></div>
@@ -459,7 +492,7 @@
                 manualCode: '',
                 lastScannedCode: '',
                 errorMessage: '',
-                result: { customer: '', category: '' },
+                result: { customer: '', category: '', custom_fields: [] },
                 inCount: {{ $inCount }},
                 outCount: {{ $outCount }},
                 history: [],
@@ -810,9 +843,9 @@
                     }
 
                     this.status = 'success';
-                    this.result = { customer: d.customer, category: d.category };
+                    this.result = { customer: d.customer, category: d.category, custom_fields: d.custom_fields || [] };
                     this.inCount = d.in_count; this.outCount = d.out_count;
-                    this.history.unshift({ success: true, type: this.mode, name: d.customer, category: d.category, time: new Date().toLocaleTimeString() });
+                    this.history.unshift({ success: true, type: this.mode, name: d.customer, category: d.category, custom_fields: d.custom_fields || [], time: new Date().toLocaleTimeString() });
                     this.playSound('sound-success');
 
                     if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
