@@ -310,19 +310,19 @@
                 
                 <!-- Filter Tabs -->
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none" role="tablist">
-                    <a href="{{ route('tenant.events', ['slug' => $tenant->slug, 'filter' => 'upcoming', 'q' => $search, 'sort' => $sort]) }}"
-                       class="min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 {{ $filter === 'upcoming' ? 'bg-orange-500 text-black font-extrabold shadow-lg shadow-orange-500/20' : 'glass text-slate-300 hover:text-white hover:bg-white/10' }}">
-                        <span>Event Mendatang</span>
-                        <span class="px-2 py-0.5 rounded-md text-[11px] {{ $filter === 'upcoming' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300' }}">
-                            {{ $upcomingCount }}
-                        </span>
-                    </a>
-
                     <a href="{{ route('tenant.events', ['slug' => $tenant->slug, 'filter' => 'all', 'q' => $search, 'sort' => $sort]) }}"
                        class="min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 {{ $filter === 'all' ? 'bg-orange-500 text-black font-extrabold shadow-lg shadow-orange-500/20' : 'glass text-slate-300 hover:text-white hover:bg-white/10' }}">
                         <span>Semua Event</span>
                         <span class="px-2 py-0.5 rounded-md text-[11px] {{ $filter === 'all' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300' }}">
                             {{ $totalCount }}
+                        </span>
+                    </a>
+
+                    <a href="{{ route('tenant.events', ['slug' => $tenant->slug, 'filter' => 'upcoming', 'q' => $search, 'sort' => $sort]) }}"
+                       class="min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 {{ $filter === 'upcoming' ? 'bg-orange-500 text-black font-extrabold shadow-lg shadow-orange-500/20' : 'glass text-slate-300 hover:text-white hover:bg-white/10' }}">
+                        <span>Event Mendatang</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] {{ $filter === 'upcoming' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300' }}">
+                            {{ $upcomingCount }}
                         </span>
                     </a>
 

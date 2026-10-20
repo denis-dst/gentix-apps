@@ -612,7 +612,7 @@
                                                 <select 
                                                     @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: 0, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
                                                     class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 font-black text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm">
-                                                    @for($i = 0; $i <= ($event->max_tickets_per_transaction ?? 1); $i++)
+                                                    @for($i = 0; $i <= ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 1); $i++)
                                                         <option value="{{ $i }}">{{ $i }} Orang</option>
                                                     @endfor
                                                 </select>
@@ -632,9 +632,12 @@
                                                 <select 
                                                     @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: {{ $category->price }}, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
                                                     class="w-full bg-white border border-blue-200 rounded-xl px-4 py-3 font-black text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
-                                                    <option value="0">0</option>
-                                                    <option value="1">1</option>
-                                                    <option value="2">2</option>
+                                                    @php
+                                                        $maxPaidTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 2));
+                                                    @endphp
+                                                    @for($i = 0; $i <= $maxPaidTickets; $i++)
+                                                        <option value="{{ $i }}">{{ $i }}</option>
+                                                    @endfor
                                                 </select>
                                             </div>
                                         @endif

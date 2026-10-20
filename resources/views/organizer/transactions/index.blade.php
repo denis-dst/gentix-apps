@@ -79,9 +79,18 @@
                 <option value="pos" {{ request('channel') === 'pos' ? 'selected' : '' }}>Penjualan Langsung (POS)</option>
             </select>
 
+            <select name="status" class="rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 xl:w-48">
+                <option value="">Semua Status</option>
+                <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>PAID</option>
+                <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>PENDING</option>
+                <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>EXPIRED</option>
+                <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>FAILED</option>
+                <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>REFUNDED</option>
+            </select>
+
             <button type="submit" class="px-8 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition shadow-lg shadow-orange-200">Cari Transaksi</button>
             
-            @if(request()->anyFilled(['q', 'event_id', 'ticket_category_id', 'channel']))
+            @if(request()->anyFilled(['q', 'event_id', 'ticket_category_id', 'channel', 'status']))
                 <a href="{{ route('organizer.transactions.index') }}" class="px-5 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition text-center">Reset</a>
             @endif
         </form>
@@ -465,6 +474,7 @@
             event_id: @js(request('event_id', '')),
             ticket_category_id: @js(request('ticket_category_id', '')),
             channel: @js(request('channel', '')),
+            status: @js(request('status', '')),
         };
 
         function updateSseStatus(status) {
@@ -524,6 +534,9 @@
             if (currentFilters.channel && String(tx.channel).toLowerCase() !== String(currentFilters.channel).toLowerCase()) {
                 return false;
             }
+            if (currentFilters.status && String(tx.payment_status).toLowerCase() !== String(currentFilters.status).toLowerCase()) {
+                return false;
+            }
             if (currentFilters.q) {
                 const query = currentFilters.q.toLowerCase();
                 const ref = (tx.reference_no || '').toLowerCase();
@@ -548,6 +561,7 @@
             if (currentFilters.event_id) params.append('event_id', currentFilters.event_id);
             if (currentFilters.ticket_category_id) params.append('ticket_category_id', currentFilters.ticket_category_id);
             if (currentFilters.channel) params.append('channel', currentFilters.channel);
+            if (currentFilters.status) params.append('status', currentFilters.status);
             if (currentFilters.q) params.append('q', currentFilters.q);
 
             const streamUrl = "{{ route('organizer.transactions.stream') }}?" + params.toString();

@@ -34,7 +34,7 @@ class TenantPublicController extends Controller
 
         // 2. Extract filter, sort, and search params
         $search = trim((string) $request->input('q', ''));
-        $filter = $request->input('filter', 'upcoming'); // 'upcoming', 'past', 'all'
+        $filter = $request->input('filter', 'all'); // 'all', 'upcoming', 'past'
         $sort   = $request->input('sort', 'date_asc');   // 'date_asc', 'date_desc', 'name_asc'
 
         $now = now();

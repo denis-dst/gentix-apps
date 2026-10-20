@@ -447,10 +447,12 @@ class PublicEventController extends Controller
             return $this->processFreeCheckout($request, $event);
         }
 
+        $maxPaidTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 2));
+
         // Paid event checkout flow
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
-            'quantity' => 'required|integer|min:1|max:10', // Increased to 10 for testing
+            'quantity' => 'required|integer|min:1|max:' . $maxPaidTickets,
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:20',
@@ -690,9 +692,11 @@ class PublicEventController extends Controller
         $genderSetting = $event->getAttendeeGenderSetting();
         $customFields = $event->getCustomFields();
 
+        $maxFreeTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 1));
+
         $rules = [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
-            'quantity'           => 'required|integer|min:1|max:' . ($event->max_tickets_per_transaction ?? 1),
+            'quantity'           => 'required|integer|min:1|max:' . $maxFreeTickets,
             'phone'              => 'required|string|max:20',
             'email'              => 'required|email|max:255',
             'attendees'          => 'required|array|size:' . $request->input('quantity', 1),

@@ -47,6 +47,10 @@ class TransactionController extends Controller
             $query->where('channel', $request->channel);
         }
 
+        if ($request->filled('status')) {
+            $query->where('payment_status', $request->status);
+        }
+
         $transactions = $query->paginate(20)->withQueryString();
 
         $eventOptions = Event::where('tenant_id', $tenantId)
