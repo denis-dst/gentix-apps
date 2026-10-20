@@ -206,6 +206,10 @@ class TransactionController extends Controller
             unset($item);
         }
 
+        $latestTransactionId = (int) (Transaction::where('tenant_id', $tenantId)->salesOnly()->max('id') ?? 0);
+        $latestUpdatedAt = Transaction::where('tenant_id', $tenantId)->salesOnly()->max('updated_at');
+        $latestUpdatedAtIso = $latestUpdatedAt ? \Carbon\Carbon::parse($latestUpdatedAt)->toIso8601String() : now()->toIso8601String();
+
         return view('organizer.transactions.index', compact(
             'transactions', 
             'eventOptions', 
@@ -215,8 +219,224 @@ class TransactionController extends Controller
             'totalUnsold',
             'totalRevenue',
             'categoryStats',
-            'throughputChart'
+            'throughputChart',
+            'latestTransactionId',
+            'latestUpdatedAtIso'
         ));
+    }
+
+    /**
+     * Stream real-time transaction updates via Server-Sent Events (SSE).
+     */
+    public function stream(Request $request)
+    {
+        // Release session lock to prevent blocking concurrent user requests
+        if (session()->isStarted()) {
+            session()->save();
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return response('Unauthorized', 401);
+        }
+
+        $tenantId = $user->tenant_id;
+
+        $clientLastId = (int) $request->get('last_id', 0);
+        $lastId = $clientLastId > 0 
+            ? $clientLastId 
+            : (int) (Transaction::where('tenant_id', $tenantId)->salesOnly()->max('id') ?? 0);
+
+        $lastUpdatedAtStr = $request->get('last_updated_at');
+        $lastUpdatedAt = $lastUpdatedAtStr ? \Carbon\Carbon::parse($lastUpdatedAtStr) : now();
+
+        return response()->stream(function () use ($tenantId, $request, $lastId, $lastUpdatedAt) {
+            if (function_exists('apache_setenv')) {
+                @apache_setenv('no-gzip', '1');
+            }
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('implicit_flush', '1');
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            echo "retry: 2500\n";
+            echo "event: connected\n";
+            echo "data: " . json_encode([
+                'status' => 'connected',
+                'last_id' => $lastId,
+                'time' => now()->toIso8601String(),
+            ]) . "\n\n";
+            flush();
+
+            $currentLastId = $lastId;
+            $currentLastUpdatedAt = $lastUpdatedAt;
+            $startTime = time();
+            $maxDuration = 25; // 25 seconds per HTTP stream before smooth reconnect
+
+            while (!connection_aborted() && (time() - $startTime) < $maxDuration) {
+                // Check for new transactions
+                $newTransactions = Transaction::where('tenant_id', $tenantId)
+                    ->salesOnly()
+                    ->where('id', '>', $currentLastId)
+                    ->with([
+                        'event',
+                        'category:id,name,hex_color',
+                        'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'ticket_category_id', 'ticket_code', 'status', 'visitor_data']),
+                        'tickets.category:id,name,hex_color',
+                        'promoCode'
+                    ])
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                // Check for updated transactions (excluding newly created ones)
+                $updatedTransactions = Transaction::where('tenant_id', $tenantId)
+                    ->salesOnly()
+                    ->where('id', '<=', $currentLastId)
+                    ->where('updated_at', '>', $currentLastUpdatedAt)
+                    ->with([
+                        'event',
+                        'category:id,name,hex_color',
+                        'tickets' => fn ($q) => $q->select(['id', 'transaction_id', 'ticket_category_id', 'ticket_code', 'status', 'visitor_data']),
+                        'tickets.category:id,name,hex_color',
+                        'promoCode'
+                    ])
+                    ->orderBy('updated_at', 'asc')
+                    ->get();
+
+                if ($newTransactions->isNotEmpty() || $updatedTransactions->isNotEmpty()) {
+                    $stats = $this->calculateQuickStats($tenantId, $request);
+
+                    foreach ($newTransactions as $tx) {
+                        $currentLastId = max($currentLastId, $tx->id);
+                        $currentLastUpdatedAt = max($currentLastUpdatedAt, $tx->updated_at);
+
+                        $rowHtml = view('organizer.transactions.partials.transaction-row', [
+                            'tx' => $tx,
+                            'isNew' => true,
+                        ])->render();
+
+                        echo "id: {$tx->id}\n";
+                        echo "event: new_transaction\n";
+                        echo "data: " . json_encode([
+                            'id' => $tx->id,
+                            'reference_no' => $tx->reference_no,
+                            'customer_name' => $tx->customer_name,
+                            'customer_email' => $tx->customer_email,
+                            'total_amount' => (float) $tx->total_amount,
+                            'total_amount_formatted' => number_format($tx->total_amount, 0, ',', '.'),
+                            'payment_status' => $tx->payment_status,
+                            'channel' => $tx->channel,
+                            'event_id' => $tx->event_id,
+                            'ticket_category_id' => $tx->ticket_category_id,
+                            'created_at' => $tx->created_at->format('d M Y H:i'),
+                            'row_html' => $rowHtml,
+                            'stats' => $stats,
+                            'last_id' => $currentLastId,
+                            'last_updated_at' => $currentLastUpdatedAt->toIso8601String(),
+                        ]) . "\n\n";
+                    }
+
+                    foreach ($updatedTransactions as $tx) {
+                        $currentLastUpdatedAt = max($currentLastUpdatedAt, $tx->updated_at);
+
+                        $rowHtml = view('organizer.transactions.partials.transaction-row', [
+                            'tx' => $tx,
+                            'isNew' => false,
+                        ])->render();
+
+                        echo "id: {$tx->id}-{$tx->updated_at->timestamp}\n";
+                        echo "event: update_transaction\n";
+                        echo "data: " . json_encode([
+                            'id' => $tx->id,
+                            'reference_no' => $tx->reference_no,
+                            'customer_name' => $tx->customer_name,
+                            'customer_email' => $tx->customer_email,
+                            'total_amount' => (float) $tx->total_amount,
+                            'total_amount_formatted' => number_format($tx->total_amount, 0, ',', '.'),
+                            'payment_status' => $tx->payment_status,
+                            'channel' => $tx->channel,
+                            'event_id' => $tx->event_id,
+                            'ticket_category_id' => $tx->ticket_category_id,
+                            'row_html' => $rowHtml,
+                            'stats' => $stats,
+                            'last_id' => $currentLastId,
+                            'last_updated_at' => $currentLastUpdatedAt->toIso8601String(),
+                        ]) . "\n\n";
+                    }
+
+                    flush();
+                }
+
+                // Keep-alive ping comment to keep connection alive
+                echo ": ping\n\n";
+                flush();
+
+                if (connection_aborted()) {
+                    break;
+                }
+
+                sleep(2);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /**
+     * Calculate summary stats for the monitoring widget.
+     */
+    private function calculateQuickStats($tenantId, Request $request): array
+    {
+        $selectedEventId = $request->event_id;
+        $selectedCategoryId = $request->ticket_category_id;
+        $selectedChannel = $request->channel;
+
+        $categoriesQuery = TicketCategory::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('id', $selectedCategoryId));
+
+        $totalQuota = (int) $categoriesQuery->sum('quota');
+
+        $soldTicketsCount = Ticket::where('tenant_id', $tenantId)
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->whereIn('status', ['sold', 'redeemed'])
+            ->whereHas('transaction', function ($q) use ($selectedChannel) {
+                $q->salesOnly();
+                if ($selectedChannel) {
+                    $q->where('channel', $selectedChannel);
+                }
+            })
+            ->count();
+
+        $totalRevenue = (float) Transaction::where('tenant_id', $tenantId)
+            ->salesOnly()
+            ->where('payment_status', 'paid')
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
+            ->when($selectedEventId, fn($q) => $q->where('event_id', $selectedEventId))
+            ->when($selectedCategoryId, fn($q) => $q->where('ticket_category_id', $selectedCategoryId))
+            ->when($selectedChannel, fn($q) => $q->where('channel', $selectedChannel))
+            ->sum('total_amount');
+
+        $totalSold = $soldTicketsCount;
+        $totalUnsold = max(0, $totalQuota - $totalSold);
+
+        return [
+            'total_quota' => $totalQuota,
+            'total_quota_formatted' => number_format($totalQuota, 0, ',', '.'),
+            'total_sold' => $totalSold,
+            'total_sold_formatted' => number_format($totalSold, 0, ',', '.'),
+            'total_unsold' => $totalUnsold,
+            'total_unsold_formatted' => number_format($totalUnsold, 0, ',', '.'),
+            'total_revenue' => $totalRevenue,
+            'total_revenue_formatted' => number_format($totalRevenue, 0, ',', '.'),
+        ];
     }
 
     public function resendEvoucher(Transaction $transaction)
