@@ -47,13 +47,12 @@ class GateController extends Controller
         $ticketsCollection = collect();
 
         if ($isRedeemFlow) {
-            // 1. Tipe Redeem: Ambil tiket yang sudah pernah ditukarkan / diredeem ke wristband
+            // 1. Tipe Redeem: Ambil tiket terjual atau sudah diredeem untuk gate scanner
             $redeemedTickets = Ticket::query()
                 ->leftJoin('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
                 ->leftJoin('transactions', 'transactions.id', '=', 'tickets.transaction_id')
                 ->where('tickets.event_id', $eventId)
-                ->where('tickets.status', 'redeemed')
-                ->whereNotNull('tickets.wristband_qr')
+                ->whereIn('tickets.status', ['sold', 'redeemed'])
                 ->select([
                     'tickets.id as ticket_id',
                     'tickets.event_id',
@@ -70,9 +69,6 @@ class GateController extends Controller
                 ])
                 ->get()
                 ->map(function ($ticket) use ($event) {
-                    $visitorData = $this->visitorDataArray($ticket->visitor_data);
-                    $customQuestion = $this->customQuestionPayload($event, $visitorData, $ticket->customer_umroh_answer);
-
                     return [
                         'ticket_id' => $ticket->ticket_id,
                         'event_id' => $ticket->event_id,
@@ -81,12 +77,12 @@ class GateController extends Controller
                         'ticket_code' => $ticket->wristband_qr ?: $ticket->ticket_code,
                         'wristband_qr' => $ticket->wristband_qr,
                         'category_name' => $ticket->category_name ?? '-',
-                        'customer_name' => $visitorData['name'] ?? $ticket->customer_name ?? '-',
-                        'customer_email' => $ticket->customer_email ?? '-',
-                        'custom_question_label' => $customQuestion['label'],
-                        'custom_question_answer' => $customQuestion['answer'],
-                        'custom_question' => $customQuestion,
-                        'reference_no' => $ticket->reference_no ?? '-',
+                        'customer_name' => '-',
+                        'customer_email' => '-',
+                        'custom_question_label' => '-',
+                        'custom_question_answer' => '-',
+                        'custom_question' => ['label' => '-', 'answer' => '-'],
+                        'reference_no' => '-',
                     ];
                 });
 
@@ -107,7 +103,7 @@ class GateController extends Controller
                         'ticket_code' => $wbCode,
                         'wristband_qr' => $wbCode,
                         'category_name' => $cat->name,
-                        'customer_name' => 'Gelang Fisik #' . $i . ' (' . $cat->name . ')',
+                        'customer_name' => '-',
                         'customer_email' => '-',
                         'custom_question_label' => '-',
                         'custom_question_answer' => '-',
@@ -303,17 +299,19 @@ class GateController extends Controller
         }
 
         $event = $ticket->event;
+        $isRedeemFlow = ($event && $event->purchase_flow === 'redeem');
+        $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
 
         if ($ticket->status === 'void') {
             return response()->json([
                 'status' => 'REJECT',
                 'message' => 'Tiket sudah dibatalkan.',
                 'color' => 'pink',
-                'visitor' => $ticket->transaction->customer_name ?? '-',
+                'visitor' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
                 'category' => $ticket->category->name ?? '-',
-                'ticket_code' => $ticket->ticket_code,
-                'email' => $ticket->transaction->customer_email ?? '-',
-                'reference_no' => $ticket->transaction->reference_no ?? '-',
+                'ticket_code' => $displayCode,
+                'email' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_email ?? '-'),
+                'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? '-'),
             ], 403);
         }
 
@@ -328,125 +326,128 @@ class GateController extends Controller
                         'status' => 'REJECT',
                         'message' => 'Wrong Gate! Access Denied for ' . ($ticket->category->name ?? 'Category'),
                         'color' => 'pink',
-                        'visitor' => $ticket->transaction->customer_name ?? '-',
+                        'visitor' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
                         'category' => $ticket->category->name ?? '-',
-                        'ticket_code' => $ticket->ticket_code,
-                        'email' => $ticket->transaction->customer_email ?? '-',
-                        'reference_no' => $ticket->transaction->reference_no ?? '-',
+                        'ticket_code' => $displayCode,
+                        'email' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_email ?? '-'),
+                        'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? '-'),
                     ], 403);
                 }
                 $gateName = $gate->name;
             }
         }
 
-        // Group check-in logic
-        $transaction = $ticket->transaction;
-        if ($transaction) {
-            $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
-                ->with([
-                    'category:id,name,hex_color',
-                    'gateLogs' => fn ($q) => $q->with('scanner:id,name')->orderBy('scanned_at', 'desc'),
-                    'event:id,umroh_question_enabled,meta'
-                ])
-                ->get();
+        // Group check-in logic (Hanya dijalankan jika BUKAN mode redeem)
+        // Pada mode redeem, setiap wristband bersifat personal/individual dan tidak memerlukan data grup pembeli
+        if (!$isRedeemFlow) {
+            $transaction = $ticket->transaction;
+            if ($transaction) {
+                $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
+                    ->with([
+                        'category:id,name,hex_color',
+                        'gateLogs' => fn ($q) => $q->with('scanner:id,name')->orderBy('scanned_at', 'desc'),
+                        'event:id,umroh_question_enabled,meta'
+                    ])
+                    ->get();
 
-            $totalGroupCount = $ticketsInGroup->count();
+                $totalGroupCount = $ticketsInGroup->count();
 
-            if ($totalGroupCount > 1) {
-                $checkedInCount = 0;
-                $checkedOutCount = 0;
-                $neverCheckedInCount = 0;
-                $latestLog = null;
+                if ($totalGroupCount > 1) {
+                    $checkedInCount = 0;
+                    $checkedOutCount = 0;
+                    $neverCheckedInCount = 0;
+                    $latestLog = null;
 
-                foreach ($ticketsInGroup as $t) {
-                    $tLastLog = $t->gateLogs->first();
-                    if ($tLastLog) {
-                        if ($tLastLog->type === 'IN') {
-                            $checkedInCount++;
+                    foreach ($ticketsInGroup as $t) {
+                        $tLastLog = $t->gateLogs->first();
+                        if ($tLastLog) {
+                            if ($tLastLog->type === 'IN') {
+                                $checkedInCount++;
+                            } else {
+                                $checkedOutCount++;
+                            }
+                            if (!$latestLog || ($tLastLog->scanned_at && $latestLog->scanned_at && $tLastLog->scanned_at->gt($latestLog->scanned_at))) {
+                                $latestLog = $tLastLog;
+                            }
                         } else {
+                            $neverCheckedInCount++;
                             $checkedOutCount++;
                         }
-                        if (!$latestLog || ($tLastLog->scanned_at && $latestLog->scanned_at && $tLastLog->scanned_at->gt($latestLog->scanned_at))) {
-                            $latestLog = $tLastLog;
+                    }
+
+                    if ($request->type === 'IN') {
+                        if ($checkedInCount === $totalGroupCount) {
+                            $operatorName = $latestLog && $latestLog->scanner ? $latestLog->scanner->name : ($latestLog->gate_name ?? 'System');
+                            $timeString = $latestLog && $latestLog->scanned_at ? $latestLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
+                            return response()->json([
+                                'status' => 'REJECT',
+                                'message' => "Seluruh peserta ({$totalGroupCount} orang) sudah Checkin. Checkin terakhir pada {$timeString} oleh Operator {$operatorName}.",
+                                'color' => 'pink',
+                                'visitor' => $transaction->customer_name ?? '-',
+                                'category' => $ticket->category->name ?? '-',
+                                'ticket_code' => $ticket->ticket_code,
+                                'email' => $transaction->customer_email ?? '-',
+                                'reference_no' => $transaction->reference_no ?? '-',
+                            ], 403);
                         }
                     } else {
-                        $neverCheckedInCount++;
-                        $checkedOutCount++;
+                        if ($checkedOutCount === $totalGroupCount) {
+                            $message = $neverCheckedInCount === $totalGroupCount
+                                ? "Seluruh peserta ({$totalGroupCount} orang) belum pernah Check-in!"
+                                : "Seluruh peserta ({$totalGroupCount} orang) sudah berada di luar area!";
+                            return response()->json([
+                                'status' => 'REJECT',
+                                'message' => $message,
+                                'color' => 'pink',
+                                'visitor' => $transaction->customer_name ?? '-',
+                                'category' => $ticket->category->name ?? '-',
+                                'ticket_code' => $ticket->ticket_code,
+                                'email' => $transaction->customer_email ?? '-',
+                                'reference_no' => $transaction->reference_no ?? '-',
+                            ], 403);
+                        }
                     }
-                }
 
-                if ($request->type === 'IN') {
-                    if ($checkedInCount === $totalGroupCount) {
-                        $operatorName = $latestLog && $latestLog->scanner ? $latestLog->scanner->name : ($latestLog->gate_name ?? 'System');
-                        $timeString = $latestLog && $latestLog->scanned_at ? $latestLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
-                        return response()->json([
-                            'status' => 'REJECT',
-                            'message' => "Seluruh peserta ({$totalGroupCount} orang) sudah Checkin. Checkin terakhir pada {$timeString} oleh Operator {$operatorName}.",
-                            'color' => 'pink',
-                            'visitor' => $transaction->customer_name ?? '-',
-                            'category' => $ticket->category->name ?? '-',
-                            'ticket_code' => $ticket->ticket_code,
-                            'email' => $transaction->customer_email ?? '-',
-                            'reference_no' => $transaction->reference_no ?? '-',
-                        ], 403);
-                    }
-                } else {
-                    if ($checkedOutCount === $totalGroupCount) {
-                        $message = $neverCheckedInCount === $totalGroupCount
-                            ? "Seluruh peserta ({$totalGroupCount} orang) belum pernah Check-in!"
-                            : "Seluruh peserta ({$totalGroupCount} orang) sudah berada di luar area!";
-                        return response()->json([
-                            'status' => 'REJECT',
-                            'message' => $message,
-                            'color' => 'pink',
-                            'visitor' => $transaction->customer_name ?? '-',
-                            'category' => $ticket->category->name ?? '-',
-                            'ticket_code' => $ticket->ticket_code,
-                            'email' => $transaction->customer_email ?? '-',
-                            'reference_no' => $transaction->reference_no ?? '-',
-                        ], 403);
-                    }
-                }
+                    $attendeesList = $ticketsInGroup->map(function ($t) {
+                        $lastLog = $t->gateLogs->first();
+                        $isCheckedIn = $lastLog && $lastLog->type === 'IN';
+                        $visitorData = $this->visitorDataArray($t->visitor_data);
+                        $customQuestion = $this->ticketCustomQuestionPayload($t);
 
-                $attendeesList = $ticketsInGroup->map(function ($t) {
-                    $lastLog = $t->gateLogs->first();
-                    $isCheckedIn = $lastLog && $lastLog->type === 'IN';
-                    $visitorData = $this->visitorDataArray($t->visitor_data);
-                    $customQuestion = $this->ticketCustomQuestionPayload($t);
+                        return [
+                            'ticket_id' => $t->id,
+                            'ticket_category_id' => $t->ticket_category_id,
+                            'ticket_code' => $t->ticket_code,
+                            'name' => $visitorData['name'] ?? $t->transaction->customer_name,
+                            'gender' => $visitorData['gender'] ?? null,
+                            'custom_question_label' => $customQuestion['label'],
+                            'custom_question_answer' => $customQuestion['answer'],
+                            'custom_question' => $customQuestion,
+                            'is_checked_in' => $isCheckedIn,
+                            'category' => $t->category->name ?? '-',
+                            'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                            'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
+                        ];
+                    });
 
-                    return [
-                        'ticket_id' => $t->id,
-                        'ticket_category_id' => $t->ticket_category_id,
-                        'ticket_code' => $t->ticket_code,
-                        'name' => $visitorData['name'] ?? $t->transaction->customer_name,
-                        'gender' => $visitorData['gender'] ?? null,
+                    $customQuestion = $this->ticketCustomQuestionPayload($ticket);
+
+                    return response()->json([
+                        'status' => 'SUCCESS',
+                        'is_group' => true,
+                        'message' => 'Detail grup ditemukan',
+                        'visitor' => $transaction->customer_name ?? '-',
+                        'category' => $ticket->category->name ?? '-',
+                        'attendees' => $attendeesList,
                         'custom_question_label' => $customQuestion['label'],
                         'custom_question_answer' => $customQuestion['answer'],
                         'custom_question' => $customQuestion,
-                        'is_checked_in' => $isCheckedIn,
-                        'category' => $t->category->name ?? '-',
-                        'checked_in_at' => ($isCheckedIn && $lastLog->scanned_at) ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
-                        'checked_in_by' => ($isCheckedIn && $lastLog->scanner) ? $lastLog->scanner->name : ($lastLog->gate_name ?? null),
-                    ];
-                });
-
-                $customQuestion = $this->ticketCustomQuestionPayload($ticket);
-
-                return response()->json([
-                    'status' => 'SUCCESS',
-                    'is_group' => true,
-                    'message' => 'Detail grup ditemukan',
-                    'visitor' => $transaction->customer_name ?? '-',
-                    'category' => $ticket->category->name ?? '-',
-                    'attendees' => $attendeesList,
-                    'custom_question_label' => $customQuestion['label'],
-                    'custom_question_answer' => $customQuestion['answer'],
-                    'custom_question' => $customQuestion,
-                    'scanned_ticket_id' => $ticket->id,
-                    'ticket_code' => $ticket->ticket_code,
-                    'email' => $transaction->customer_email ?? '-',
-                    'reference_no' => $transaction->reference_no ?? '-',
-                ]);
+                        'scanned_ticket_id' => $ticket->id,
+                        'ticket_code' => $ticket->ticket_code,
+                        'email' => $transaction->customer_email ?? '-',
+                        'reference_no' => $transaction->reference_no ?? '-',
+                    ]);
+                }
             }
         }
 
@@ -474,15 +475,19 @@ class GateController extends Controller
             $visitorName = $visitorData['name'] ?? ($ticket->transaction->customer_name ?? '-');
 
             $actionText = $request->type === 'IN' ? 'Checkin' : 'Checkout';
+            $rejectMessage = $isRedeemFlow
+                ? "Gelang sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} (QR: {$displayCode})"
+                : "Sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}";
+
             return response()->json([
                 'status' => 'REJECT',
-                'message' => "Sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
+                'message' => $rejectMessage,
                 'color' => 'pink',
-                'visitor' => $visitorName,
+                'visitor' => $isRedeemFlow ? '-' : $visitorName,
                 'category' => $ticket->category->name ?? '-',
-                'ticket_code' => $ticket->ticket_code,
-                'email' => $ticket->transaction->customer_email ?? '-',
-                'reference_no' => $ticket->transaction->reference_no ?? '-',
+                'ticket_code' => $displayCode,
+                'email' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_email ?? '-'),
+                'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? '-'),
             ], 403);
         }
 
@@ -491,13 +496,13 @@ class GateController extends Controller
             $visitorName = $visitorData['name'] ?? ($ticket->transaction->customer_name ?? '-');
             return response()->json([
                 'status' => 'REJECT',
-                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket sudah berada di luar area!' : 'Tiket belum pernah Check-in!',
+                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket/Gelang sudah berada di luar area!' : 'Tiket/Gelang belum pernah Check-in!',
                 'color' => 'pink',
-                'visitor' => $visitorName,
+                'visitor' => $isRedeemFlow ? '-' : $visitorName,
                 'category' => $ticket->category->name ?? '-',
-                'ticket_code' => $ticket->ticket_code,
-                'email' => $ticket->transaction->customer_email ?? '-',
-                'reference_no' => $ticket->transaction->reference_no ?? '-',
+                'ticket_code' => $displayCode,
+                'email' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_email ?? '-'),
+                'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? '-'),
             ], 403);
         }
 
@@ -520,21 +525,25 @@ class GateController extends Controller
             $ticket->update([
                 'status' => 'redeemed',
                 'redeemed_at' => now(),
+                'redeemed_by' => auth()->id(),
+                'wristband_qr' => $ticket->wristband_qr ?: $scanCode,
             ]);
+            $ticket->refresh();
+            $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
         }
 
         return response()->json([
             'status' => 'SUCCESS',
             'message' => 'Access Granted: ' . $request->type,
-            'visitor' => $visitorData['name'] ?? $ticket->transaction->customer_name ?? '-',
+            'visitor' => $isRedeemFlow ? '-' : ($visitorData['name'] ?? $ticket->transaction->customer_name ?? '-'),
             'category' => $ticket->category->name ?? '-',
             'color' => 'green',
-            'ticket_code' => $ticket->ticket_code,
-            'email' => $ticket->transaction->customer_email ?? '-',
-            'custom_question_label' => $customQuestion['label'],
-            'custom_question_answer' => $customQuestion['answer'],
-            'custom_question' => $customQuestion,
-            'reference_no' => $ticket->transaction->reference_no ?? '-',
+            'ticket_code' => $displayCode,
+            'email' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_email ?? '-'),
+            'custom_question_label' => $isRedeemFlow ? '-' : $customQuestion['label'],
+            'custom_question_answer' => $isRedeemFlow ? '-' : $customQuestion['answer'],
+            'custom_question' => $isRedeemFlow ? ['label' => '-', 'answer' => '-'] : $customQuestion,
+            'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? '-'),
         ]);
     }
 

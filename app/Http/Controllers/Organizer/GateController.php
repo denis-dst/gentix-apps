@@ -227,12 +227,14 @@ class GateController extends Controller
         }
 
         $event = $ticket->event;
+        $isRedeemFlow = ($event && $event->purchase_flow === 'redeem');
+        $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
 
         if ($ticket->status === 'void') {
             return response()->json([
                 'success' => false,
                 'message' => 'Tiket sudah dibatalkan.',
-                'customer' => $ticket->transaction->customer_name ?? '-',
+                'customer' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
                 'category' => $ticket->category->name ?? '-',
             ], 403);
         }
@@ -243,7 +245,7 @@ class GateController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Kategori Tiket Salah! (Tidak diizinkan di Gate ' . session('gate_name') . ')',
-                'customer' => $ticket->transaction->customer_name ?? '-',
+                'customer' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
                 'category' => $ticket->category->name ?? '-'
             ], 403);
         }
@@ -271,69 +273,76 @@ class GateController extends Controller
             $timeString = $lastLog->scanned_at ? $lastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : '-';
             $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
 
+            $actionText = $request->mode === 'IN' ? 'Checkin' : 'Checkout';
+            $rejectMessage = $isRedeemFlow
+                ? "Gelang sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} (QR: {$displayCode})"
+                : "Sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}";
+
             return response()->json([
                 'success' => false,
-                'message' => "Sudah Checkin pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}",
-                'customer' => $visitorName,
+                'message' => $rejectMessage,
+                'customer' => $isRedeemFlow ? '-' : $visitorName,
                 'category' => $ticket->category->name ?? '-',
-                'custom_fields' => $this->formatCustomFields($event, $ticket),
+                'custom_fields' => $isRedeemFlow ? [] : $this->formatCustomFields($event, $ticket),
             ], 400);
         }
 
         if ($request->mode === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
             return response()->json([
                 'success' => false,
-                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket sudah berada di luar area!' : 'Tiket belum pernah Check-in!',
-                'customer' => $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-'),
+                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket/Gelang sudah berada di luar area!' : 'Tiket/Gelang belum pernah Check-in!',
+                'customer' => $isRedeemFlow ? '-' : ($ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-')),
                 'category' => $ticket->category->name ?? '-'
             ], 400);
         }
 
-        // Group checking: Only execute group queries when transaction has multiple tickets
-        $transaction = $ticket->transaction;
-        if ($transaction && (int) $transaction->quantity > 1) {
-            $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
-                ->select('id', 'ticket_code', 'ticket_category_id', 'transaction_id', 'visitor_data', 'status')
-                ->with([
-                    'category:id,name,hex_color',
-                    'gateLogs' => fn ($q) => $q->select('id', 'ticket_id', 'type', 'scanned_at', 'scanned_by', 'gate_name')
-                        ->with('scanner:id,name')
-                        ->orderBy('scanned_at', 'desc')
-                ])
-                ->get();
+        // Group checking: Only execute group queries when transaction has multiple tickets AND not redeem flow
+        if (!$isRedeemFlow) {
+            $transaction = $ticket->transaction;
+            if ($transaction && (int) $transaction->quantity > 1) {
+                $ticketsInGroup = Ticket::where('transaction_id', $transaction->id)
+                    ->select('id', 'ticket_code', 'ticket_category_id', 'transaction_id', 'visitor_data', 'status')
+                    ->with([
+                        'category:id,name,hex_color',
+                        'gateLogs' => fn ($q) => $q->select('id', 'ticket_id', 'type', 'scanned_at', 'scanned_by', 'gate_name')
+                            ->with('scanner:id,name')
+                            ->orderBy('scanned_at', 'desc')
+                    ])
+                    ->get();
 
-            if ($ticketsInGroup->count() > 1) {
-                $attendeesList = $ticketsInGroup->map(function ($t) use ($event, $transaction) {
-                    $t->setRelation('transaction', $transaction);
-                    $tLastLog = $t->gateLogs->first();
-                    $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
-                    return [
-                        'ticket_id' => $t->id,
-                        'ticket_code' => $t->ticket_code,
-                        'name' => $t->visitor_data['name'] ?? $transaction->customer_name,
-                        'gender' => $t->visitor_data['gender'] ?? null,
-                        'is_checked_in' => $isCheckedIn,
-                        'category' => $t->category->name ?? '-',
-                        'checked_in_at' => ($isCheckedIn && $tLastLog->scanned_at) ? $tLastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
-                        'checked_in_by' => ($isCheckedIn && $tLastLog->scanner) ? $tLastLog->scanner->name : ($tLastLog->gate_name ?? null),
-                        'custom_fields' => $this->formatCustomFields($event, $t),
-                    ];
-                });
+                if ($ticketsInGroup->count() > 1) {
+                    $attendeesList = $ticketsInGroup->map(function ($t) use ($event, $transaction) {
+                        $t->setRelation('transaction', $transaction);
+                        $tLastLog = $t->gateLogs->first();
+                        $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
+                        return [
+                            'ticket_id' => $t->id,
+                            'ticket_code' => $t->ticket_code,
+                            'name' => $t->visitor_data['name'] ?? $transaction->customer_name,
+                            'gender' => $t->visitor_data['gender'] ?? null,
+                            'is_checked_in' => $isCheckedIn,
+                            'category' => $t->category->name ?? '-',
+                            'checked_in_at' => ($isCheckedIn && $tLastLog->scanned_at) ? $tLastLog->scanned_at->timezone('Asia/Jakarta')->format('H:i:s d-m-Y') : null,
+                            'checked_in_by' => ($isCheckedIn && $tLastLog->scanner) ? $tLastLog->scanner->name : ($tLastLog->gate_name ?? null),
+                            'custom_fields' => $this->formatCustomFields($event, $t),
+                        ];
+                    });
 
-                return response()->json([
-                    'success' => true,
-                    'is_group' => true,
-                    'message' => 'Detail grup ditemukan',
-                    'customer' => $transaction->customer_name,
-                    'category' => $ticket->category->name ?? '-',
-                    'attendees' => $attendeesList,
-                    'scanned_ticket_id' => $ticket->id
-                ]);
+                    return response()->json([
+                        'success' => true,
+                        'is_group' => true,
+                        'message' => 'Detail grup ditemukan',
+                        'customer' => $transaction->customer_name,
+                        'category' => $ticket->category->name ?? '-',
+                        'attendees' => $attendeesList,
+                        'scanned_ticket_id' => $ticket->id
+                    ]);
+                }
             }
         }
 
         try {
-            DB::transaction(function () use ($request, $ticket, $event) {
+            DB::transaction(function () use ($request, $ticket, $event, $scanCode) {
                 GateLog::create([
                     'tenant_id' => $event->tenant_id,
                     'event_id' => $event->id,
@@ -348,9 +357,14 @@ class GateController extends Controller
                     $ticket->update([
                         'status' => 'redeemed',
                         'redeemed_at' => now(),
+                        'redeemed_by' => auth()->id(),
+                        'wristband_qr' => $ticket->wristband_qr ?: $scanCode,
                     ]);
+                    $ticket->refresh();
                 }
             });
+
+            $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
 
             // Single aggregate query using composite index (event_id, type)
             $counts = GateLog::where('event_id', $event->id)
@@ -366,11 +380,11 @@ class GateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil ' . ($request->mode === 'IN' ? 'Check-in' : 'Check-out'),
-                'customer' => $ticket->visitor_data['name'] ?? $ticket->transaction->customer_name,
+                'customer' => $isRedeemFlow ? '-' : ($ticket->visitor_data['name'] ?? $ticket->transaction->customer_name ?? '-'),
                 'category' => $ticket->category->name ?? '-',
-                'ticket_code' => $ticket->ticket_code,
-                'reference_no' => $ticket->transaction->reference_no ?? null,
-                'custom_fields' => $this->formatCustomFields($event, $ticket),
+                'ticket_code' => $displayCode,
+                'reference_no' => $isRedeemFlow ? '-' : ($ticket->transaction->reference_no ?? null),
+                'custom_fields' => $isRedeemFlow ? [] : $this->formatCustomFields($event, $ticket),
                 'in_count' => $inCount,
                 'out_count' => $outCount,
                 'occupancy' => max(0, $inCount - $outCount)

@@ -275,7 +275,7 @@
                                 <div class="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-1">
                                     <span x-text="mode === 'IN' ? 'CHECK-IN BERHASIL' : 'CHECK-OUT BERHASIL'"></span>
                                 </div>
-                                <h3 class="text-xl sm:text-3xl font-black text-white uppercase tracking-tight font-outfit truncate px-2" x-text="result.customer"></h3>
+                                <h3 class="text-xl sm:text-3xl font-black text-white uppercase tracking-tight font-outfit truncate px-2" x-text="(result.customer && result.customer !== '-') ? result.customer : (result.ticket_code || 'WRISTBAND')"></h3>
                                 <div class="mt-2 mb-4">
                                     <span class="inline-block px-4 py-1 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-full font-black text-[11px] sm:text-xs uppercase tracking-wider" x-text="result.category"></span>
                                 </div>
@@ -461,7 +461,7 @@
                                     <span x-text="log.type"></span>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="text-xs font-black text-white/90 truncate font-outfit" x-text="log.name || 'Access Denied'"></div>
+                                    <div class="text-xs font-black text-white/90 truncate font-outfit" x-text="(log.name && log.name !== '-') ? log.name : (log.code || 'Wristband')"></div>
                                     <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate" x-text="log.category || log.code"></div>
                                     <template x-if="log.custom_fields && log.custom_fields.length > 0">
                                         <div class="text-[9px] text-emerald-400 font-bold mt-1 truncate">
