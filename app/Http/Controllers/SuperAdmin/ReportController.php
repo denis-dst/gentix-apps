@@ -50,6 +50,7 @@ class ReportController extends Controller
             ];
         } else {
             $ticketTotals = Ticket::whereIn('event_id', $matchingEventIds)
+                ->whereHas('transaction', fn ($q) => $q->salesOnly())
                 ->selectRaw("
                     SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold,
                     SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed
@@ -64,6 +65,7 @@ class ReportController extends Controller
                 ->first();
 
             $txnTotals = Transaction::whereIn('event_id', $matchingEventIds)
+                ->salesOnly()
                 ->where('payment_status', 'paid')
                 ->selectRaw("
                     COUNT(*) as paid_transactions,
@@ -86,6 +88,7 @@ class ReportController extends Controller
         }
 
         $transactions = Transaction::query()
+            ->salesOnly()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
             ->with([
@@ -108,6 +111,7 @@ class ReportController extends Controller
     public function exportExcel(Request $request): BinaryFileResponse
     {
         $transactions = Transaction::query()
+            ->salesOnly()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
             ->with([
@@ -321,6 +325,7 @@ class ReportController extends Controller
 
         $ticketStats = Ticket::query()
             ->whereIn('event_id', $eventIds)
+            ->whereHas('transaction', fn ($q) => $q->salesOnly())
             ->select('event_id', 'ticket_category_id')
             ->selectRaw("SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed_count")
@@ -338,18 +343,51 @@ class ReportController extends Controller
             ->get()
             ->groupBy('event_id');
 
-        $transactionStats = Transaction::query()
+        $rawTransactions = Transaction::query()
             ->whereIn('event_id', $eventIds)
+            ->salesOnly()
             ->where('payment_status', 'paid')
-            ->select('event_id', 'ticket_category_id')
-            ->selectRaw('COUNT(*) as paid_transactions_count')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as revenue')
-            ->groupBy('event_id', 'ticket_category_id')
-            ->get()
-            ->groupBy('event_id');
+            ->select(['id', 'event_id', 'ticket_category_id', 'total_amount'])
+            ->with(['tickets:id,transaction_id,ticket_category_id'])
+            ->get();
+
+        $eventCategoriesMap = $events->keyBy('id')->map(fn ($e) => $e->ticketCategories->keyBy('id'));
+
+        $transactionStats = $rawTransactions
+            ->groupBy('event_id')
+            ->map(function ($eventTxns, $eventId) use ($eventCategoriesMap) {
+                $categories = $eventCategoriesMap->get($eventId, collect());
+                $firstCatId = $categories->keys()->first();
+
+                return $eventTxns->groupBy(function ($txn) use ($categories, $firstCatId) {
+                    if ($txn->ticket_category_id && $categories->has($txn->ticket_category_id)) {
+                        return $txn->ticket_category_id;
+                    }
+                    $ticketCat = $txn->tickets->first(fn ($t) => $t->ticket_category_id && $categories->has($t->ticket_category_id));
+                    if ($ticketCat) {
+                        return $ticketCat->ticket_category_id;
+                    }
+                    return $txn->ticket_category_id ?: $firstCatId;
+                })->map(function ($catTxns) {
+                    return (object) [
+                        'paid_transactions_count' => $catTxns->count(),
+                        'revenue' => (float) $catTxns->sum('total_amount'),
+                    ];
+                });
+            });
+
+        $eventTransactionTotals = $rawTransactions
+            ->groupBy('event_id')
+            ->map(function ($eventTxns) {
+                return (object) [
+                    'paid_transactions_count' => $eventTxns->count(),
+                    'revenue' => (float) $eventTxns->sum('total_amount'),
+                ];
+            });
 
         $partialScanByEventAndCategory = Transaction::query()
             ->whereIn('event_id', $eventIds)
+            ->salesOnly()
             ->where('payment_status', 'paid')
             ->select(['id', 'event_id', 'ticket_category_id'])
             ->with([
@@ -369,11 +407,12 @@ class ReportController extends Controller
                 });
             });
 
-        return $events->map(function ($event) use ($ticketStats, $gateStats, $transactionStats, $partialScanByEventAndCategory) {
+        return $events->map(function ($event) use ($ticketStats, $gateStats, $transactionStats, $eventTransactionTotals, $partialScanByEventAndCategory) {
             $eventTicketStats = $ticketStats->get($event->id, collect())->keyBy('ticket_category_id');
             $eventGateStats = $gateStats->get($event->id, collect())->keyBy('ticket_category_id');
-            $eventTxStats = $transactionStats->get($event->id, collect())->keyBy('ticket_category_id');
+            $eventTxStats = $transactionStats->get($event->id, collect());
             $eventPartialStats = $partialScanByEventAndCategory->get($event->id, collect());
+            $eventTxTotal = $eventTransactionTotals->get($event->id);
 
             $categories = $event->ticketCategories->map(function ($category) use ($eventTicketStats, $eventGateStats, $eventTxStats, $eventPartialStats) {
                 $ticket = $eventTicketStats->get($category->id);
@@ -405,8 +444,8 @@ class ReportController extends Controller
                 'checkin_count' => $categories->sum('checkin_count'),
                 'checkout_count' => $categories->sum('checkout_count'),
                 'inside_count' => $categories->sum('inside_count'),
-                'paid_transactions_count' => $categories->sum('paid_transactions_count'),
-                'revenue' => $categories->sum('revenue'),
+                'paid_transactions_count' => (int) ($eventTxTotal->paid_transactions_count ?? $categories->sum('paid_transactions_count')),
+                'revenue' => (float) ($eventTxTotal->revenue ?? $categories->sum('revenue')),
                 'partial_scan_count' => $categories->sum('partial_scan_count'),
             ];
         });

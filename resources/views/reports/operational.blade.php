@@ -169,6 +169,35 @@
         </form>
     </div>
 
+    @if(isset($totals))
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Terjual</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-800 mt-1">{{ number_format($totals['sold']) }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <div class="text-[10px] font-black uppercase tracking-wider text-emerald-500">Total Redeem</div>
+                <div class="text-xl sm:text-2xl font-black text-emerald-600 mt-1">{{ number_format($totals['redeemed']) }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <div class="text-[10px] font-black uppercase tracking-wider text-blue-500">Total Check-in</div>
+                <div class="text-xl sm:text-2xl font-black text-blue-600 mt-1">{{ number_format($totals['checkin']) }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <div class="text-[10px] font-black uppercase tracking-wider text-purple-500">Di Dalam Venue</div>
+                <div class="text-xl sm:text-2xl font-black text-purple-600 mt-1">{{ number_format($totals['inside']) }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Transaksi Paid</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-800 mt-1">{{ number_format($totals['paid_transactions']) }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+                <div class="text-[10px] font-black uppercase tracking-wider text-emerald-600">Total Pendapatan</div>
+                <div class="text-xl sm:text-2xl font-black text-emerald-600 mt-1">Rp {{ number_format($totals['revenue'], 0, ',', '.') }}</div>
+            </div>
+        </div>
+    @endif
+
     <div class="space-y-5">
         @forelse($reportRows as $row)
             @php $event = $row['event']; @endphp
