@@ -217,4 +217,33 @@ class OrganizerReportRevenueSyncTest extends TestCase
         $this->assertEquals(3, $totals['sold']);
         $this->assertEquals(2, $totals['paid_transactions']);
     }
+
+    public function test_organizer_reports_only_lists_published_events(): void
+    {
+        // Create draft event
+        Event::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Draft Concert 2026',
+            'slug' => 'draft-concert-2026',
+            'venue' => 'Mini Hall',
+            'city' => 'Bandung',
+            'event_start_date' => now()->addDays(20),
+            'event_end_date' => now()->addDays(21),
+            'status' => 'draft',
+            'is_free' => false,
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('organizer.reports.index'));
+        $response->assertStatus(200);
+
+        $events = $response->viewData('events');
+        $this->assertCount(1, $events);
+        $this->assertEquals('published', $events->first()->status);
+        $this->assertEquals($this->event->id, $events->first()->id);
+
+        $eventOptions = $response->viewData('eventOptions');
+        $this->assertCount(1, $eventOptions);
+        $this->assertEquals($this->event->id, $eventOptions->first()->id);
+    }
 }
+

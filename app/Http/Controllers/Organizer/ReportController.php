@@ -22,6 +22,7 @@ class ReportController extends Controller
 
         $baseEventsQuery = Event::query()
             ->where('tenant_id', $tenantId)
+            ->where('status', 'published')
             ->when($request->filled('event_id'), fn ($query) => $query->where('id', $request->event_id))
             ->with(['ticketCategories' => fn ($query) => $query->orderBy('sort_order')->orderBy('name')])
             ->orderByDesc('event_start_date');
@@ -29,6 +30,7 @@ class ReportController extends Controller
         $events = (clone $baseEventsQuery)->paginate(8)->withQueryString();
 
         $eventOptions = Event::where('tenant_id', $tenantId)
+            ->where('status', 'published')
             ->orderByDesc('event_start_date')
             ->get(['id', 'name']);
 
@@ -87,6 +89,7 @@ class ReportController extends Controller
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->salesOnly()
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
             ->with([
                 'event:id,name,umroh_question_enabled,meta',
@@ -109,11 +112,13 @@ class ReportController extends Controller
         $tenantId = auth()->user()->tenant_id;
 
         $eventOptions = Event::where('tenant_id', $tenantId)
+            ->where('status', 'published')
             ->orderByDesc('event_start_date')
             ->get(['id', 'name']);
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->salesOnly()
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
             ->select(['id', 'customer_name', 'customer_phone', 'customer_email', 'reference_no', 'created_at'])
             ->with([
@@ -133,6 +138,7 @@ class ReportController extends Controller
 
         $transactions = Transaction::where('tenant_id', $tenantId)
             ->salesOnly()
+            ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
             ->with([
                 'event:id,name,umroh_question_enabled,meta',
