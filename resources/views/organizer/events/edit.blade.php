@@ -188,6 +188,8 @@
                                     <option value="draft" {{ $event->status == 'draft' ? 'selected' : '' }}>Draft</option>
                                     <option value="published" {{ $event->status == 'published' ? 'selected' : '' }}>
                                         Published</option>
+                                    <option value="finished" {{ $event->status == 'finished' ? 'selected' : '' }}>
+                                        Finished</option>
                                     <option value="cancelled" {{ $event->status == 'cancelled' ? 'selected' : '' }}>
                                         Cancelled</option>
                                 </select>

@@ -182,4 +182,9 @@ class Event extends Model
 
         return [];
     }
+
+    public function isFinished(): bool
+    {
+        return $this->status === 'finished';
+    }
 }

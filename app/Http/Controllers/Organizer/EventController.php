@@ -50,6 +50,7 @@ class EventController extends Controller
         $statusCounts = [
             'all' => Event::where('tenant_id', $tenantId)->count(),
             'published' => Event::where('tenant_id', $tenantId)->where('status', 'published')->count(),
+            'finished' => Event::where('tenant_id', $tenantId)->where('status', 'finished')->count(),
             'draft' => Event::where('tenant_id', $tenantId)->where('status', 'draft')->count(),
             'cancelled' => Event::where('tenant_id', $tenantId)->where('status', 'cancelled')->count(),
         ];
@@ -104,6 +105,7 @@ class EventController extends Controller
             'evoucher_page_mode' => 'nullable|in:1_page,multi_page',
             'attendee_gender_type' => 'nullable|in:disabled,general,islamic',
             'custom_fields_json' => 'nullable|string',
+            'status' => 'nullable|string|in:draft,published,cancelled,finished',
         ]);
 
         $validated['is_free'] = $request->boolean('is_free');
@@ -112,7 +114,7 @@ class EventController extends Controller
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $validated['tenant_id'] = auth()->user()->tenant_id;
-        $validated['status'] = 'draft';
+        $validated['status'] = in_array($request->input('status'), ['draft', 'published', 'cancelled', 'finished']) ? $request->input('status') : 'draft';
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
         
         $meta = $this->buildWristbandMeta($request);
@@ -193,7 +195,7 @@ class EventController extends Controller
             'terms_conditions' => 'nullable|string',
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
-            'status' => 'required|in:draft,published,cancelled',
+            'status' => 'required|in:draft,published,cancelled,finished',
             'background_image' => 'nullable|image|max:10240',
             'security_code' => 'required|string|size:6',
             'is_free' => 'nullable|boolean',
