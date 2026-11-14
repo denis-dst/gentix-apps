@@ -11,7 +11,7 @@ class Event extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id', 'name', 'slug', 'description', 'terms_conditions', 'venue', 'city', 'google_maps_url',
+        'tenant_id', 'name', 'type', 'slug', 'description', 'terms_conditions', 'venue', 'city', 'google_maps_url',
         'background_image', 'banner_image', 'event_start_date', 
         'event_end_date', 'gate_open_at', 'gate_close_at', 'status', 'meta', 'security_code',
         'is_free', 'max_tickets_per_transaction', 'umroh_question_enabled', 'evoucher_info',
@@ -111,6 +111,11 @@ class Event extends Model
             return $this->meta['registration_proofs'];
         }
 
+        // If custom fields are configured, do not inject legacy default Batik Umrah proofs
+        if (!empty($this->meta['custom_fields'])) {
+            return [];
+        }
+
         $proofs = [];
         if ($this->meta['proof_ig_required'] ?? true) {
             $proofs[] = [
@@ -131,6 +136,46 @@ class Event extends Model
             ];
         }
         return $proofs;
+    }
+
+    /**
+     * Get maximum tickets allowed per transaction based on tenant or event setting.
+     */
+    public function getMaxTicketsPerTransaction(): int
+    {
+        // 1. Cek pengaturan tenant jika ada (organizer/settings/terms -> max_tickets_per_person)
+        if (!empty($this->tenant?->meta['max_tickets_per_person'])) {
+            return max(1, (int) $this->tenant->meta['max_tickets_per_person']);
+        }
+
+        // 2. Cek pengaturan batas tiket pada event
+        if (!empty($this->max_tickets_per_transaction)) {
+            return max(1, (int) $this->max_tickets_per_transaction);
+        }
+
+        return 2;
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'sport' => 'Olahraga & Pertandingan',
+            'festival' => 'Festival & Expo',
+            'seminar' => 'Seminar & Workshop',
+            'other' => 'Lainnya',
+            default => 'Konser Musik',
+        };
+    }
+
+    public function getTypeIconAttribute(): string
+    {
+        return match ($this->type) {
+            'sport' => '⚽',
+            'festival' => '🎪',
+            'seminar' => '🎓',
+            'other' => '✨',
+            default => '🎵',
+        };
     }
 
     /**
@@ -155,12 +200,23 @@ class Event extends Model
      */
     public function getCustomFields(): array
     {
-        if (isset($this->meta['custom_fields']) && is_array($this->meta['custom_fields'])) {
-            return $this->meta['custom_fields'];
+        if (isset($this->meta['custom_fields']) && is_array($this->meta['custom_fields']) && !empty($this->meta['custom_fields'])) {
+            return array_map(function ($f) {
+                return [
+                    'id' => $f['id'] ?? ('cf_' . \Illuminate\Support\Str::random(6)),
+                    'label' => $f['label'] ?? '',
+                    'type' => $f['type'] ?? 'text',
+                    'placeholder' => $f['placeholder'] ?? '',
+                    'helper_text' => $f['helper_text'] ?? '',
+                    'options' => $f['options'] ?? [],
+                    'is_required' => !empty($f['is_required']),
+                    'show_in_evoucher' => isset($f['show_in_evoucher']) ? (bool) $f['show_in_evoucher'] : true,
+                ];
+            }, $this->meta['custom_fields']);
         }
 
         // Backward compatibility: If legacy umroh_question_enabled is true
-        if ($this->umroh_question_enabled) {
+        if ($this->umroh_question_enabled || !empty($this->meta['custom_question_text'])) {
             $label = $this->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?';
             $type = $this->meta['custom_question_type'] ?? 'text';
             $options = $this->meta['custom_question_options'] ?? [];
@@ -176,6 +232,7 @@ class Event extends Model
                     'helper_text' => $helper,
                     'options' => $options,
                     'is_required' => false,
+                    'show_in_evoucher' => true,
                 ]
             ];
         }

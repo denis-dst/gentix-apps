@@ -69,6 +69,12 @@
                             <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                                 {{ $statusCounts['published'] ?? 0 }} Published
                             </span>
+                            <span class="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                                {{ $statusCounts['private'] ?? 0 }} Private
+                            </span>
+                            <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                                {{ $statusCounts['finished'] ?? 0 }} Finished
+                            </span>
                             <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                                 {{ $statusCounts['draft'] ?? 0 }} Draft
                             </span>
@@ -112,6 +118,14 @@
                     <span>Published</span>
                     <span class="px-1.5 py-0.5 rounded-full text-[10px] {{ $status === 'published' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700' }}">
                         {{ $statusCounts['published'] ?? 0 }}
+                    </span>
+                </a>
+                <a href="{{ route('organizer.events.index', array_merge(request()->except('status', 'page'), ['status' => 'private'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {{ $status === 'private' ? 'bg-white text-purple-800 shadow-xs' : 'text-slate-600 hover:text-purple-700' }}">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span>Private</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] {{ $status === 'private' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700' }}">
+                        {{ $statusCounts['private'] ?? 0 }}
                     </span>
                 </a>
                 <a href="{{ route('organizer.events.index', array_merge(request()->except('status', 'page'), ['status' => 'finished'])) }}"
@@ -254,7 +268,13 @@
                                                  class="w-full h-full object-cover">
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="font-bold text-slate-900 text-sm truncate event-title-{{ $event->id }}">{{ $event->name }}</div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-slate-900 text-sm truncate event-title-{{ $event->id }}">{{ $event->name }}</span>
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0 border border-slate-200">
+                                                    <span>{{ $event->type_icon }}</span>
+                                                    <span>{{ $event->type_label }}</span>
+                                                </span>
+                                            </div>
                                             <div class="flex items-center gap-2 text-[11px] text-slate-400 font-semibold mt-0.5">
                                                 <span>ID: #{{ $event->id }}</span>
                                                 <span>&bull;</span>
@@ -281,6 +301,7 @@
                                     @php
                                         $statusClasses = [
                                             'published' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                            'private' => 'bg-purple-50 text-purple-700 border-purple-200',
                                             'finished' => 'bg-blue-50 text-blue-700 border-blue-200',
                                             'draft' => 'bg-slate-100 text-slate-600 border-slate-200',
                                             'cancelled' => 'bg-rose-50 text-rose-700 border-rose-200',

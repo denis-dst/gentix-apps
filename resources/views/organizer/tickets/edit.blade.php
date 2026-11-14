@@ -45,19 +45,26 @@
 
                         @if ($event->is_free)
                             <input type="hidden" name="price" value="0">
+                            <input type="hidden" name="service_fee" value="0">
                         @endif
 
-                        <div class="grid grid-cols-2 gap-4">
-                            @if (!$event->is_free)
+                        @if (!$event->is_free)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Price (IDR)</label>
-                                    <input type="number" name="price" value="{{ old('price', (int)$category->price) }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Harga Tiket (IDR)</label>
+                                    <input type="number" name="price" value="{{ old('price', (int)$category->price) }}" required min="0" placeholder="0" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                                 </div>
-                            @endif
-                            <div class="{{ $event->is_free ? 'col-span-2' : '' }}">
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Quota</label>
-                                <input type="number" name="quota" value="{{ old('quota', $category->quota) }}" required class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Biaya Layanan (IDR)</label>
+                                    <input type="number" name="service_fee" value="{{ old('service_fee', (int)($category->service_fee ?? 0)) }}" min="0" placeholder="0" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
+                                    <p class="text-[10px] text-gray-400 mt-1">Biaya layanan per tiket (opsional, default: 0).</p>
+                                </div>
                             </div>
+                        @endif
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Quota</label>
+                            <input type="number" name="quota" value="{{ old('quota', $category->quota) }}" required min="1" class="w-full rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition px-4 py-3">
                         </div>
                         @php
                             $isCustomWristband = $event->getEffectiveWristbandTemplate()?->isCustomMode() ?? false;
@@ -130,9 +137,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-Voucher Background</label>
                                 @if($category->background_image)
-                                    <div class="mb-4 relative group">
-                                        <img src="{{ Storage::url($category->background_image) }}" class="w-full h-32 object-cover rounded-2xl shadow-sm">
-                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-2xl flex items-center justify-center text-white text-xs font-bold">Current Background</div>
+                                    <div class="mb-4 relative group h-32 rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-100 shadow-sm">
+                                        <img src="{{ Storage::url($category->background_image) }}" alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover blur-sm scale-110 opacity-50 brightness-75 pointer-events-none">
+                                        <img src="{{ Storage::url($category->background_image) }}" alt="Current Background" class="relative z-10 max-w-full max-h-full object-contain">
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold z-20">Current Background</div>
                                     </div>
                                 @endif
                                 <input type="file" name="background_image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer">

@@ -66,7 +66,7 @@
             background-color: #3b82f6;
         }
     </style>
-    <meta name="wago-verification" content="WAGO-C2742A2D">
+    <meta name="wago-verification" content="WAGO-1BE5FB2B">
 @php
     $emailSetting = $globalEmailEnabled ?? \App\Models\Setting::where('key', 'global_email_notifications_enabled')->value('value');
     $isEmailNotifEnabled = $emailSetting === null || ($emailSetting !== '0' && $emailSetting !== false);
@@ -78,8 +78,10 @@
 <body class="text-slate-800" x-data="{
     isEventFinished: {{ $event->status === 'finished' ? 'true' : 'false' }},
     isFreeEvent: {{ $event->is_free ? 'true' : 'false' }},
-    genderSetting: '{{ $event->getAttendeeGenderSetting() }}',
+    attendeeGenderType: '{{ $event->getAttendeeGenderSetting() }}',
+    umrohQuestionEnabled: {{ $event->umroh_question_enabled ? 'true' : 'false' }},
     customFields: @js($event->getCustomFields()),
+    customAnswers: {},
     proofs: @js($event->getRegistrationProofs()),
     step: 1,
     selectedCategory: null,
@@ -87,6 +89,73 @@
     nik: '',
     name: '',
     phone: '',
+    mainPhoneCountryCode: '+62',
+    mainPhoneRaw: '',
+    todayDate: '{{ date('Y-m-d') }}',
+    countryCodes: [
+        { code: '+62', flag: '🇮🇩', name: 'ID (+62)' },
+        { code: '+60', flag: '🇲🇾', name: 'MY (+60)' },
+        { code: '+65', flag: '🇸🇬', name: 'SG (+65)' },
+        { code: '+966', flag: '🇸🇦', name: 'SA (+966)' },
+        { code: '+673', flag: '🇧🇳', name: 'BN (+673)' },
+        { code: '+61', flag: '🇦🇺', name: 'AU (+61)' },
+        { code: '+1', flag: '🇺🇸', name: 'US (+1)' },
+        { code: '+44', flag: '🇬🇧', name: 'GB (+44)' },
+        { code: '+81', flag: '🇯🇵', name: 'JP (+81)' },
+        { code: '+82', flag: '🇰🇷', name: 'KR (+82)' },
+        { code: '+886', flag: '🇹🇼', name: 'TW (+886)' },
+        { code: '+852', flag: '🇭🇰', name: 'HK (+852)' },
+        { code: '+66', flag: '🇹🇭', name: 'TH (+66)' },
+        { code: '+63', flag: '🇵🇭', name: 'PH (+63)' },
+        { code: '+971', flag: '🇦🇪', name: 'AE (+971)' },
+        { code: '+974', flag: '🇶🇦', name: 'QA (+974)' },
+        { code: '+90', flag: '🇹🇷', name: 'TR (+90)' },
+        { code: '+20', flag: '🇪🇬', name: 'EG (+20)' },
+        { code: '+49', flag: '🇩🇪', name: 'DE (+49)' },
+        { code: '+31', flag: '🇳🇱', name: 'NL (+31)' },
+    ],
+    isPhoneField(field) {
+        if (!field) return false;
+        if (field.type === 'phone') return true;
+        const label = (field.label || '').toLowerCase();
+        return /(?:no|nomor)?\s*(?:hp|handphone|wa|whatsapp|telepon|telp|phone|kontak)/i.test(label);
+    },
+    isDateField(field) {
+        if (!field) return false;
+        if (field.type === 'date') return true;
+        const label = (field.label || '').toLowerCase();
+        return /(?:tgl|tanggal|lahir|birth|dob)/i.test(label);
+    },
+    isBirthDateField(field) {
+        if (!field) return false;
+        const label = (field.label || '').toLowerCase();
+        return /(?:lahir|birth|dob)/i.test(label);
+    },
+    updateMainPhone() {
+        let clean = (this.mainPhoneRaw || '').toString().replace(/\D/g, '');
+        const ccDigits = this.mainPhoneCountryCode.replace(/\D/g, '');
+        if (clean.startsWith(ccDigits)) {
+            clean = clean.substring(ccDigits.length);
+        } else if (clean.startsWith('0')) {
+            clean = clean.substring(1);
+        }
+        this.mainPhoneRaw = clean;
+        this.phone = clean ? (this.mainPhoneCountryCode + clean) : '';
+    },
+    parsePhone(val) {
+        val = (val || '').toString().trim();
+        if (!val) return { cc: '+62', num: '' };
+        for (const c of this.countryCodes) {
+            if (val.startsWith(c.code)) {
+                let num = val.substring(c.code.length).replace(/\D/g, '');
+                if (num.startsWith('0')) num = num.substring(1);
+                return { cc: c.code, num: num };
+            }
+        }
+        let num = val.replace(/\D/g, '');
+        if (num.startsWith('0')) num = num.substring(1);
+        return { cc: '+62', num: num };
+    },
     email: '',
     uploadedProofs: {},
     maxProofFileSize: 1048576,
@@ -97,6 +166,8 @@
     notifEmail: {{ $isEmailNotifEnabled ? 'true' : 'false' }},
     lang: '{{ app()->getLocale() === 'en' ? 'en' : 'id' }}',
     showModalSK: false,
+    agreedTerms1: false,
+    agreedTerms2: false,
     promoCode: '',
     discount: 0,
     appliedPromoId: null,
@@ -106,9 +177,19 @@
     registrationSuccess: false,
     formTouched: false,
     
+    get subtotalTickets() {
+        if (!this.selectedCategory || !this.quantity) return 0;
+        return Number(this.selectedCategory.price) * this.quantity;
+    },
+
+    get subtotalServiceFee() {
+        if (!this.selectedCategory || !this.quantity) return 0;
+        return Number(this.selectedCategory.service_fee || 0) * this.quantity;
+    },
+
     get total() {
         if (!this.selectedCategory || !this.quantity) return 0;
-        let subtotal = this.selectedCategory.price * this.quantity;
+        let subtotal = (Number(this.selectedCategory.price) + Number(this.selectedCategory.service_fee || 0)) * this.quantity;
         return Math.max(0, subtotal - this.discount);
     },
     
@@ -206,28 +287,33 @@
                 return;
             }
             this.attendees = Array.from({length: this.quantity}, () => {
-                let attendeeObj = {
+                const defaultAnswers = {};
+                if (Array.isArray(this.customFields)) {
+                    this.customFields.forEach(f => {
+                        defaultAnswers[f.id] = '';
+                    });
+                }
+                return {
                     name: '',
                     gender: '',
-                    custom_answers: {}
+                    umroh_answer: '',
+                    custom_answers: defaultAnswers
                 };
-                this.customFields.forEach(f => {
-                    attendeeObj.custom_answers[f.id] = '';
-                });
-                return attendeeObj;
             });
             this.currentAttendee = 0;
         } else {
-            if (this.nik.length < 16) {
-                alert(this.lang === 'id' ? 'NIK harus 16 digit.' : 'NIK must be 16 digits.');
-                return;
-            }
-
-            if (this.selectedCategory.nik_restriction) {
-                const allowed = this.selectedCategory.nik_restriction.split(',').map(p => p.trim());
-                if (!allowed.some(p => this.nik.startsWith(p))) {
-                    alert(this.selectedCategory.nik_restriction_message || 'NIK tidak diizinkan.');
+            if (this.customFields.length === 0) {
+                if (this.nik.length < 16) {
+                    alert(this.lang === 'id' ? 'NIK harus 16 digit.' : 'NIK must be 16 digits.');
                     return;
+                }
+
+                if (this.selectedCategory.nik_restriction) {
+                    const allowed = this.selectedCategory.nik_restriction.split(',').map(p => p.trim());
+                    if (!allowed.some(p => this.nik.startsWith(p))) {
+                        alert(this.selectedCategory.nik_restriction_message || 'NIK tidak diizinkan.');
+                        return;
+                    }
                 }
             }
         }
@@ -245,23 +331,31 @@
         if (!this.email) { return; }
         const missingProof = this.proofs.some(p => p.is_required && !this.uploadedProofs[p.id]);
         if (missingProof) { return; }
+
         const invalid = this.attendees.some((a) => {
             if (!a.name) return true;
-            if (this.genderSetting !== 'disabled' && !a.gender) return true;
-            for (let f of this.customFields) {
-                if (f.is_required && (!a.custom_answers || !a.custom_answers[f.id])) {
-                    return true;
+            if (this.attendeeGenderType !== 'disabled' && !a.gender) return true;
+            if (Array.isArray(this.customFields)) {
+                for (const f of this.customFields) {
+                    if (f.is_required) {
+                        const ans = (a.custom_answers?.[f.id] ?? '').toString().trim();
+                        if (!ans) return true;
+                    }
                 }
             }
             return false;
         });
+
         if (invalid) {
             const firstIdx = this.attendees.findIndex((a) => {
                 if (!a.name) return true;
-                if (this.genderSetting !== 'disabled' && !a.gender) return true;
-                for (let f of this.customFields) {
-                    if (f.is_required && (!a.custom_answers || !a.custom_answers[f.id])) {
-                        return true;
+                if (this.attendeeGenderType !== 'disabled' && !a.gender) return true;
+                if (Array.isArray(this.customFields)) {
+                    for (const f of this.customFields) {
+                        if (f.is_required) {
+                            const ans = (a.custom_answers?.[f.id] ?? '').toString().trim();
+                            if (!ans) return true;
+                        }
                     }
                 }
                 return false;
@@ -269,6 +363,15 @@
             if (firstIdx !== -1) this.currentAttendee = firstIdx;
             return;
         }
+
+        // Keep umroh_answer synced with first custom field for backwards compatibility
+        this.attendees.forEach(a => {
+            if (Array.isArray(this.customFields) && this.customFields.length > 0) {
+                const firstId = this.customFields[0].id;
+                a.umroh_answer = a.custom_answers?.[firstId] || a.umroh_answer || '';
+            }
+        });
+
         this.isSubmitting = true;
         try {
             const formData = new FormData();
@@ -312,8 +415,70 @@
             return;
         }
         if (!this.selectedCategory) return;
+
+        // Validasi persetujuan syarat dan ketentuan
+        if (!this.agreedTerms1 || !this.agreedTerms2) {
+            alert('Mohon centang persetujuan Persyaratan dan Ketentuan sebelum melanjutkan.');
+            return;
+        }
+
+        // Validasi pertanyaan custom untuk event berbayar
+        if (Array.isArray(this.customFields) && this.customFields.length > 0) {
+            for (const f of this.customFields) {
+                if (f.is_required) {
+                    const ans = (this.customAnswers[f.id] ?? '').toString().trim();
+                    if (!ans) {
+                        alert((f.label || 'Pertanyaan') + ' wajib diisi.');
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Auto-map custom field answers to name, email, phone, nik
+        let mappedName = this.name;
+        let mappedEmail = this.email;
+        let mappedPhone = this.phone;
+        let mappedNik = this.nik;
+
+        if (Array.isArray(this.customFields) && this.customFields.length > 0) {
+            for (const f of this.customFields) {
+                const label = (f.label || '').toLowerCase();
+                const val = (this.customAnswers[f.id] ?? '').toString().trim();
+                if (!val) continue;
+
+                if (!mappedName && (/nama|name/i.test(label) || f.type === 'name')) {
+                    mappedName = val;
+                }
+                if (!mappedEmail && (/email|surel/i.test(label) || f.type === 'email' || val.includes('@'))) {
+                    mappedEmail = val;
+                }
+                if (!mappedPhone && (/wa|whatsapp|hp|phone|telepon|telp|kontak/i.test(label) || f.type === 'phone')) {
+                    mappedPhone = val;
+                }
+                if (!mappedNik && (/nik|ktp|identitas|kartu/i.test(label))) {
+                    mappedNik = val;
+                }
+            }
+
+            if (!mappedName) {
+                const firstVal = Object.values(this.customAnswers).find(v => (v ?? '').toString().trim() !== '');
+                mappedName = firstVal ? firstVal.toString().trim() : 'Peserta';
+            }
+            if (!mappedEmail) {
+                mappedEmail = 'peserta_' + Math.random().toString(36).substring(2, 8) + '@gentix-apps.com';
+            }
+            if (!mappedPhone) {
+                mappedPhone = '080000000000';
+            }
+        }
+
         this.isSubmitting = true;
         try {
+            const firstAnswer = (Array.isArray(this.customFields) && this.customFields.length > 0)
+                ? (this.customAnswers[this.customFields[0].id] || '')
+                : '';
+
             const response = await fetch('{{ route('checkout.process', $event->slug) }}', {
                 method: 'POST',
                 headers: {
@@ -325,14 +490,16 @@
                 body: JSON.stringify({
                     ticket_category_id: this.selectedCategory.id,
                     quantity: this.quantity,
-                    nik: this.nik,
-                    name: this.name,
-                    phone: this.phone,
-                    email: this.email,
+                    nik: mappedNik || this.nik,
+                    name: mappedName || this.name,
+                    phone: mappedPhone || this.phone,
+                    email: mappedEmail || this.email,
                     promo_code_id: this.appliedPromoId,
                     discount_amount: this.discount,
                     notif_wa: this.notifWA,
-                    notif_email: this.notifEmail
+                    notif_email: this.notifEmail,
+                    custom_answers: this.customAnswers,
+                    custom_question_answer: firstAnswer
                 })
             });
 
@@ -434,15 +601,26 @@
         <div class="bg-white border-b border-slate-200">
             <div class="max-w-6xl mx-auto p-4 lg:p-8">
                 <div class="flex flex-col lg:flex-row gap-8 items-start">
-                    <div class="w-full lg:w-1/3 shrink-0 relative group">
+                    <div class="w-full lg:w-1/3 shrink-0 relative group rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/10 bg-slate-950 aspect-[2/1] sm:aspect-[16/10] flex items-center justify-center">
+                        <!-- Ambient blurred backdrop -->
+                        <img src="{{ $eventBannerImg }}" 
+                            onerror="this.onerror=null;this.src='{{ asset('images/concert.webp') }}'"
+                            alt="" aria-hidden="true"
+                            class="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60 brightness-75 pointer-events-none">
+                        
+                        <!-- Main uncropped image -->
                         <img src="{{ $eventBannerImg }}" 
                             onerror="this.onerror=null;this.src='{{ asset('images/concert.webp') }}'"
                             width="600" height="300"
                             fetchpriority="high" decoding="async"
-                            class="w-full aspect-[2/1] object-contain rounded-3xl shadow-2xl shadow-purple-200 transition duration-500 group-hover:scale-[1.02] bg-slate-100" alt="{{ $event->name }}">
+                            class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain transition duration-500 group-hover:scale-105 drop-shadow-xl" alt="{{ $event->name }}">
                        
                         
-                        <div class="absolute top-4 left-4">
+                        <div class="absolute top-4 left-4 flex flex-wrap items-center gap-2">
+                            <span class="px-3 py-1 bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-black rounded-lg shadow-lg flex items-center gap-1.5 border border-white/10">
+                                <span>{{ $event->type_icon }}</span>
+                                <span>{{ $event->type_label }}</span>
+                            </span>
                             @if($event->is_free)
                                 <span class="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-lg shadow-lg flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -457,6 +635,12 @@
                         </div>
                     </div>
                     <div class="flex-1 space-y-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                <span>{{ $event->type_icon }}</span>
+                                <span>{{ $event->type_label }}</span>
+                            </span>
+                        </div>
                         <div class="flex justify-between items-start">
                             <h1 class="text-2xl lg:text-3xl font-black text-slate-900 font-outfit">{{ $event->name }}</h1>
                             <div class="flex gap-2">
@@ -557,24 +741,23 @@
                         </button>
                     </div>
 
-                    @if($event->status === 'finished')
-                        <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-start gap-3.5 shadow-xs">
-                            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
-                            <div class="space-y-1">
-                                <h4 class="text-sm md:text-base font-extrabold text-amber-950 flex items-center gap-1.5">
-                                    <span>🏁</span>
-                                    <span>Acara Ini Telah Selesai (Finished)</span>
-                                </h4>
-                                <p class="text-xs md:text-sm text-amber-900 leading-relaxed">
-                                    Pemesanan tiket dan pendaftaran peserta untuk acara ini telah ditutup. Informasi acara tetap dapat Anda lihat sebagai arsip dokumentasi.
-                                </p>
-                            </div>
-                        </div>
-                    @endif
-
                     <div class="space-y-4">
+                        @if($event->status === 'finished')
+                            <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-start gap-3.5 shadow-xs mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                    <span>⚠️</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-amber-950 uppercase tracking-wider mb-1">
+                                        <span>Acara Ini Telah Selesai (Finished)</span>
+                                    </h4>
+                                    <p class="text-xs md:text-sm text-amber-900 leading-relaxed">
+                                        Penjualan tiket dan pendaftaran peserta untuk event ini sudah ditutup karena acara telah selesai dilaksanakan.
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
+
                         @foreach($event->ticketCategories as $category)
                             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition hover:shadow-md">
                                 <div class="flex justify-between items-start mb-4">
@@ -619,7 +802,14 @@
                                             @if($event->is_free)
                                                 <span class="text-emerald-600">GRATIS</span>
                                             @else
-                                                Rp {{ number_format($category->price, 0, ',', '.') }}<span class="text-xs text-slate-400 font-normal">/tiket</span>
+                                                <div>
+                                                    Rp {{ number_format($category->price, 0, ',', '.') }}<span class="text-xs text-slate-400 font-normal">/tiket</span>
+                                                </div>
+                                                @if(($category->service_fee ?? 0) > 0)
+                                                    <div class="text-xs font-bold text-slate-500 mt-1">
+                                                        + Biaya Layanan: Rp {{ number_format($category->service_fee, 0, ',', '.') }}
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                         <div class="mt-2">
@@ -635,11 +825,6 @@
                                         @if($event->status === 'finished')
                                             <div class="rounded-2xl border border-slate-200 bg-slate-100 p-3 md:p-4 text-center">
                                                 <div class="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                                                    <span x-show="lang === 'id'">Status Tiket</span>
-                                                    <span x-show="lang === 'en'">Ticket Status</span>
-                                                </div>
-                                                <div class="text-xs font-bold text-slate-600 flex items-center justify-center gap-1.5 py-1">
-                                                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
                                                     <span x-show="lang === 'id'">Acara Selesai (Ditutup)</span>
                                                     <span x-show="lang === 'en'">Event Finished (Closed)</span>
                                                 </div>
@@ -656,15 +841,21 @@
                                                         <span x-show="lang === 'en'">Choose how many attendees you want to register</span>
                                                     </div>
                                                 </div>
+                                                @php
+                                                    $maxOrderQty = $event->getMaxTicketsPerTransaction();
+                                                @endphp
                                                 <select 
-                                                    @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: 0, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
+                                                    @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: 0, service_fee: 0, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
                                                     class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 font-black text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm">
-                                                    @for($i = 0; $i <= ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 1); $i++)
+                                                    @for($i = 0; $i <= $maxOrderQty; $i++)
                                                         <option value="{{ $i }}">{{ $i }} Orang</option>
                                                     @endfor
                                                 </select>
                                             </div>
                                         @else
+                                            @php
+                                                $maxOrderQty = $event->getMaxTicketsPerTransaction();
+                                            @endphp
                                             <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-3 md:p-4">
                                                 <div class="mb-2">
                                                     <div class="text-[11px] font-black text-blue-800 uppercase tracking-wider leading-tight">
@@ -677,12 +868,9 @@
                                                     </div>
                                                 </div>
                                                 <select 
-                                                    @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: {{ $category->price }}, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
+                                                    @change="selectTicket({ id: {{ $category->id }}, name: '{{ $category->name }}', price: {{ $category->price }}, service_fee: {{ (float) ($category->service_fee ?? 0) }}, nik_restriction: '{{ $category->nik_restriction }}', nik_restriction_message: '{{ $category->nik_restriction_message }}' }, $event.target.value)"
                                                     class="w-full bg-white border border-blue-200 rounded-xl px-4 py-3 font-black text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
-                                                    @php
-                                                        $maxPaidTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 2));
-                                                    @endphp
-                                                    @for($i = 0; $i <= $maxPaidTickets; $i++)
+                                                    @for($i = 0; $i <= $maxOrderQty; $i++)
                                                         <option value="{{ $i }}">{{ $i }}</option>
                                                     @endfor
                                                 </select>
@@ -723,12 +911,27 @@
 
                                 <div class="space-y-3 pt-2 border-t border-slate-50">
                                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nomor WhatsApp</label>
-                                    <div class="relative">
-                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                            <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                    <div class="flex rounded-2xl border-2 border-slate-100 bg-slate-50 focus-within:border-emerald-500 focus-within:bg-white transition-all overflow-hidden shadow-xs">
+                                        <div class="relative bg-slate-100/80 border-r border-slate-200/70 shrink-0 flex items-center">
+                                            <select x-model="mainPhoneCountryCode" @change="updateMainPhone()" 
+                                                    class="h-full pl-3 pr-7 py-4 text-xs md:text-sm font-black text-slate-700 bg-transparent border-0 focus:ring-0 outline-none cursor-pointer appearance-none">
+                                                <template x-for="c in countryCodes" :key="c.code">
+                                                    <option :value="c.code" x-text="c.flag + ' ' + c.code"></option>
+                                                </template>
+                                            </select>
+                                            <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▼</div>
                                         </div>
-                                        <input type="text" x-model="phone" @input="phone = $event.target.value.replace(/\D/g, '')" id="phone-input" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" placeholder="08xxxxxxxxxx"
-                                               class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:bg-white transition-all outline-none">
+                                        <div class="relative flex-1">
+                                            <input type="tel" 
+                                                   inputmode="numeric" 
+                                                   pattern="[0-9]*" 
+                                                   autocomplete="tel" 
+                                                   x-model="mainPhoneRaw" 
+                                                   @input="updateMainPhone()" 
+                                                   id="phone-input" 
+                                                   placeholder="8xxxxxxxxxx"
+                                                   class="w-full bg-transparent border-0 py-4 px-4 font-bold text-slate-700 focus:ring-0 outline-none">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -736,9 +939,9 @@
                                     <button type="button" 
                                             id="btn-lanjut-free"
                                             disabled
-                                            class="w-full py-4 bg-slate-200 text-slate-500 rounded-2xl font-black cursor-not-allowed text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                        <span>Acara Telah Selesai (Pendaftaran Ditutup)</span>
+                                            class="w-full py-4 bg-slate-200 text-slate-500 rounded-2xl font-black shadow-none cursor-not-allowed">
+                                        <span x-show="lang === 'id'">Acara Selesai (Pendaftaran Ditutup)</span>
+                                        <span x-show="lang === 'en'">Event Finished (Closed)</span>
                                     </button>
                                 @else
                                     <button @click="goToStep2" 
@@ -837,7 +1040,7 @@
                                                         :class="currentAttendee === index ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
                                                         class="relative flex-1 text-[10px] font-black uppercase py-2 px-1 rounded-lg text-center transition">
                                                     Peserta <span x-text="index + 1"></span>
-                                                    <span x-show="formTouched && (!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || customFields.some(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id])))" x-cloak
+                                                    <span x-show="formTouched && (!attendee.name || !attendee.gender)" x-cloak
                                                           class="absolute -top-1 -right-1 flex h-3 w-3">
                                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                                         <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
@@ -858,7 +1061,7 @@
                                         <!-- Nama Lengkap -->
                                         <div>
                                             <label class="block text-[10px] font-black uppercase tracking-widest mb-1.5" :class="formTouched && !attendees[currentAttendee].name ? 'text-rose-500' : 'text-slate-400'">Nama Lengkap *</label>
-                                            <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP / Identitas" required
+                                            <input type="text" x-model="attendees[currentAttendee].name" placeholder="Nama lengkap sesuai KTP" required
                                                    :class="formTouched && !attendees[currentAttendee].name ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30' : 'border-slate-100 bg-slate-50 focus:ring-2 focus:ring-emerald-400'"
                                                    class="w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none transition">
                                             <p x-show="formTouched && !attendees[currentAttendee].name" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
@@ -867,104 +1070,222 @@
                                             </p>
                                         </div>
 
-                                        <!-- Gender (Conditional based on genderSetting) -->
-                                        <template x-if="genderSetting !== 'disabled'">
-                                            <div>
-                                                <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">
-                                                    Jenis Kelamin / Gender *
-                                                </label>
+                                        <!-- Gender -->
+                                        <div x-show="attendeeGenderType !== 'disabled'">
+                                            <label class="block text-[10px] font-black uppercase tracking-widest mb-2" :class="formTouched && !attendees[currentAttendee].gender ? 'text-rose-500' : 'text-slate-400'">Pilihan Gender *</label>
+
+                                            <!-- Islamic Gender Options -->
+                                            <template x-if="attendeeGenderType === 'islamic'">
                                                 <div class="grid grid-cols-2 gap-3">
-                                                    <!-- Option 1: Male / Ikhwan -->
-                                                    <label :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki') ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
+                                                    <!-- Ikhwan -->
+                                                    <label :class="attendees[currentAttendee].gender === 'ikhwan' ? 'border-amber-500 bg-amber-50 text-amber-800' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-amber-300')"
                                                            class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                        <input type="radio" x-model="attendees[currentAttendee].gender" :value="genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki'" class="sr-only">
-                                                        <div :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki') ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                            <div x-show="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'ikhwan' : 'laki-laki')" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="ikhwan" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'ikhwan' ? 'bg-amber-600' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'ikhwan'" class="w-2 h-2 bg-white rounded-full"></div>
                                                         </div>
                                                         <div>
-                                                            <div class="text-sm font-black" x-text="genderSetting === 'islamic' ? '🧔 Ikhwan' : '👨 Laki-laki'"></div>
-                                                            <div class="text-[9px] font-medium opacity-60" x-text="genderSetting === 'islamic' ? 'Laki-laki' : 'Pria'"></div>
+                                                            <div class="text-sm font-black">🧔 Ikhwan</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Laki-laki</div>
                                                         </div>
                                                     </label>
-                                                    <!-- Option 2: Female / Akhwat -->
-                                                    <label :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan') ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
+                                                    <!-- Akhwat -->
+                                                    <label :class="attendees[currentAttendee].gender === 'akhwat' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
                                                            class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
-                                                        <input type="radio" x-model="attendees[currentAttendee].gender" :value="genderSetting === 'islamic' ? 'akhwat' : 'perempuan'" class="sr-only">
-                                                        <div :class="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan') ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
-                                                            <div x-show="attendees[currentAttendee].gender === (genderSetting === 'islamic' ? 'akhwat' : 'perempuan')" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="akhwat" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'akhwat' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'akhwat'" class="w-2 h-2 bg-white rounded-full"></div>
                                                         </div>
                                                         <div>
-                                                            <div class="text-sm font-black" x-text="genderSetting === 'islamic' ? '🧕 Akhwat' : '👩 Perempuan'"></div>
-                                                            <div class="text-[9px] font-medium opacity-60" x-text="genderSetting === 'islamic' ? 'Perempuan' : 'Wanita'"></div>
+                                                            <div class="text-sm font-black">🧕 Akhwat</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Perempuan</div>
                                                         </div>
                                                     </label>
                                                 </div>
-                                                <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    Pilihan jenis kelamin wajib diisi
-                                                </p>
+                                            </template>
+
+                                            <!-- General Gender Options -->
+                                            <template x-if="attendeeGenderType === 'general'">
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <!-- Laki-laki -->
+                                                    <label :class="attendees[currentAttendee].gender === 'laki-laki' ? 'border-blue-500 bg-blue-50 text-blue-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="laki-laki" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'laki-laki' ? 'bg-blue-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'laki-laki'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black">👨 Laki-laki</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Pria</div>
+                                                        </div>
+                                                    </label>
+                                                    <!-- Perempuan -->
+                                                    <label :class="attendees[currentAttendee].gender === 'perempuan' ? 'border-pink-500 bg-pink-50 text-pink-700' : (formTouched && !attendees[currentAttendee].gender ? 'border-rose-300 bg-rose-50/30 text-slate-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-pink-300')"
+                                                           class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all">
+                                                        <input type="radio" x-model="attendees[currentAttendee].gender" value="perempuan" class="sr-only">
+                                                        <div :class="attendees[currentAttendee].gender === 'perempuan' ? 'bg-pink-500' : 'bg-slate-200'" class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all">
+                                                            <div x-show="attendees[currentAttendee].gender === 'perempuan'" class="w-2 h-2 bg-white rounded-full"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-black">👩 Perempuan</div>
+                                                            <div class="text-[9px] font-medium opacity-60">Wanita</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </template>
+
+                                            <p x-show="formTouched && !attendees[currentAttendee].gender" x-cloak class="mt-2 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                Pilih gender wajib
+                                            </p>
+                                        </div>
+
+                                        <!-- Pertanyaan Kustom Transaksi / Tambahan Peserta -->
+                                        <template x-if="customFields.length > 0">
+                                            <div class="space-y-3 pt-2">
+                                                <template x-for="(field, fIdx) in customFields" :key="field.id">
+                                                    <div class="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
+                                                        <label class="block text-xs font-black text-amber-900 tracking-wide text-left">
+                                                            <span x-text="field.label"></span>
+                                                            <span x-show="field.is_required" class="text-rose-500 font-bold">*</span>
+                                                        </label>
+
+                                                        <p x-show="field.helper_text" class="text-[11px] text-amber-800/80 italic -mt-1 text-left" x-text="field.helper_text"></p>
+
+                                                        <!-- Select Dropdown -->
+                                                        <template x-if="field.type === 'select'">
+                                                            <select x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                                    :required="field.is_required"
+                                                                    @change="if(fIdx === 0) attendees[currentAttendee].umroh_answer = $event.target.value"
+                                                                    class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                                                <option value="" disabled selected>Pilih salah satu...</option>
+                                                                <template x-for="opt in (field.options || [])" :key="opt">
+                                                                    <option :value="opt" x-text="opt"></option>
+                                                                </template>
+                                                            </select>
+                                                        </template>
+
+                                                        <!-- Textarea -->
+                                                        <template x-if="field.type === 'textarea'">
+                                                            <textarea x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                                      :required="field.is_required"
+                                                                      @input="if(fIdx === 0) attendees[currentAttendee].umroh_answer = $event.target.value"
+                                                                      :placeholder="field.placeholder || 'Jawaban Anda...'"
+                                                                      rows="3"
+                                                                      class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800"></textarea>
+                                                        </template>
+
+                                                        <!-- Number -->
+                                                        <template x-if="field.type === 'number'">
+                                                            <input type="number" x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                                   :required="field.is_required"
+                                                                   @input="if(fIdx === 0) attendees[currentAttendee].umroh_answer = $event.target.value"
+                                                                   :placeholder="field.placeholder || '0'"
+                                                                   class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                                        </template>
+
+                                                        <!-- Tanggal Lahir / Date (Mode Kalender) -->
+                                                        <template x-if="field.type === 'date' || isDateField(field)">
+                                                            <div class="relative">
+                                                                <input type="date" 
+                                                                       x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                                       :required="field.is_required"
+                                                                       :max="isBirthDateField(field) ? todayDate : null"
+                                                                       @change="if(fIdx === 0) attendees[currentAttendee].umroh_answer = $event.target.value"
+                                                                       class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800 cursor-pointer">
+                                                            </div>
+                                                        </template>
+
+                                                        <!-- Nomor HP / Phone (Dengan Kode Negara) -->
+                                                        <template x-if="(field.type === 'phone' || isPhoneField(field)) && !isDateField(field)">
+                                                            <div x-data="{
+                                                                cc: '+62',
+                                                                num: '',
+                                                                init() {
+                                                                    const parsed = parsePhone(attendees[currentAttendee]?.custom_answers?.[field.id]);
+                                                                    this.cc = parsed.cc;
+                                                                    this.num = parsed.num;
+                                                                },
+                                                                update() {
+                                                                    let clean = (this.num || '').toString().replace(/\D/g, '');
+                                                                    const ccDigits = this.cc.replace(/\D/g, '');
+                                                                    if (clean.startsWith(ccDigits)) {
+                                                                        clean = clean.substring(ccDigits.length);
+                                                                    } else if (clean.startsWith('0')) {
+                                                                        clean = clean.substring(1);
+                                                                    }
+                                                                    this.num = clean;
+                                                                    const full = clean ? (this.cc + clean) : '';
+                                                                    if (!attendees[currentAttendee].custom_answers) {
+                                                                        attendees[currentAttendee].custom_answers = {};
+                                                                    }
+                                                                    attendees[currentAttendee].custom_answers[field.id] = full;
+                                                                    if (fIdx === 0) attendees[currentAttendee].umroh_answer = full;
+                                                                }
+                                                            }" x-init="init()" class="flex rounded-xl border border-amber-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-amber-400">
+                                                                <div class="relative bg-amber-50/70 border-r border-amber-200 shrink-0 flex items-center">
+                                                                    <select x-model="cc" @change="update()" class="h-full pl-3 pr-7 py-3 text-xs md:text-sm font-black text-amber-900 bg-transparent border-0 focus:ring-0 outline-none cursor-pointer appearance-none">
+                                                                        <template x-for="c in countryCodes" :key="c.code">
+                                                                            <option :value="c.code" x-text="c.flag + ' ' + c.code"></option>
+                                                                        </template>
+                                                                    </select>
+                                                                    <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-amber-600 text-xs">▼</div>
+                                                                </div>
+                                                                <input type="tel" 
+                                                                       inputmode="numeric" 
+                                                                       pattern="[0-9]*" 
+                                                                       x-model="num" 
+                                                                       @input="update()" 
+                                                                       :placeholder="field.placeholder || '812-3456-7890'"
+                                                                       :required="field.is_required"
+                                                                       class="flex-1 px-4 py-3 text-sm font-medium border-0 focus:ring-0 outline-none text-slate-800 bg-transparent">
+                                                            </div>
+                                                        </template>
+
+                                                        <!-- Text (Default) -->
+                                                        <template x-if="(field.type === 'text' || !field.type) && !isDateField(field) && !isPhoneField(field)">
+                                                            <input type="text" x-model="attendees[currentAttendee].custom_answers[field.id]"
+                                                                   :required="field.is_required"
+                                                                   @input="if(fIdx === 0) attendees[currentAttendee].umroh_answer = $event.target.value"
+                                                                   :placeholder="field.placeholder || 'Jawaban Anda...'"
+                                                                   class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                                        </template>
+
+                                                        <p x-show="formTouched && field.is_required && (!attendees[currentAttendee].custom_answers || !attendees[currentAttendee].custom_answers[field.id] || !attendees[currentAttendee].custom_answers[field.id].toString().trim())" 
+                                                           x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                            <span x-text="field.label + ' wajib diisi'"></span>
+                                                        </p>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
 
-                                        <!-- Custom Fields (Dynamic) -->
-                                        <template x-for="field in customFields" :key="field.id">
-                                            <div class="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label class="block text-[11px] font-black text-amber-900 uppercase tracking-wider text-left">
-                                                        <span x-text="field.label"></span>
-                                                        <span x-show="field.is_required" class="text-rose-500">*</span>
-                                                    </label>
-                                                    <span x-show="!field.is_required" class="text-[9px] font-bold text-amber-700/60 uppercase tracking-widest bg-amber-100/50 px-2 py-0.5 rounded-full">Opsional</span>
-                                                </div>
-                                                <template x-if="field.helper_text">
-                                                    <p class="text-[11px] text-amber-800/80 text-left" x-text="field.helper_text"></p>
-                                                </template>
-
-                                                <!-- Input text -->
-                                                <template x-if="field.type === 'text'">
-                                                    <input type="text" x-model="attendees[currentAttendee].custom_answers[field.id]"
-                                                           :placeholder="field.placeholder || 'Ketik jawaban di sini...'"
-                                                           :required="field.is_required"
-                                                           :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
-                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
-                                                </template>
-
-                                                <!-- Input textarea -->
-                                                <template x-if="field.type === 'textarea'">
-                                                    <textarea x-model="attendees[currentAttendee].custom_answers[field.id]"
-                                                              :placeholder="field.placeholder || 'Ketik penjelasan di sini...'"
-                                                              rows="3"
-                                                              :required="field.is_required"
-                                                              :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
-                                                              class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800"></textarea>
-                                                </template>
-
-                                                <!-- Input select -->
-                                                <template x-if="field.type === 'select'">
-                                                    <select x-model="attendees[currentAttendee].custom_answers[field.id]"
-                                                            :required="field.is_required"
-                                                            :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
-                                                            class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
+                                        <!-- Legacy Umroh Question (Fallback if customFields is empty but umrohQuestionEnabled is true) -->
+                                        <template x-if="customFields.length === 0 && umrohQuestionEnabled">
+                                            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                                                @php
+                                                    $qText = $event->meta['custom_question_text'] ?? 'Alumni Grup Keberangkatan Tanggal Berapa?';
+                                                    $qType = $event->meta['custom_question_type'] ?? 'text';
+                                                    $qOptions = $event->meta['custom_question_options'] ?? [];
+                                                @endphp
+                                                <label class="block text-[10px] font-black text-amber-700 uppercase tracking-widest text-left">
+                                                    🕌 {{ $qText }}
+                                                </label>
+                                                @if($qType === 'select')
+                                                    <select x-model="attendees[currentAttendee].umroh_answer"
+                                                            class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
                                                         <option value="" disabled selected>Pilih salah satu...</option>
-                                                        <template x-for="opt in field.options" :key="opt">
-                                                            <option :value="opt" x-text="opt"></option>
-                                                        </template>
+                                                        @foreach($qOptions as $opt)
+                                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                                        @endforeach
                                                     </select>
-                                                </template>
-
-                                                <!-- Input number -->
-                                                <template x-if="field.type === 'number'">
-                                                    <input type="number" x-model="attendees[currentAttendee].custom_answers[field.id]"
-                                                           :placeholder="field.placeholder || 'Contoh: 1'"
-                                                           :required="field.is_required"
-                                                           :class="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-amber-200 focus:ring-2 focus:ring-amber-400'"
-                                                           class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none transition text-slate-800">
-                                                </template>
-
-                                                <p x-show="formTouched && field.is_required && !attendees[currentAttendee].custom_answers[field.id]" x-cloak class="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                                    <span x-text="field.label + ' wajib diisi'"></span>
-                                                </p>
+                                                @else
+                                                    <p class="text-[10px] text-amber-600 text-left">Jika lebih dari 1X, Maka bisa diisi keberangkatan paling terakhir</p>
+                                                    <input type="text" x-model="attendees[currentAttendee].umroh_answer"
+                                                           placeholder="Contoh: 13 Januari 2024"
+                                                           class="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-800">
+                                                @endif
                                             </div>
                                         </template>
                                     </div>
@@ -995,7 +1316,7 @@
                                         </div>
 
                                         <!-- Validation Error Summary -->
-                                        <div x-show="formTouched && (!email || proofs.some(p => p.is_required && !uploadedProofs[p.id]) || attendees.some(a => !a.name || (genderSetting !== 'disabled' && !a.gender) || customFields.some(f => f.is_required && (!a.custom_answers || !a.custom_answers[f.id]))))" 
+                                        <div x-show="formTouched && (!email || proofs.some(p => p.is_required && !uploadedProofs[p.id]) || attendees.some(a => !a.name || (attendeeGenderType !== 'disabled' && !a.gender) || customFields.some(f => f.is_required && (!a.custom_answers || !a.custom_answers[f.id] || !a.custom_answers[f.id].toString().trim()))))" 
                                              x-cloak
                                              class="p-3 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-1">
                                             <div class="flex items-center gap-2 mb-1">
@@ -1008,14 +1329,14 @@
                                                     <li x-text="proof.label"></li>
                                                 </template>
                                                 <template x-for="(attendee, idx) in attendees" :key="idx">
-                                                    <template x-if="!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || customFields.some(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id]))">
+                                                    <template x-if="!attendee.name || (attendeeGenderType !== 'disabled' && !attendee.gender) || customFields.some(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id] || !attendee.custom_answers[f.id].toString().trim()))">
                                                         <li>
                                                             <span x-text="'Peserta ' + (idx + 1) + ': '"></span>
                                                             <span x-show="!attendee.name">Nama</span>
-                                                            <span x-show="!attendee.name && genderSetting !== 'disabled' && !attendee.gender">, </span>
-                                                            <span x-show="genderSetting !== 'disabled' && !attendee.gender">Gender</span>
-                                                            <template x-for="(f, fIdx) in customFields.filter(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id]))" :key="f.id">
-                                                                <span x-text="(!attendee.name || (genderSetting !== 'disabled' && !attendee.gender) || fIdx > 0 ? ', ' : '') + f.label"></span>
+                                                            <span x-show="!attendee.name && attendeeGenderType !== 'disabled' && !attendee.gender">, </span>
+                                                            <span x-show="attendeeGenderType !== 'disabled' && !attendee.gender">Gender</span>
+                                                            <template x-for="f in customFields.filter(f => f.is_required && (!attendee.custom_answers || !attendee.custom_answers[f.id] || !attendee.custom_answers[f.id].toString().trim()))" :key="f.id">
+                                                                <span x-text="', ' + f.label"></span>
                                                             </template>
                                                         </li>
                                                     </template>
@@ -1048,15 +1369,17 @@
                             <div x-show="step === 1" class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-900/5 border border-slate-50 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div class="space-y-4">
                                     <div class="text-sm font-medium text-slate-500" x-text="selectedCategory ? selectedCategory.name : 'Pilih Tiket'"></div>
-                                    <div class="flex justify-between items-center" x-show="selectedCategory">
-                                        <div class="text-slate-400 text-sm" x-text="selectedCategory ? quantity + ' x ' + Number(selectedCategory.price).toLocaleString('id-ID') : ''"></div>
-                                    </div>
-
-                                    <div class="flex justify-between items-end pt-4 border-t border-slate-100">
-                                        <div class="text-slate-400 text-sm font-bold">Jumlah (<span x-text="quantity">0</span> tiket)</div>
-                                        <div class="text-2xl font-black text-slate-900 font-outfit">
-                                            Rp <span x-text="selectedCategory ? (selectedCategory.price * quantity).toLocaleString('id-ID') : '0'">0</span>
+                                    <div class="space-y-1.5 pt-2 border-t border-slate-100" x-show="selectedCategory">
+                                        <div class="flex justify-between items-center text-xs">
+                                            <span class="text-slate-500">Harga Tiket (<span x-text="quantity"></span>x)</span>
+                                            <span class="font-bold text-slate-800">Rp <span x-text="subtotalTickets.toLocaleString('id-ID')"></span></span>
                                         </div>
+                                        <template x-if="subtotalServiceFee > 0">
+                                            <div class="flex justify-between items-center text-xs">
+                                                <span class="text-slate-500">Biaya Layanan (<span x-text="quantity"></span>x)</span>
+                                                <span class="font-bold text-slate-800">Rp <span x-text="subtotalServiceFee.toLocaleString('id-ID')"></span></span>
+                                            </div>
+                                        </template>
                                     </div>
 
                                     <!-- Promo Code Section -->
@@ -1077,37 +1400,40 @@
                                         </div>
                                     </div>
 
-                                    <div class="flex justify-between items-center pt-4 border-t border-blue-100" x-show="discount > 0">
-                                        <div class="text-blue-600 text-sm font-black uppercase">Total Bayar</div>
-                                        <div class="text-2xl font-black text-blue-600 font-outfit">
+                                    <div class="flex justify-between items-end pt-4 border-t border-slate-100">
+                                        <div class="text-slate-400 text-sm font-bold">Total (<span x-text="quantity">0</span> tiket)</div>
+                                        <div class="text-2xl font-black text-slate-900 font-outfit">
                                             Rp <span x-text="total.toLocaleString('id-ID')">0</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="space-y-3 pt-4 border-t border-slate-50">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Pemesan (NIK)</label>
-                                    <div class="relative">
-                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"/></svg>
+                                <template x-if="customFields.length === 0">
+                                    <div class="space-y-3 pt-4 border-t border-slate-50">
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Pemesan (NIK)</label>
+                                        <div class="relative">
+                                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"/></svg>
+                                            </div>
+                                            <input type="text" x-model="nik" placeholder="Masukkan 16 Digit NIK" maxlength="16"
+                                                   class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none">
                                         </div>
-                                        <input type="text" x-model="nik" placeholder="Masukkan 16 Digit NIK" maxlength="16"
-                                               class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none">
                                     </div>
-                                </div>
+                                </template>
 
                                 @if($event->status === 'finished')
                                     <button type="button" 
                                             disabled
-                                            class="w-full py-4 bg-slate-200 text-slate-500 rounded-2xl font-black cursor-not-allowed text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                        <span>Acara Telah Selesai (Penjualan Ditutup)</span>
+                                            class="w-full py-4 bg-slate-200 text-slate-500 rounded-2xl font-black shadow-none cursor-not-allowed">
+                                        <span x-show="lang === 'id'">Acara Selesai (Penjualan Ditutup)</span>
+                                        <span x-show="lang === 'en'">Event Finished (Closed)</span>
                                     </button>
                                 @else
                                     <button @click="goToStep2" 
                                             :disabled="!selectedCategory || quantity === 0"
                                             class="w-full py-4 bg-blue-500 disabled:bg-blue-200 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all transform active:scale-95">
-                                        Lanjut Pembayaran
+                                        <span x-show="customFields.length > 0">Lanjut Isi Data Peserta →</span>
+                                        <span x-show="customFields.length === 0">Lanjut Pembayaran</span>
                                     </button>
                                 @endif
                             </div>
@@ -1118,44 +1444,191 @@
                                     <button @click="step = 1" class="p-2 hover:bg-slate-50 rounded-full transition">
                                         <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                                     </button>
-                                    <h3 class="font-bold text-slate-900 font-outfit">Detail Pembayaran</h3>
+                                    <h3 class="font-bold text-slate-900 font-outfit" x-text="customFields.length > 0 ? 'Data Peserta' : 'Detail Pembayaran'"></h3>
                                 </div>
 
                                 <form @submit.prevent="submitBooking" class="space-y-4">
-                                    <div class="space-y-3">
-                                        <input type="text" x-model="name" placeholder="Nama Lengkap" required
-                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        <input type="text" x-model="phone" placeholder="Nomor HP / WhatsApp" required
-                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                        <input type="email" x-model="email" placeholder="Alamat Email" required
-                                                class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                    </div>
-
-                                    @if($isWaNotifEnabled || $isEmailNotifEnabled)
-                                        <div class="space-y-2 pt-2">
-                                            @if($isWaNotifEnabled)
-                                                <label class="flex items-center gap-3 cursor-pointer">
-                                                    <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
-                                                </label>
-                                            @endif
-                                            @if($isEmailNotifEnabled)
-                                                <label class="flex items-center gap-3 cursor-pointer">
-                                                    <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
-                                                </label>
-                                            @endif
+                                    <template x-if="customFields.length === 0">
+                                        <div class="space-y-3">
+                                            <input type="text" x-model="name" placeholder="Nama Lengkap" :required="customFields.length === 0"
+                                                    class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                            <div class="flex rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-blue-500">
+                                                <div class="relative bg-slate-50 border-r border-slate-200 shrink-0 flex items-center">
+                                                    <select x-model="mainPhoneCountryCode" @change="updateMainPhone()" 
+                                                            class="h-full pl-3 pr-7 py-2.5 text-xs font-bold text-slate-700 bg-transparent border-0 focus:ring-0 outline-none cursor-pointer appearance-none">
+                                                        <template x-for="c in countryCodes" :key="c.code">
+                                                            <option :value="c.code" x-text="c.flag + ' ' + c.code"></option>
+                                                        </template>
+                                                    </select>
+                                                    <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▼</div>
+                                                </div>
+                                                <input type="tel" inputmode="numeric" pattern="[0-9]*" x-model="mainPhoneRaw" @input="updateMainPhone()" placeholder="Nomor HP / WhatsApp (8xxxxxxxxxx)" :required="customFields.length === 0"
+                                                       class="flex-1 px-4 py-2.5 text-sm focus:ring-0 outline-none border-0 text-slate-800 bg-transparent">
+                                            </div>
+                                            <input type="email" x-model="email" placeholder="Alamat Email" :required="customFields.length === 0"
+                                                    class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
-                                    @endif
+                                    </template>
 
-                                    <div class="pt-4">
-                                        <div class="flex justify-between items-center mb-4 p-4 bg-slate-50 rounded-2xl">
+                                    <!-- Pertanyaan Kustom Transaksi (Paid Event) -->
+                                    <template x-if="customFields.length > 0">
+                                        <div class="space-y-3 pt-2">
+                                            <template x-for="(field, fIdx) in customFields" :key="field.id">
+                                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                                                    <label class="block text-xs font-bold text-slate-700 text-left">
+                                                        <span x-text="field.label"></span>
+                                                        <span x-show="field.is_required" class="text-rose-500 font-bold">*</span>
+                                                    </label>
+
+                                                    <p x-show="field.helper_text" class="text-[11px] text-slate-500 italic -mt-1 text-left" x-text="field.helper_text"></p>
+
+                                                    <template x-if="field.type === 'select'">
+                                                        <select x-model="customAnswers[field.id]"
+                                                                :required="field.is_required"
+                                                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-800">
+                                                            <option value="" disabled selected>Pilih salah satu...</option>
+                                                            <template x-for="opt in (field.options || [])" :key="opt">
+                                                                <option :value="opt" x-text="opt"></option>
+                                                            </template>
+                                                        </select>
+                                                    </template>
+
+                                                    <template x-if="field.type === 'textarea'">
+                                                        <textarea x-model="customAnswers[field.id]"
+                                                                  :required="field.is_required"
+                                                                  :placeholder="field.placeholder || 'Jawaban Anda...'"
+                                                                  rows="3"
+                                                                  class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-800"></textarea>
+                                                    </template>
+
+                                                    <template x-if="field.type === 'number'">
+                                                        <input type="number" x-model="customAnswers[field.id]"
+                                                               :required="field.is_required"
+                                                               :placeholder="field.placeholder || '0'"
+                                                               class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-800">
+                                                    </template>
+
+                                                    <!-- Tanggal Lahir / Date (Mode Kalender) -->
+                                                    <template x-if="field.type === 'date' || isDateField(field)">
+                                                        <div class="relative">
+                                                            <input type="date" 
+                                                                   x-model="customAnswers[field.id]"
+                                                                   :required="field.is_required"
+                                                                   :max="isBirthDateField(field) ? todayDate : null"
+                                                                   class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-800 cursor-pointer">
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- Nomor HP / Phone (Dengan Kode Negara) -->
+                                                    <template x-if="(field.type === 'phone' || isPhoneField(field)) && !isDateField(field)">
+                                                        <div x-data="{
+                                                            cc: '+62',
+                                                            num: '',
+                                                            init() {
+                                                                const parsed = parsePhone(customAnswers?.[field.id]);
+                                                                this.cc = parsed.cc;
+                                                                this.num = parsed.num;
+                                                            },
+                                                            update() {
+                                                                let clean = (this.num || '').toString().replace(/\D/g, '');
+                                                                const ccDigits = this.cc.replace(/\D/g, '');
+                                                                if (clean.startsWith(ccDigits)) {
+                                                                    clean = clean.substring(ccDigits.length);
+                                                                } else if (clean.startsWith('0')) {
+                                                                    clean = clean.substring(1);
+                                                                }
+                                                                this.num = clean;
+                                                                const full = clean ? (this.cc + clean) : '';
+                                                                customAnswers[field.id] = full;
+                                                            }
+                                                        }" x-init="init()" class="flex rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-blue-500">
+                                                            <div class="relative bg-slate-50 border-r border-slate-200 shrink-0 flex items-center">
+                                                                <select x-model="cc" @change="update()" class="h-full pl-3 pr-7 py-3 text-xs md:text-sm font-bold text-slate-700 bg-transparent border-0 focus:ring-0 outline-none cursor-pointer appearance-none">
+                                                                    <template x-for="c in countryCodes" :key="c.code">
+                                                                        <option :value="c.code" x-text="c.flag + ' ' + c.code"></option>
+                                                                    </template>
+                                                                </select>
+                                                                <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▼</div>
+                                                            </div>
+                                                            <input type="tel" 
+                                                                   inputmode="numeric" 
+                                                                   pattern="[0-9]*" 
+                                                                   x-model="num" 
+                                                                   @input="update()" 
+                                                                   :placeholder="field.placeholder || '812-3456-7890'"
+                                                                   :required="field.is_required"
+                                                                   class="flex-1 px-4 py-3 text-sm font-medium border-0 focus:ring-0 outline-none text-slate-800 bg-transparent">
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- Text (Default) -->
+                                                    <template x-if="(field.type === 'text' || !field.type) && !isDateField(field) && !isPhoneField(field)">
+                                                        <input type="text" x-model="customAnswers[field.id]"
+                                                               :required="field.is_required"
+                                                               :placeholder="field.placeholder || 'Jawaban Anda...'"
+                                                               class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-800">
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="customFields.length === 0">
+                                        @if($isWaNotifEnabled || $isEmailNotifEnabled)
+                                            <div class="space-y-2 pt-2">
+                                                @if($isWaNotifEnabled)
+                                                    <label class="flex items-center gap-3 cursor-pointer">
+                                                        <input type="checkbox" x-model="notifWA" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                                        <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke WhatsApp</span>
+                                                    </label>
+                                                @endif
+                                                @if($isEmailNotifEnabled)
+                                                    <label class="flex items-center gap-3 cursor-pointer">
+                                                        <input type="checkbox" x-model="notifEmail" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                                        <span class="text-xs text-slate-600 font-medium">Kirim notifikasi ke Email</span>
+                                                    </label>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </template>
+
+                                    <div class="pt-4 space-y-4">
+                                        <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
                                             <span class="text-xs font-bold text-slate-500">Total Pembayaran</span>
                                             <span class="text-xl font-black text-blue-600 font-outfit">Rp <span x-text="total.toLocaleString('id-ID')"></span></span>
                                         </div>
+
+                                        <!-- Persetujuan Syarat & Ketentuan (Wajib) -->
+                                        <div class="p-4 bg-slate-50/80 border border-slate-200/80 rounded-2xl space-y-3">
+                                            <label class="flex items-start gap-3 cursor-pointer group">
+                                                <input type="checkbox" x-model="agreedTerms1" required 
+                                                       class="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0 cursor-pointer">
+                                                <span class="text-[11px] font-bold text-slate-700 leading-relaxed uppercase group-hover:text-slate-900 transition text-left">
+                                                    SAYA TELAH MEMBACA DAN MEMAHAMI PERSYARATAN DAN KETENTUAN PEMBELIAN DAN PENGGUNAAN E-TICKET YANG TERTERA DI ATAS.
+                                                </span>
+                                            </label>
+
+                                            <label class="flex items-start gap-3 cursor-pointer group">
+                                                <input type="checkbox" x-model="agreedTerms2" required 
+                                                       class="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0 cursor-pointer">
+                                                <span class="text-[11px] font-bold text-slate-700 leading-relaxed uppercase group-hover:text-slate-900 transition text-left">
+                                                    SAYA MENYETUJUI DAN MEMBERIKAN IZIN UNTUK TERKAIT SECARA SAH DENGAN PERSYARATAN DAN KETENTUAN TERSEBUT.
+                                                </span>
+                                            </label>
+
+                                            <div class="pt-1 text-right">
+                                                <button type="button" @click="showModalSK = true" 
+                                                        class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Lihat Syarat & Ketentuan Lengkap
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         <button type="submit" 
-                                                :disabled="isSubmitting"
-                                                class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95 disabled:bg-slate-300 flex items-center justify-center gap-3">
+                                                :disabled="isSubmitting || !agreedTerms1 || !agreedTerms2"
+                                                :class="(!agreedTerms1 || !agreedTerms2) ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 active:scale-95'"
+                                                class="w-full py-4 text-white rounded-2xl font-black transition transform flex items-center justify-center gap-3">
                                             <template x-if="isSubmitting">
                                                 <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

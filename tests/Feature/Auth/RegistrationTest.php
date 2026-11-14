@@ -18,8 +18,11 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Penyedia Event', 'guard_name' => 'web']);
+
         $response = $this->post('/register', [
             'name' => 'Test User',
+            'organization_name' => 'Test Organization',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

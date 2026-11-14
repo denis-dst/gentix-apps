@@ -137,12 +137,16 @@ class GateController extends Controller
         ]);
 
         $scanCode = trim($request->ticket_code);
+        $cleanCode = preg_replace('/[\s\-]/', '', $scanCode);
+        $extractedCode = basename(parse_url($scanCode, PHP_URL_PATH) ?: $scanCode);
+        $cleanExtracted = preg_replace('/[\s\-]/', '', $extractedCode);
+        $possibleCodes = array_values(array_unique(array_filter([$scanCode, $cleanCode, $extractedCode, $cleanExtracted])));
 
         // Fetch ticket with event, transaction, and category in eager queries
         $ticket = Ticket::where('event_id', $request->event_id)
-            ->where(function ($q) use ($scanCode) {
-                $q->where('ticket_code', $scanCode)
-                  ->orWhere('wristband_qr', $scanCode);
+            ->where(function ($q) use ($possibleCodes) {
+                $q->whereIn('ticket_code', $possibleCodes)
+                  ->orWhereIn('wristband_qr', $possibleCodes);
             })
             ->with([
                 'category:id,name,hex_color',
@@ -202,7 +206,7 @@ class GateController extends Controller
                                 'event_id' => $category->event_id,
                                 'transaction_id' => $stockTx->id,
                                 'ticket_category_id' => $category->id,
-                                'ticket_code' => 'GTX-WB-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                                'ticket_code' => Ticket::generateTicketCode(),
                                 'wristband_qr' => $scanCode,
                                 'status' => 'redeemed',
                                 'redeemed_at' => now(),
@@ -227,7 +231,7 @@ class GateController extends Controller
         }
 
         $event = $ticket->event;
-        $isRedeemFlow = ($event && $event->purchase_flow === 'redeem');
+        $isRedeemFlow = ($event && $event->purchase_flow === 'redeem' && empty($event->getCustomFields()));
         $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
 
         if ($ticket->status === 'void') {
