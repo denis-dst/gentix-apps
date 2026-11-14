@@ -51,48 +51,66 @@
             :throughput-chart="$throughputChart"
         />
 
-        <form method="GET" action="{{ route('organizer.transactions.index') }}" class="flex flex-col xl:flex-row gap-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-            <div class="relative flex-1">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <form method="GET" action="{{ route('organizer.transactions.index') }}" class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <input type="text" 
+                           name="q" 
+                           value="{{ request('q') }}" 
+                           placeholder="Cari email pembeli, nama customer, atau no. invoice..." 
+                           class="w-full pl-10 pr-9 py-2.5 rounded-xl border-slate-200 text-sm font-semibold text-slate-700 placeholder-slate-400 focus:border-orange-500 focus:ring-orange-500 transition" />
+                    @if(request('q'))
+                        <a href="{{ request()->fullUrlWithQuery(['q' => null]) }}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600" title="Hapus teks pencarian">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </a>
+                    @endif
                 </div>
-                <input type="text" name="q" value="{{ request('q') }}" placeholder="Email, Nama, atau No. Invoice..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500" />
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition shadow-md shadow-orange-200 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        <span>Cari Transaksi</span>
+                    </button>
+                    
+                    @if(request()->anyFilled(['q', 'event_id', 'ticket_category_id', 'channel', 'status']))
+                        <a href="{{ route('organizer.transactions.index') }}" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition text-center" title="Reset filter">Reset</a>
+                    @endif
+                </div>
             </div>
             
-            <select name="event_id" class="rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 xl:w-64">
-                <option value="">Semua Event</option>
-                @foreach($eventOptions as $event)
-                    <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>{{ $event->name }}</option>
-                @endforeach
-            </select>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
+                <select name="event_id" onchange="this.form.submit()" class="w-full rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 py-2.5 bg-slate-50/50 hover:bg-white transition">
+                    <option value="">Semua Event</option>
+                    @foreach($eventOptions as $event)
+                        <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>{{ $event->name }}</option>
+                    @endforeach
+                </select>
 
-            <select name="ticket_category_id" class="rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 xl:w-64">
-                <option value="">Semua Kategori Tiket</option>
-                @foreach($ticketCategories as $cat)
-                    <option value="{{ $cat->id }}" {{ request('ticket_category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                @endforeach
-            </select>
+                <select name="ticket_category_id" onchange="this.form.submit()" class="w-full rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 py-2.5 bg-slate-50/50 hover:bg-white transition">
+                    <option value="">Semua Kategori Tiket</option>
+                    @foreach($ticketCategories as $cat)
+                        <option value="{{ $cat->id }}" {{ request('ticket_category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    @endforeach
+                </select>
 
-            <select name="channel" class="rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 xl:w-56">
-                <option value="">Semua Saluran</option>
-                <option value="online" {{ request('channel') === 'online' ? 'selected' : '' }}>Penjualan Online</option>
-                <option value="pos" {{ request('channel') === 'pos' ? 'selected' : '' }}>Penjualan Langsung (POS)</option>
-            </select>
+                <select name="channel" onchange="this.form.submit()" class="w-full rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 py-2.5 bg-slate-50/50 hover:bg-white transition">
+                    <option value="">Semua Saluran</option>
+                    <option value="online" {{ request('channel') === 'online' ? 'selected' : '' }}>Penjualan Online</option>
+                    <option value="pos" {{ request('channel') === 'pos' ? 'selected' : '' }}>Penjualan Langsung (POS)</option>
+                </select>
 
-            <select name="status" class="rounded-xl border-slate-200 text-sm font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 xl:w-48">
-                <option value="">Semua Status</option>
-                <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>PAID</option>
-                <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>PENDING</option>
-                <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>EXPIRED</option>
-                <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>FAILED</option>
-                <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>REFUNDED</option>
-            </select>
-
-            <button type="submit" class="px-8 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition shadow-lg shadow-orange-200">Cari Transaksi</button>
-            
-            @if(request()->anyFilled(['q', 'event_id', 'ticket_category_id', 'channel', 'status']))
-                <a href="{{ route('organizer.transactions.index') }}" class="px-5 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition text-center">Reset</a>
-            @endif
+                <select name="status" onchange="this.form.submit()" class="w-full rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 py-2.5 bg-slate-50/50 hover:bg-white transition">
+                    <option value="">Semua Status</option>
+                    <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>PAID</option>
+                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>PENDING</option>
+                    <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>EXPIRED</option>
+                    <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>FAILED</option>
+                    <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>REFUNDED</option>
+                </select>
+            </div>
         </form>
 
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
