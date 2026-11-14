@@ -50,6 +50,7 @@ class EventController extends Controller
         $statusCounts = [
             'all' => Event::where('tenant_id', $tenantId)->count(),
             'published' => Event::where('tenant_id', $tenantId)->where('status', 'published')->count(),
+            'private' => Event::where('tenant_id', $tenantId)->where('status', 'private')->count(),
             'finished' => Event::where('tenant_id', $tenantId)->where('status', 'finished')->count(),
             'draft' => Event::where('tenant_id', $tenantId)->where('status', 'draft')->count(),
             'cancelled' => Event::where('tenant_id', $tenantId)->where('status', 'cancelled')->count(),
@@ -83,7 +84,7 @@ class EventController extends Controller
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'custom_question_text' => 'nullable|string|max:255',
-            'custom_question_type' => 'nullable|in:text,select',
+            'custom_question_type' => 'nullable|in:text,select,textarea,number,phone,date',
             'custom_question_options' => 'nullable|string',
             'evoucher_info' => 'nullable|string',
             'purchase_flow' => 'required|in:redeem,evoucher,print,both',
@@ -105,16 +106,19 @@ class EventController extends Controller
             'evoucher_page_mode' => 'nullable|in:1_page,multi_page',
             'attendee_gender_type' => 'nullable|in:disabled,general,islamic',
             'custom_fields_json' => 'nullable|string',
-            'status' => 'nullable|string|in:draft,published,cancelled,finished',
+            'type' => 'nullable|string|in:concert,sport,festival,seminar,other',
+            'status' => 'nullable|string|in:draft,published,private,cancelled,finished',
         ]);
 
+        $validated['type'] = $request->input('type', 'concert');
+        $validated['type'] = $request->input('type', $event->type ?? 'concert');
         $validated['is_free'] = $request->boolean('is_free');
         $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['thermal_paper_width_mm'] = $request->integer('thermal_paper_width_mm', 80);
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $validated['tenant_id'] = auth()->user()->tenant_id;
-        $validated['status'] = in_array($request->input('status'), ['draft', 'published', 'cancelled', 'finished']) ? $request->input('status') : 'draft';
+        $validated['status'] = in_array($request->input('status'), ['draft', 'published', 'private', 'cancelled', 'finished']) ? $request->input('status') : 'draft';
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
         
         $meta = $this->buildWristbandMeta($request);
@@ -195,14 +199,15 @@ class EventController extends Controller
             'terms_conditions' => 'nullable|string',
             'event_start_date' => 'required|date',
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
-            'status' => 'required|in:draft,published,cancelled,finished',
+            'type' => 'nullable|string|in:concert,sport,festival,seminar,other',
+            'status' => 'required|in:draft,published,private,cancelled,finished',
             'background_image' => 'nullable|image|max:10240',
             'security_code' => 'required|string|size:6',
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
             'custom_question_text' => 'nullable|string|max:255',
-            'custom_question_type' => 'nullable|in:text,select',
+            'custom_question_type' => 'nullable|in:text,select,textarea,number,phone,date',
             'custom_question_options' => 'nullable|string',
             'evoucher_info' => 'nullable|string',
             'purchase_flow' => 'required|in:redeem,evoucher,print,both',
@@ -226,6 +231,7 @@ class EventController extends Controller
             'custom_fields_json' => 'nullable|string',
         ]);
 
+        $validated['type'] = $request->input('type', $event->type ?? 'concert');
         $validated['is_free'] = $request->boolean('is_free');
         $validated['max_tickets_per_transaction'] = $request->input('is_free') ? $request->integer('max_tickets_per_transaction', 1) : 1;
         $validated['thermal_paper_width_mm'] = $request->integer('thermal_paper_width_mm', 80);
@@ -373,71 +379,61 @@ class EventController extends Controller
      */
     private function parseCustomFields(Request $request): array
     {
-        $raw = $request->input('custom_fields_json');
-        if (!empty($raw)) {
-            $decoded = json_decode($raw, true);
+        $customFields = [];
+        if ($request->filled('custom_fields_json')) {
+            $decoded = json_decode($request->input('custom_fields_json'), true);
             if (is_array($decoded)) {
-                $fields = [];
-                foreach ($decoded as $item) {
-                    $label = trim((string) ($item['label'] ?? ''));
-                    if ($label === '') continue;
-
-                    $type = in_array($item['type'] ?? 'text', ['text', 'textarea', 'select', 'number']) ? $item['type'] : 'text';
+                foreach ($decoded as $idx => $field) {
+                    $label = trim((string) ($field['label'] ?? ''));
+                    if ($label === '') {
+                        continue;
+                    }
+                    $fType = in_array($field['type'] ?? 'text', ['text', 'textarea', 'select', 'number', 'phone', 'date'], true) ? $field['type'] : 'text';
                     $options = [];
-                    if ($type === 'select') {
-                        if (is_array($item['options'] ?? null)) {
-                            $options = array_values(array_filter(array_map('trim', $item['options'])));
-                        } elseif (is_string($item['options'] ?? null)) {
-                            $options = collect(explode("\n", $item['options']))
-                                ->map(fn($o) => trim($o))
-                                ->filter()
-                                ->values()
-                                ->all();
+                    if ($fType === 'select') {
+                        $optsRaw = $field['options'] ?? '';
+                        if (is_array($optsRaw)) {
+                            $options = array_values(array_filter(array_map('trim', $optsRaw)));
+                        } else {
+                            $options = array_values(array_filter(array_map('trim', explode("\n", (string) $optsRaw))));
                         }
                     }
-
-                    $fields[] = [
-                        'id' => !empty($item['id']) ? $item['id'] : ('cf_' . \Illuminate\Support\Str::random(6)),
+                    $customFields[] = [
+                        'id' => !empty($field['id']) ? $field['id'] : ('cf_' . ($idx + 1) . '_' . \Illuminate\Support\Str::random(4)),
                         'label' => $label,
-                        'type' => $type,
-                        'placeholder' => trim((string) ($item['placeholder'] ?? '')),
-                        'helper_text' => trim((string) ($item['helper_text'] ?? '')),
+                        'type' => $fType,
+                        'placeholder' => trim((string) ($field['placeholder'] ?? '')),
+                        'helper_text' => trim((string) ($field['helper_text'] ?? '')),
                         'options' => $options,
-                        'is_required' => !empty($item['is_required']),
+                        'is_required' => isset($field['is_required']) ? filter_var($field['is_required'], FILTER_VALIDATE_BOOLEAN) : false,
+                        'show_in_evoucher' => isset($field['show_in_evoucher']) ? filter_var($field['show_in_evoucher'], FILTER_VALIDATE_BOOLEAN) : true,
                     ];
                 }
-                return $fields;
+                return $customFields;
             }
         }
 
-        // Fallback for legacy single question inputs
-        if ($request->boolean('umroh_question_enabled')) {
-            $label = trim((string) $request->input('custom_question_text', 'Pertanyaan Tambahan'));
-            $type = $request->input('custom_question_type', 'text');
+        if (($request->boolean('umroh_question_enabled') || $request->boolean('custom_question_enabled')) && $request->filled('custom_question_text')) {
+            $label = $request->input('custom_question_text');
+            $fType = in_array($request->input('custom_question_type', 'text'), ['text', 'textarea', 'select', 'number', 'phone', 'date'], true) ? $request->input('custom_question_type', 'text') : 'text';
             $options = [];
-            if ($type === 'select') {
+            if ($fType === 'select') {
                 $optionsStr = $request->input('custom_question_options', '');
-                $options = collect(explode("\n", $optionsStr))
-                    ->map(fn($o) => trim($o))
-                    ->filter()
-                    ->values()
-                    ->all();
+                $options = array_values(array_filter(array_map('trim', explode("\n", $optionsStr))));
             }
-
-            return [
-                [
-                    'id' => 'cf_legacy',
-                    'label' => $label,
-                    'type' => $type,
-                    'placeholder' => trim((string) $request->input('custom_question_placeholder', '')),
-                    'helper_text' => trim((string) $request->input('custom_question_helper', '')),
-                    'options' => $options,
-                    'is_required' => false,
-                ]
+            $customFields[] = [
+                'id' => 'umroh_answer',
+                'label' => $label,
+                'type' => $fType,
+                'placeholder' => trim((string) $request->input('custom_question_placeholder', '')),
+                'helper_text' => trim((string) $request->input('custom_question_helper', '')),
+                'options' => $options,
+                'is_required' => false,
+                'show_in_evoucher' => true,
             ];
         }
 
-        return [];
+        return $customFields;
     }
 
     /**
@@ -644,7 +640,7 @@ class EventController extends Controller
             'copies_count' => 'nullable|integer|min:1|max:30',
             'naming_pattern' => 'required|in:copy,session,match,stage,custom',
             'custom_prefix' => 'nullable|string|max:100',
-            'status' => 'required|in:draft,published',
+            'status' => 'required|in:draft,published,private',
             'date_offset_mode' => 'required|in:none,hours,days',
             'date_offset_value' => 'nullable|integer|min:0|max:100',
         ]);

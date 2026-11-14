@@ -205,11 +205,16 @@
                         <div
                             class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
                             <h3
-                                class="text-[10px] font-black text-center uppercase tracking-[0.4em] text-indigo-400 mb-8">
-                                Manual Entry</h3>
-                            <input type="text" x-model="manualCode" placeholder="KODE TIKET"
+                                class="text-[10px] font-black text-center uppercase tracking-[0.4em] text-indigo-400 mb-2">
+                                Input Manual Kode Tiket</h3>
+                            <p class="text-[11px] text-slate-400 text-center mb-6">Ketik kode angka yang tertera di bawah QR Code</p>
+                            <input type="text" 
+                                inputmode="numeric" 
+                                pattern="[0-9]*" 
+                                x-model="manualCode" 
+                                placeholder="Contoh: 8492019384"
                                 @keydown.enter="processManualScan()"
-                                class="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-5 text-2xl font-black text-center tracking-[0.2em] text-white focus:border-indigo-500 focus:ring-0 mb-6 uppercase placeholder:text-white/10">
+                                class="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-5 text-2xl font-black text-center tracking-[0.2em] font-mono text-white focus:border-indigo-500 focus:ring-0 mb-6 placeholder:text-white/20">
                             <button @click="processManualScan()"
                                 class="w-full py-5 bg-indigo-600 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-600/20 active:scale-[0.98]">Validasi
                                 Tiket</button>
@@ -262,87 +267,38 @@
 
                         <!-- Success Overlay -->
                         <div x-show="status === 'success'"
-                            class="bg-black/80 backdrop-blur-md fixed inset-0 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 z-50 pointer-events-auto select-none"
+                            class="bg-[#065f46] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in fade-in duration-200 z-50 pointer-events-auto cursor-pointer select-none"
                             @click="dismissResult()">
-                            
-                            <div class="bg-[#042f2e] border-2 border-emerald-500/50 rounded-[2.5rem] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(16,185,129,0.25)] relative text-center"
-                                 @click.stop>
-                                <!-- Success Checkmark Badge -->
-                                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-xl shadow-emerald-500/30 shrink-0">
-                                    <svg class="w-10 h-10 sm:w-12 sm:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7" /></svg>
-                                </div>
-
-                                <div class="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-1">
-                                    <span x-text="mode === 'IN' ? 'CHECK-IN BERHASIL' : 'CHECK-OUT BERHASIL'"></span>
-                                </div>
-                                <h3 class="text-xl sm:text-3xl font-black text-white uppercase tracking-tight font-outfit truncate px-2" x-text="(result.customer && result.customer !== '-') ? result.customer : (result.ticket_code || 'WRISTBAND')"></h3>
-                                <div class="mt-2 mb-4">
-                                    <span class="inline-block px-4 py-1 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-full font-black text-[11px] sm:text-xs uppercase tracking-wider" x-text="result.category"></span>
-                                </div>
-
-                                <!-- Attendee Details / All Filled Data -->
-                                <div class="text-left mb-5 flex-1 overflow-y-auto max-h-[46vh] space-y-2 pr-1 custom-scrollbar">
-                                    <template x-for="(cf, idx) in (result.custom_fields || [])" :key="idx">
-                                        <div class="p-3 bg-black/40 rounded-2xl border border-white/10 flex items-center justify-between gap-3 text-left">
-                                            <span class="text-[10px] sm:text-[11px] font-bold text-emerald-200 uppercase tracking-wider shrink-0" x-text="cf.label"></span>
-                                            
-                                            <!-- If file/link -->
-                                            <template x-if="cf.is_file">
-                                                <a :href="cf.url" target="_blank" @click.stop class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 rounded-xl text-emerald-200 text-xs font-bold transition">
-                                                    <span>Buka Lampiran</span>
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                                </a>
-                                            </template>
-                                            
-                                            <!-- Standard value -->
-                                            <template x-if="!cf.is_file">
-                                                <span class="text-xs sm:text-sm font-black text-white uppercase tracking-wide text-right truncate pl-2" x-text="cf.value"></span>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <button type="button" @click="dismissResult()"
-                                    class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs sm:text-sm uppercase tracking-widest rounded-2xl transition shadow-xl shadow-emerald-500/20 active:scale-[0.98] flex items-center justify-center gap-2">
-                                    <span>OK / Scan Berikutnya</span>
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                                </button>
+                            <div class="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-6 shadow-2xl animate-bounce">
+                                <svg class="w-16 h-16 sm:w-20 sm:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
                             </div>
+                            <h3 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight text-center mb-3 font-outfit px-4" x-text="result.customer"></h3>
+                            <div class="px-6 py-2 bg-white text-emerald-900 rounded-full font-black text-xs sm:text-sm uppercase tracking-[0.2em] mb-3" x-text="result.category"></div>
+                            <p class="text-lg sm:text-2xl font-black uppercase tracking-[0.4em] text-emerald-200/90 mb-6">BERHASIL</p>
+
+                            <!-- Confirm OK Button (especially useful in manual OK mode, or to dismiss immediately) -->
+                            <button type="button" @click.stop="dismissResult()"
+                                class="px-8 py-3.5 bg-white text-emerald-900 hover:bg-emerald-50 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition shadow-2xl active:scale-95 flex items-center gap-2">
+                                <span>OK / Scan Berikutnya</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
                         </div>
 
                         <!-- Error Overlay -->
                         <div x-show="status === 'error'"
-                            class="bg-black/85 backdrop-blur-md fixed inset-0 flex items-center justify-center p-4 sm:p-6 animate-in shake duration-300 z-50 pointer-events-auto select-none"
+                            class="bg-[#9f1239] fixed inset-0 flex flex-col items-center justify-center p-6 animate-in shake duration-300 z-50 pointer-events-auto cursor-pointer select-none"
                             @click="dismissResult()">
-                            
-                            <div class="bg-[#4c0519] border-2 border-rose-500/50 rounded-[2.5rem] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(244,63,94,0.25)] relative text-center"
-                                 @click.stop>
-                                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-rose-600 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-xl shadow-rose-600/30 shrink-0">
-                                    <svg class="w-10 h-10 sm:w-12 sm:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </div>
-                                <h3 class="text-xl sm:text-2xl font-black text-white uppercase tracking-tight font-outfit mb-2">AKSES DITOLAK</h3>
-                                <div class="bg-black/50 px-5 py-3.5 rounded-2xl border border-white/10 text-sm sm:text-base font-bold text-rose-200 text-center leading-relaxed mb-3" x-text="errorMessage"></div>
-                                
-                                <p class="text-white/40 font-bold uppercase tracking-[0.2em] text-[10px] mb-4" x-text="'KODE: ' + lastScannedCode"></p>
-
-                                <!-- Details if present on error (e.g. already checkin) -->
-                                <template x-if="errorData && errorData.custom_fields && errorData.custom_fields.length > 0">
-                                    <div class="text-left mb-4 flex-1 overflow-y-auto max-h-[30vh] space-y-2 pr-1 custom-scrollbar">
-                                        <template x-for="(cf, idx) in errorData.custom_fields" :key="idx">
-                                            <div class="p-2.5 bg-black/40 rounded-xl border border-white/10 flex items-center justify-between gap-3 text-left">
-                                                <span class="text-[10px] font-bold text-rose-300 uppercase tracking-wider shrink-0" x-text="cf.label"></span>
-                                                <span class="text-xs sm:text-sm font-black text-white uppercase tracking-wide text-right truncate pl-2" x-text="cf.value"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-
-                                <button type="button" @click="dismissResult()"
-                                    class="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs sm:text-sm uppercase tracking-widest rounded-2xl transition shadow-xl shadow-rose-600/20 active:scale-[0.98] flex items-center justify-center gap-2">
-                                    <span>Tutup / Coba Lagi (OK)</span>
-                                </button>
+                            <div class="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center text-rose-600 mb-6 shadow-2xl">
+                                <svg class="w-16 h-16 sm:w-20 sm:h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" /></svg>
                             </div>
+                            <h3 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight text-center mb-4 font-outfit">AKSES DITOLAK</h3>
+                            <div class="bg-black/40 px-6 py-4 rounded-2xl border border-white/20 text-base sm:text-xl font-black text-center max-w-lg leading-relaxed mb-3" x-text="errorMessage"></div>
+                            <p class="text-white/40 font-bold uppercase tracking-[0.3em] text-xs mb-6" x-text="'CODE: ' + lastScannedCode"></p>
+
+                            <button type="button" @click.stop="dismissResult()"
+                                class="px-8 py-3.5 bg-white text-rose-900 hover:bg-rose-50 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition shadow-2xl active:scale-95 flex items-center gap-2">
+                                <span>Tutup / Coba Lagi (OK)</span>
+                            </button>
                         </div>
 
                         <!-- Processing Overlay -->
@@ -394,26 +350,8 @@
                                             <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider" x-text="attendee.ticket_code"></span>
                                             <span class="text-[8px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded uppercase" x-text="attendee.gender || 'n/a'"></span>
                                         </div>
-
-                                        <!-- Custom Questions Data in Group Modal -->
-                                        <template x-if="attendee.custom_fields && attendee.custom_fields.length > 0">
-                                            <div class="mt-2 space-y-1 bg-black/40 p-2.5 rounded-xl border border-white/10">
-                                                <template x-for="(cf, cIdx) in attendee.custom_fields" :key="cIdx">
-                                                    <div class="text-[10px] text-slate-300 flex items-center justify-between gap-3">
-                                                        <span class="font-bold text-indigo-300 uppercase tracking-wider shrink-0" x-text="cf.label + ':'"></span>
-                                                        <template x-if="cf.is_file">
-                                                            <a :href="cf.url" target="_blank" @click.stop class="text-indigo-400 hover:text-indigo-300 underline font-bold text-[10px]">Buka Lampiran ↗</a>
-                                                        </template>
-                                                        <template x-if="!cf.is_file">
-                                                            <span class="font-black text-white uppercase text-right truncate pl-2" x-text="cf.value"></span>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
-
                                         <template x-if="attendee.is_checked_in">
-                                            <div class="text-[10px] text-emerald-400 font-bold mt-1.5" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
+                                            <div class="text-[10px] text-emerald-400 font-bold mt-1" x-text="'In: ' + (attendee.checked_in_at || '-') + ' oleh ' + (attendee.checked_in_by || '-')"></div>
                                         </template>
                                     </div>
                                 </div>
@@ -460,16 +398,9 @@
                                      :class="log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'">
                                     <span x-text="log.type"></span>
                                 </div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="text-xs font-black text-white/90 truncate font-outfit" x-text="(log.name && log.name !== '-') ? log.name : (log.code || 'Wristband')"></div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-black text-white/90 truncate font-outfit" x-text="log.name || 'Access Denied'"></div>
                                     <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate" x-text="log.category || log.code"></div>
-                                    <template x-if="log.custom_fields && log.custom_fields.length > 0">
-                                        <div class="text-[9px] text-emerald-400 font-bold mt-1 truncate">
-                                            <template x-for="(cf, cIdx) in log.custom_fields" :key="cIdx">
-                                                <span x-text="(cIdx > 0 ? ' • ' : '') + cf.label + ': ' + cf.value"></span>
-                                            </template>
-                                        </div>
-                                    </template>
                                 </div>
                             </div>
                             <div class="text-[9px] font-black text-slate-600 whitespace-nowrap bg-black/40 px-2 py-1 rounded-lg" x-text="log.time"></div>
@@ -533,8 +464,7 @@
                 manualCode: '',
                 lastScannedCode: '',
                 errorMessage: '',
-                errorData: null,
-                result: { customer: '', category: '', ticket_code: '', reference_no: '', custom_fields: [] },
+                result: { customer: '', category: '' },
                 inCount: {{ $inCount }},
                 outCount: {{ $outCount }},
                 history: [],
@@ -570,7 +500,6 @@
                         clearTimeout(this.autoResetTimer);
                         this.autoResetTimer = null;
                     }
-                    this.errorData = null;
                     if (this.status === 'success' || this.status === 'error') {
                         this.status = 'idle';
                     }
@@ -861,7 +790,7 @@
                     })
                     .then(r => r.ok ? r.json() : r.json().then(e => { throw e }))
                     .then(d => this.handleSuccess(d))
-                    .catch(e => this.handleError(e.message || 'Gagal', e))
+                    .catch(e => this.handleError(e.message || 'Gagal'))
                     .finally(() => { if (this.inputType === 'auto' && !this.isGroupScan) this.focusInput(); });
                 },
 
@@ -886,34 +815,20 @@
                     }
 
                     this.status = 'success';
-                    this.result = { 
-                        customer: d.customer, 
-                        category: d.category, 
-                        ticket_code: d.ticket_code || '',
-                        reference_no: d.reference_no || '',
-                        custom_fields: d.custom_fields || [] 
-                    };
+                    this.result = { customer: d.customer, category: d.category };
                     this.inCount = d.in_count; this.outCount = d.out_count;
-                    this.history.unshift({ 
-                        success: true, 
-                        type: this.mode, 
-                        name: d.customer, 
-                        category: d.category, 
-                        custom_fields: d.custom_fields || [], 
-                        time: new Date().toLocaleTimeString() 
-                    });
+                    this.history.unshift({ success: true, type: this.mode, name: d.customer, category: d.category, time: new Date().toLocaleTimeString() });
                     this.playSound('sound-success');
 
                     if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
                     if (this.gateAutoTimer) {
-                        this.autoResetTimer = setTimeout(() => { if (this.status === 'success') this.status = 'idle'; }, 4000);
+                        this.autoResetTimer = setTimeout(() => { if (this.status === 'success') this.status = 'idle'; }, 3000);
                     }
                 },
 
-                handleError(msg, errData = null) {
+                handleError(msg) {
                     this.status = 'error';
                     this.errorMessage = msg;
-                    this.errorData = errData;
                     this.history.unshift({ success: false, type: this.mode, code: this.lastScannedCode, time: new Date().toLocaleTimeString() });
                     this.playSound('sound-error');
 

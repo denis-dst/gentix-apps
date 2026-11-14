@@ -269,7 +269,7 @@ class GateController extends Controller
                                 'event_id' => $category->event_id,
                                 'transaction_id' => $stockTx->id,
                                 'ticket_category_id' => $category->id,
-                                'ticket_code' => 'GTX-WB-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                                'ticket_code' => \App\Models\Ticket::generateTicketCode(),
                                 'wristband_qr' => $scanCode,
                                 'status' => 'redeemed',
                                 'redeemed_at' => now(),

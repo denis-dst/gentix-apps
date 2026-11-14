@@ -8,17 +8,30 @@ use App\Models\Setting;
 use App\Http\Controllers\PublicEventController;
 
 Route::get('/', function () {
-    $events = Event::with(['ticketCategories', 'tenant'])
-        ->whereIn('status', ['published', 'finished'])
-        ->orderBy('created_at', 'desc')
-        ->orderBy('event_start_date', 'desc')
-        ->get();
-    
-    $settings = \Illuminate\Support\Facades\Cache::remember('public_settings_map', 3600, function () {
-        return \App\Models\Setting::pluck('value', 'key')->toArray();
-    });
+    $activeTheme = 'default';
+    $events = collect();
+    $settings = [];
 
-    return view('welcome', compact('events', 'settings'));
+    if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+        $activeTheme = \App\Models\Setting::get('active_theme', 'default');
+        $settings = \Illuminate\Support\Facades\Cache::remember('public_settings_map', 3600, function () {
+            return \App\Models\Setting::pluck('value', 'key')->toArray();
+        });
+    }
+
+    if (\Illuminate\Support\Facades\Schema::hasTable('events')) {
+        $events = Event::with(['ticketCategories', 'tenant'])
+            ->whereIn('status', ['published', 'finished'])
+            ->orderBy('created_at', 'desc')
+            ->orderBy('event_start_date', 'desc')
+            ->get();
+    }
+
+    if ($activeTheme === 'new-thema') {
+        return view('themes.new-thema.welcome', compact('events', 'settings', 'activeTheme'));
+    }
+
+    return view('welcome', compact('events', 'settings', 'activeTheme'));
 });
 
 Route::get('/event/{slug}', [PublicEventController::class, 'show'])->name('events.show');
@@ -29,6 +42,7 @@ Route::match(['get', 'post'], '/api/wago-webhook', [PublicEventController::class
 Route::match(['get', 'post'], '/wago/webhook', [PublicEventController::class, 'handleWagoNotification'])->name('wago.webhook');
 Route::post('/ipaymu/notification', [PublicEventController::class, 'handleIPaymuNotification'])->name('ipaymu.notification');
 Route::get('/checkout/success/{reference}', [App\Http\Controllers\PublicEventController::class, 'success'])->name('checkout.success');
+Route::get('/checkout/status/{reference}', [App\Http\Controllers\PublicEventController::class, 'checkStatus'])->name('checkout.status');
 Route::get('/evoucher/{reference}', [App\Http\Controllers\PublicEventController::class, 'evoucher'])->name('evoucher.public');
 
 Route::get('/tickets/view/{code}', [App\Http\Controllers\TicketViewController::class, 'show'])->name('tickets.view');
@@ -102,6 +116,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     
     Route::resource('transactions', App\Http\Controllers\SuperAdmin\TransactionController::class);
     Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
+    Route::post('transactions/{transaction}/sync-wago', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'syncWagoStatus'])->name('transactions.sync-wago');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
     Route::post('tickets/{ticket}/cancel', [App\Http\Controllers\SuperAdmin\TransactionController::class, 'cancelTicket'])->name('tickets.cancel');
@@ -111,6 +126,7 @@ Route::middleware(['auth', 'role:Superadmin'])->prefix('superadmin')->name('supe
     Route::get('reports/export-excel', [App\Http\Controllers\SuperAdmin\ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [App\Http\Controllers\SuperAdmin\SettingController::class, 'update'])->name('settings.update');
+    Route::post('settings/theme-switch', [App\Http\Controllers\SuperAdmin\SettingController::class, 'switchTheme'])->name('settings.theme-switch');
 
     // Mail Monitor (Incoming IMAP/POP3 & Outgoing SMTP)
     Route::get('mail', [App\Http\Controllers\SuperAdmin\MailMonitorController::class, 'index'])->name('mail.index');
@@ -206,6 +222,7 @@ Route::middleware(['auth', 'role:Superadmin|Penyedia Event|Petugas Loket|Petugas
     Route::get('transactions', [App\Http\Controllers\Organizer\TransactionController::class, 'index'])->name('transactions.index');
     Route::get('transactions/stream', [App\Http\Controllers\Organizer\TransactionController::class, 'stream'])->name('transactions.stream');
     Route::post('transactions/{transaction}/mark-as-paid', [App\Http\Controllers\Organizer\TransactionController::class, 'markAsPaid'])->name('transactions.mark-as-paid');
+    Route::post('transactions/{transaction}/sync-wago', [App\Http\Controllers\Organizer\TransactionController::class, 'syncWagoStatus'])->name('transactions.sync-wago');
     Route::post('transactions/{transaction}/resend-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'resendEvoucher'])->name('transactions.resend-evoucher');
     Route::get('transactions/{transaction}/print-evoucher', [App\Http\Controllers\Organizer\TransactionController::class, 'printEvoucher'])->name('transactions.print-evoucher');
     Route::post('transactions/{transaction}/send-whatsapp', [App\Http\Controllers\Organizer\TransactionController::class, 'sendWhatsApp'])->name('transactions.send-whatsapp');

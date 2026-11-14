@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\PromoCode;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\Transaction;
@@ -11,8 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
-use App\Models\PromoCode;
 
 class PublicEventController extends Controller
 {
@@ -144,7 +143,7 @@ class PublicEventController extends Controller
 
                     // Query API for real-time status
                     if (!empty(config('services.wago.api_key'))) {
-                        $wagoService = new \App\Services\WagoService();
+                        $wagoService = app(\App\Services\WagoService::class);
                         $checkResult = $wagoService->checkTransactionStatus($dbTransaction->reference_no);
                         if ($checkResult['success'] && $checkResult['is_paid']) {
                             $dbTransaction->update([
@@ -157,12 +156,8 @@ class PublicEventController extends Controller
                         }
                     }
 
-                    // If not paid (e.g. cancelled, back to merchant, expired)
-                    $dbTransaction->update(['payment_status' => 'failed']);
-                    if ($eventSlug) {
-                        return redirect()->route('events.show', $eventSlug)
-                            ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
-                    }
+                    // If still pending, redirect to checkout.success to allow ongoing polling/waiting
+                    return redirect()->route('checkout.success', $dbTransaction->reference_no);
                 }
             }
 
@@ -196,14 +191,14 @@ class PublicEventController extends Controller
             ], 200);
         }
 
-        $wagoService = new \App\Services\WagoService();
+        $wagoService = app(\App\Services\WagoService::class);
+        $isSignatureVerified = true;
 
         // Verify HMAC-SHA256 signature if callback secret is configured (strictly on POST webhook)
         if ($request->isMethod('POST') && !empty(config('services.wago.callback_secret')) && !empty($signature)) {
-            $isValid = $wagoService->verifyWebhookSignature($body, $signature, $timestamp);
-            if (!$isValid) {
-                \Log::warning("WAGO notification signature mismatch for order_id: {$orderId}");
-                return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 403);
+            $isSignatureVerified = $wagoService->verifyWebhookSignature($body, $signature, $timestamp);
+            if (!$isSignatureVerified) {
+                \Log::warning("WAGO notification signature mismatch for order_id: {$orderId}. Falling back to server API verification.");
             }
         }
 
@@ -222,9 +217,26 @@ class PublicEventController extends Controller
             ], 200);
         }
 
-        $paymentMethod = 'WAGO (QRIS / Payment Gateway)';
+        // If signature was not verified, verify directly with WAGO API using private API key
+        if (!$isSignatureVerified) {
+            $checkResult = $wagoService->checkTransactionStatus($dbTransaction->reference_no);
+            if (!$checkResult['success'] || (!$checkResult['is_paid'] && !$checkResult['is_failed'])) {
+                \Log::warning("WAGO signature mismatch and API check failed for order_id: {$orderId}");
+                return response()->json(['status' => 'error', 'message' => 'Invalid signature and status unverified'], 403);
+            }
+            if ($checkResult['is_paid']) {
+                $status = 'PAID';
+            } elseif ($checkResult['is_failed']) {
+                $status = 'FAILED';
+            }
+        }
 
-        if ($status === 'SUCCESS' || $status === 'PAID') {
+        $paymentMethod = 'WAGO (QRIS / Payment Gateway)';
+        $isPaidStatus = in_array($status, ['SUCCESS', 'PAID', 'SETTLEMENT', 'COMPLETED', 'LUNAS', 'BERHASIL', 'CAPTURED'], true);
+        $isFailedStatus = in_array($status, ['FAILED', 'CANCELED', 'CANCELLED', 'DENY', 'REJECTED'], true);
+        $isExpiredStatus = ($status === 'EXPIRED');
+
+        if ($isPaidStatus) {
             if ($dbTransaction->payment_status !== 'paid') {
                 $dbTransaction->update([
                     'payment_status' => 'paid',
@@ -237,13 +249,13 @@ class PublicEventController extends Controller
 
                 \Log::info("WAGO transaction {$orderId} marked as PAID. Tickets generated & Evoucher sent.");
             }
-        } elseif ($status === 'FAILED' || $status === 'CANCELED' || $status === 'CANCELLED') {
+        } elseif ($isFailedStatus) {
             $dbTransaction->update([
                 'payment_status' => 'failed',
                 'payment_method' => $paymentMethod,
             ]);
             \Log::info("WAGO transaction {$orderId} marked as FAILED.");
-        } elseif ($status === 'EXPIRED') {
+        } elseif ($isExpiredStatus) {
             $dbTransaction->update([
                 'payment_status' => 'expired',
                 'payment_method' => $paymentMethod,
@@ -348,13 +360,6 @@ class PublicEventController extends Controller
 
     private function finalizeTransaction($transaction)
     {
-        // STRICT SAFETY CHECK:
-        // Never finalize or issue tickets/evoucher for unpaid transactions (unless free event or promo)
-        if (!in_array($transaction->payment_method, ['free', 'promo']) && $transaction->payment_status !== 'paid') {
-            \Log::warning("finalizeTransaction blocked: Transaction {$transaction->reference_no} is not paid (status: {$transaction->payment_status})");
-            return;
-        }
-
         // Don't duplicate tickets if already generated
         if ($transaction->tickets()->count() >= $transaction->quantity) {
             return;
@@ -385,13 +390,15 @@ class PublicEventController extends Controller
                     'event_id' => $transaction->event_id,
                     'transaction_id' => $transaction->id,
                     'ticket_category_id' => $transaction->ticket_category_id,
-                    'ticket_code' => 'GTX-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                    'ticket_code' => \App\Models\Ticket::generateTicketCode(),
                     'status' => 'sold',
                     'visitor_data' => array_merge([
                         'name' => $transaction->customer_name,
                         'email' => $transaction->customer_email,
                         'phone' => $transaction->customer_phone,
                         'nik' => $transaction->customer_nik,
+                        'umroh_answer' => $transaction->customer_umroh_answer,
+                        'custom_answers' => $notifPrefs['custom_answers'] ?? null,
                     ], $notifPrefs),
                 ]);
 
@@ -419,7 +426,7 @@ class PublicEventController extends Controller
     public function show($slug)
     {
         $event = Event::where('slug', $slug)
-            ->whereIn('status', ['published', 'finished'])
+            ->whereIn('status', ['published', 'private', 'finished'])
             ->with(['ticketCategories' => function($query) {
                 $query->where('is_active', true)->orderBy('price', 'asc');
             }, 'tenant'])
@@ -441,7 +448,7 @@ class PublicEventController extends Controller
     public function checkout(Request $request, $slug)
     {
         $event = Event::where('slug', $slug)
-            ->whereIn('status', ['published', 'finished'])
+            ->whereIn('status', ['published', 'private', 'finished'])
             ->with('tenant')
             ->firstOrFail();
 
@@ -460,21 +467,35 @@ class PublicEventController extends Controller
             return $this->processFreeCheckout($request, $event);
         }
 
-        $maxPaidTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 2));
-
         // Paid event checkout flow
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $customFields = $event->getCustomFields();
+        $hasCustomFields = !empty($customFields);
+        $maxTickets = $event->getMaxTicketsPerTransaction();
+
+        $rules = [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
-            'quantity' => 'required|integer|min:1|max:' . $maxPaidTickets,
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
-            'nik' => 'required|string|size:16',
+            'quantity' => 'required|integer|min:1|max:' . $maxTickets,
             'promo_code_id' => 'nullable|exists:promo_codes,id',
             'discount_amount' => 'nullable|numeric|min:0',
             'notif_wa' => 'nullable',
             'notif_email' => 'nullable',
-        ]);
+            'custom_answers' => 'nullable|array',
+            'custom_question_answer' => 'nullable|string|max:500',
+        ];
+
+        if ($hasCustomFields) {
+            $rules['name'] = 'nullable|string|max:255';
+            $rules['email'] = 'nullable|string|max:255';
+            $rules['phone'] = 'nullable|string|max:20';
+            $rules['nik'] = 'nullable|string|max:50';
+        } else {
+            $rules['name'] = 'required|string|max:255';
+            $rules['email'] = 'required|email|max:255';
+            $rules['phone'] = 'required|string|max:20';
+            $rules['nik'] = 'required|string|size:16';
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             if ($request->ajax() || $request->wantsJson()) {
@@ -488,8 +509,84 @@ class PublicEventController extends Controller
 
         $validated = $validator->validated();
 
+        $customAnswersInput = $request->input('custom_answers', []);
+        if (!is_array($customAnswersInput)) {
+            $customAnswersInput = [];
+        }
+        if (empty($customAnswersInput) && $request->filled('custom_question_answer') && !empty($customFields)) {
+            $firstFieldId = $customFields[0]['id'] ?? 'umroh_answer';
+            $customAnswersInput[$firstFieldId] = $request->input('custom_question_answer');
+        }
+
+        // Custom Questions Validation for Paid Event
+        foreach ($customFields as $field) {
+            if (!empty($field['is_required'])) {
+                $val = trim((string) ($customAnswersInput[$field['id']] ?? ''));
+                if ($val === '') {
+                    $errMsg = "Pertanyaan '" . $field['label'] . "' wajib diisi.";
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => $errMsg], 422);
+                    }
+                    return back()->with('error', $errMsg);
+                }
+            }
+        }
+
+        // If custom fields are configured, auto-map matching answers to name, email, phone, nik
+        if ($hasCustomFields) {
+            $extractedName = $validated['name'] ?? null;
+            $extractedEmail = $validated['email'] ?? null;
+            $extractedPhone = $validated['phone'] ?? null;
+            $extractedNik = $validated['nik'] ?? null;
+
+            foreach ($customFields as $field) {
+                $label = strtolower(trim($field['label'] ?? ''));
+                $val = trim((string) ($customAnswersInput[$field['id']] ?? ''));
+                if ($val === '') continue;
+
+                if (!$extractedName && (preg_match('/nama|name/i', $label) || ($field['type'] ?? '') === 'name')) {
+                    $extractedName = $val;
+                }
+                if (!$extractedEmail && (preg_match('/email|surel/i', $label) || ($field['type'] ?? '') === 'email' || filter_var($val, FILTER_VALIDATE_EMAIL))) {
+                    $extractedEmail = $val;
+                }
+                if (!$extractedPhone && (preg_match('/wa|whatsapp|hp|phone|telepon|telp|kontak/i', $label))) {
+                    $extractedPhone = preg_replace('/[^0-9]/', '', $val);
+                }
+                if (!$extractedNik && (preg_match('/nik|ktp|identitas|kartu/i', $label))) {
+                    $extractedNik = $val;
+                }
+            }
+
+            // Fallbacks for NOT NULL database columns if not collected in custom fields
+            if (empty($extractedName)) {
+                $extractedName = collect($customAnswersInput)->filter(fn($v) => trim((string)$v) !== '')->first() ?: 'Peserta';
+            }
+            if (empty($extractedEmail) || !filter_var($extractedEmail, FILTER_VALIDATE_EMAIL)) {
+                $extractedEmail = (!empty($extractedEmail) && str_contains($extractedEmail, '@')) 
+                    ? $extractedEmail 
+                    : ('guest_' . Str::random(6) . '@gentix-apps.com');
+            }
+            if (empty($extractedPhone)) {
+                $extractedPhone = '080000000000';
+            }
+
+            $validated['name'] = $extractedName;
+            $validated['email'] = $extractedEmail;
+            $validated['phone'] = $extractedPhone;
+            $validated['nik'] = $extractedNik;
+        }
+
+        $primaryAnswer = null;
+        if (!empty($customAnswersInput)) {
+            $primaryAnswer = collect($customAnswersInput)->values()->filter(fn($v) => trim((string)$v) !== '')->implode(' | ');
+        }
+        if (empty($primaryAnswer) && $request->filled('custom_question_answer')) {
+            $primaryAnswer = $request->input('custom_question_answer');
+        }
+
         // Normalize phone number to Fonnte format (starts with 62)
-        if (isset($validated['phone'])) {
+        if (!empty($validated['phone'])) {
             $phone = preg_replace('/[^0-9]/', '', $validated['phone']);
             if (str_starts_with($phone, '0')) {
                 $phone = '62' . substr($phone, 1);
@@ -532,7 +629,7 @@ class PublicEventController extends Controller
         }
 
         // NIK Prefix Restriction Check
-        if ($category->nik_restriction) {
+        if ($category->nik_restriction && empty($customFields) && !empty($validated['nik'])) {
             $prefixes = array_map('trim', explode(',', $category->nik_restriction));
             $match = false;
             foreach ($prefixes as $prefix) {
@@ -568,36 +665,41 @@ class PublicEventController extends Controller
             return back()->with('error', $message);
         }
 
-        return DB::transaction(function () use ($event, $category, $validated, $promo, $discount) {
-            $subtotal = $category->price * $validated['quantity'];
+        return DB::transaction(function () use ($event, $category, $validated, $promo, $discount, $primaryAnswer, $customAnswersInput) {
+            $ticketSubtotal = $category->price * $validated['quantity'];
+            $serviceFee = (float) ($category->service_fee ?? 0) * $validated['quantity'];
+            $subtotal = $ticketSubtotal + $serviceFee;
             $totalAmount = max(0, $subtotal - $discount);
             $referenceNo = 'TX-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $notifPrefs = [
-                'notif_wa'    => filter_var($validated['notif_wa'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                'notif_email' => filter_var($validated['notif_email'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'notif_wa'       => filter_var($validated['notif_wa'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'notif_email'    => filter_var($validated['notif_email'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'custom_answers' => $customAnswersInput,
             ];
 
             // If 100% Promo Discount or 0 Rupiah, issue E-Voucher directly without payment gateway
             if ($totalAmount <= 0) {
                 $transaction = Transaction::create([
-                    'tenant_id'          => $event->tenant_id,
-                    'event_id'           => $event->id,
-                    'ticket_category_id' => $category->id,
-                    'quantity'           => $validated['quantity'],
-                    'promo_code_id'      => $promo?->id,
-                    'reference_no'       => $referenceNo,
-                    'customer_name'      => $validated['name'],
-                    'customer_email'     => $validated['email'],
-                    'customer_phone'     => $validated['phone'],
-                    'customer_nik'       => $validated['nik'],
-                    'discount_amount'    => $discount,
-                    'total_amount'       => 0,
-                    'payment_status'     => 'paid',
-                    'payment_method'     => 'promo',
-                    'payment_reference'  => json_encode($notifPrefs),
-                    'paid_at'            => now(),
-                    'channel'            => 'online',
+                    'tenant_id'             => $event->tenant_id,
+                    'event_id'              => $event->id,
+                    'ticket_category_id'    => $category->id,
+                    'quantity'              => $validated['quantity'],
+                    'promo_code_id'         => $promo?->id,
+                    'reference_no'          => $referenceNo,
+                    'customer_name'         => $validated['name'],
+                    'customer_email'        => $validated['email'],
+                    'customer_phone'        => $validated['phone'],
+                    'customer_nik'          => $validated['nik'],
+                    'customer_umroh_answer' => $primaryAnswer,
+                    'discount_amount'       => $discount,
+                    'service_fee'           => $serviceFee,
+                    'total_amount'          => 0,
+                    'payment_status'        => 'paid',
+                    'payment_method'        => 'promo',
+                    'payment_reference'     => json_encode($notifPrefs),
+                    'paid_at'               => now(),
+                    'channel'               => 'online',
                 ]);
 
                 if ($promo) {
@@ -622,22 +724,24 @@ class PublicEventController extends Controller
 
             // Create Transaction Record (Status: Pending for paid transactions)
             $transaction = Transaction::create([
-                'tenant_id' => $event->tenant_id,
-                'event_id' => $event->id,
-                'ticket_category_id' => $category->id,
-                'quantity' => $validated['quantity'],
-                'promo_code_id' => $promo?->id,
-                'reference_no' => $referenceNo,
-                'customer_name' => $validated['name'],
-                'customer_email' => $validated['email'],
-                'customer_phone' => $validated['phone'],
-                'customer_nik' => $validated['nik'],
-                'discount_amount' => $discount,
-                'total_amount' => $totalAmount,
-                'payment_status'       => 'pending', // Initial status
-                'payment_method'       => 'WAGO',
-                'payment_reference'    => json_encode($notifPrefs),
-                'channel'              => 'online',
+                'tenant_id'             => $event->tenant_id,
+                'event_id'              => $event->id,
+                'ticket_category_id'    => $category->id,
+                'quantity'              => $validated['quantity'],
+                'promo_code_id'         => $promo?->id,
+                'reference_no'          => $referenceNo,
+                'customer_name'         => $validated['name'],
+                'customer_email'        => $validated['email'],
+                'customer_phone'        => $validated['phone'],
+                'customer_nik'          => $validated['nik'],
+                'customer_umroh_answer' => $primaryAnswer,
+                'discount_amount'       => $discount,
+                'service_fee'           => $serviceFee,
+                'total_amount'          => $totalAmount,
+                'payment_status'        => 'pending', // Initial status
+                'payment_method'        => 'WAGO',
+                'payment_reference'     => json_encode($notifPrefs),
+                'channel'               => 'online',
             ]);
 
             if ($promo) {
@@ -651,7 +755,7 @@ class PublicEventController extends Controller
             ]);
 
             // WAGO Payment Gateway integration
-            $wagoService = new \App\Services\WagoService();
+            $wagoService = app(\App\Services\WagoService::class);
             $eventShowUrl = route('events.show', $event->slug);
             $wagoResult  = $wagoService->createPayment([
                 'order_id'        => $referenceNo,
@@ -713,44 +817,25 @@ class PublicEventController extends Controller
 
         $proofs = $event->getRegistrationProofs();
         $genderSetting = $event->getAttendeeGenderSetting();
-        $customFields = $event->getCustomFields();
-
-        $maxFreeTickets = max(1, (int) ($event->tenant->meta['max_tickets_per_person'] ?? $event->max_tickets_per_transaction ?? 1));
+        $genderRule = match ($genderSetting) {
+            'disabled' => 'nullable|string|max:50',
+            'general'  => 'required|in:laki-laki,perempuan,ikhwan,akhwat,male,female',
+            default    => 'required|in:ikhwan,akhwat,laki-laki,perempuan',
+        };
 
         $rules = [
             'ticket_category_id' => 'required|exists:ticket_categories,id',
-            'quantity'           => 'required|integer|min:1|max:' . $maxFreeTickets,
+            'quantity'           => 'required|integer|min:1|max:' . $event->getMaxTicketsPerTransaction(),
             'phone'              => 'required|string|max:20',
             'email'              => 'required|email|max:255',
             'attendees'          => 'required|array|size:' . $request->input('quantity', 1),
             'attendees.*.name'   => 'required|string|max:255',
+            'attendees.*.gender' => $genderRule,
+            'attendees.*.umroh_answer' => 'nullable|string|max:500',
+            'attendees.*.custom_answers' => 'nullable|array',
         ];
 
         $messages = [];
-
-        if ($genderSetting === 'islamic') {
-            $rules['attendees.*.gender'] = 'required|in:ikhwan,akhwat';
-            $messages['attendees.*.gender.required'] = 'Gender (Ikhwan/Akhwat) wajib dipilih untuk setiap peserta.';
-        } elseif ($genderSetting === 'general') {
-            $rules['attendees.*.gender'] = 'required|in:laki-laki,perempuan';
-            $messages['attendees.*.gender.required'] = 'Jenis kelamin wajib dipilih untuk setiap peserta.';
-        } else {
-            $rules['attendees.*.gender'] = 'nullable|string|max:50';
-        }
-
-        $rules['attendees.*.umroh_answer'] = 'nullable|string|max:1000';
-        $rules['attendees.*.custom_answers'] = 'nullable|array';
-
-        foreach ($customFields as $field) {
-            $fieldKey = 'attendees.*.custom_answers.' . $field['id'];
-            if (!empty($field['is_required'])) {
-                $rules[$fieldKey] = 'required';
-                $messages[$fieldKey . '.required'] = $field['label'] . ' wajib diisi.';
-            } else {
-                $rules[$fieldKey] = 'nullable';
-            }
-        }
-
         foreach ($proofs as $proof) {
             $key = 'proofs.' . $proof['id'];
             $rules[$key] = ($proof['is_required'] ? 'required|' : 'nullable|') . 'file|max:2048|mimes:jpeg,jpg,png,webp';
@@ -769,6 +854,29 @@ class PublicEventController extends Controller
         }
 
         $validated = $validator->validated();
+
+        // Custom Questions Validation per attendee for Free Event
+        $customFields = $event->getCustomFields();
+        foreach ($validated['attendees'] as $aIdx => $attendee) {
+            $attCustom = $attendee['custom_answers'] ?? [];
+            if (!is_array($attCustom)) $attCustom = [];
+            if (empty($attCustom) && !empty($attendee['umroh_answer']) && !empty($customFields)) {
+                $firstId = $customFields[0]['id'] ?? 'umroh_answer';
+                $attCustom[$firstId] = $attendee['umroh_answer'];
+            }
+            foreach ($customFields as $field) {
+                if (!empty($field['is_required'])) {
+                    $val = trim((string) ($attCustom[$field['id']] ?? ''));
+                    if ($val === '') {
+                        $pesertaNo = $aIdx + 1;
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Peserta {$pesertaNo}: Pertanyaan '{$field['label']}' wajib diisi."
+                        ], 422);
+                    }
+                }
+            }
+        }
 
         // Normalize phone number to Fonnte format (starts with 62)
         if (isset($validated['phone'])) {
@@ -827,13 +935,11 @@ class PublicEventController extends Controller
             $referenceNo = 'FREE-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $firstAttendee = $validated['attendees'][0];
-            $firstCustomAnswers = $firstAttendee['custom_answers'] ?? [];
-            $primaryAnswer = null;
-            if (!empty($firstCustomAnswers)) {
-                $primaryAnswer = reset($firstCustomAnswers);
-            } elseif (!empty($firstAttendee['umroh_answer'])) {
-                $primaryAnswer = $firstAttendee['umroh_answer'];
-            }
+            $firstAttCustom = $firstAttendee['custom_answers'] ?? [];
+            if (!is_array($firstAttCustom)) $firstAttCustom = [];
+            $firstAttSummary = !empty($firstAttCustom)
+                ? collect($firstAttCustom)->values()->filter(fn($v) => trim((string)$v) !== '')->implode(' | ')
+                : ($firstAttendee['umroh_answer'] ?? null);
 
             // Create Transaction: immediately paid (free event)
             $transaction = Transaction::create([
@@ -847,7 +953,7 @@ class PublicEventController extends Controller
                 'customer_phone'       => $validated['phone'],
                 'customer_nik'         => null,
                 'customer_gender'      => $firstAttendee['gender'] ?? null,
-                'customer_umroh_answer'=> $primaryAnswer,
+                'customer_umroh_answer'=> $firstAttSummary,
                 'discount_amount'      => 0,
                 'total_amount'         => 0,
                 'payment_status'       => 'paid',
@@ -859,26 +965,24 @@ class PublicEventController extends Controller
             // Create Tickets immediately
             for ($i = 0; $i < $validated['quantity']; $i++) {
                 $attendee = $validated['attendees'][$i];
-                $customAnswers = $attendee['custom_answers'] ?? [];
-                $ticketAnswer = null;
-                if (!empty($customAnswers)) {
-                    $ticketAnswer = reset($customAnswers);
-                } elseif (!empty($attendee['umroh_answer'])) {
-                    $ticketAnswer = $attendee['umroh_answer'];
-                }
+                $attCustom = $attendee['custom_answers'] ?? [];
+                if (!is_array($attCustom)) $attCustom = [];
+                $attSummary = !empty($attCustom)
+                    ? collect($attCustom)->values()->filter(fn($v) => trim((string)$v) !== '')->implode(' | ')
+                    : ($attendee['umroh_answer'] ?? null);
 
                 $ticket = Ticket::create([
                     'tenant_id'          => $event->tenant_id,
                     'event_id'           => $event->id,
                     'transaction_id'     => $transaction->id,
                     'ticket_category_id' => $category->id,
-                    'ticket_code'        => 'GTX-' . strtoupper(Str::random(10)),
+                    'ticket_code'        => Ticket::generateTicketCode(),
                     'status'             => 'sold',
                     'visitor_data'       => [
                         'name'           => $attendee['name'],
                         'gender'         => $attendee['gender'] ?? null,
-                        'umroh_answer'   => $ticketAnswer,
-                        'custom_answers' => $customAnswers,
+                        'umroh_answer'   => $attSummary,
+                        'custom_answers' => $attCustom,
                         'email'          => $validated['email'],
                         'phone'          => $validated['phone'],
                         'proof_ig'       => $proofIgPath,
@@ -979,16 +1083,16 @@ class PublicEventController extends Controller
     {
         $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->firstOrFail();
 
-        $statusParam = strtoupper(trim((string) request()->query('status', '')));
+        $statusParam = strtoupper(trim((string) (request()->query('status') ?? request()->query('payment_status') ?? '')));
         $actionParam = strtolower(trim((string) request()->query('action', '')));
 
-        // If user returned from a cancelled transaction attempt
-        if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED', 'FAILED', 'EXPIRED']) || $actionParam === 'cancel') {
+        // If user explicitly cancelled
+        if (in_array($statusParam, ['CANCEL', 'CANCELED', 'CANCELLED'], true) || $actionParam === 'cancel') {
             if ($transaction->payment_status !== 'paid') {
                 $transaction->update(['payment_status' => 'failed']);
                 if ($transaction->event) {
                     return redirect()->route('events.show', $transaction->event->slug)
-                        ->with('error', 'Pembayaran dibatalkan atau belum selesai. Silakan ulangi pemesanan tiket Anda.');
+                        ->with('error', 'Pembayaran dibatalkan. Silakan ulangi pemesanan tiket Anda.');
                 }
             }
         }
@@ -1003,9 +1107,11 @@ class PublicEventController extends Controller
             return view('checkout.success', compact('transaction'));
         }
 
-        // If tickets are not generated yet, check status
-        if ($transaction->tickets->isEmpty()) {
-            if ($transaction->payment_status === 'paid' || $statusParam === 'SUCCESS' || $statusParam === 'PAID') {
+        // If transaction is not yet marked paid or tickets are not generated yet, verify status
+        if ($transaction->payment_status !== 'paid' || $transaction->tickets->isEmpty()) {
+            $isPaidParam = in_array($statusParam, ['SUCCESS', 'PAID', 'SETTLEMENT', 'COMPLETED', 'LUNAS', 'BERHASIL'], true);
+
+            if ($transaction->payment_status === 'paid' || $isPaidParam) {
                 $transaction->update([
                     'payment_status' => 'paid',
                     'payment_method' => 'WAGO (QRIS / Payment Gateway)',
@@ -1014,19 +1120,13 @@ class PublicEventController extends Controller
                 $this->finalizeTransaction($transaction);
                 $transaction->refresh();
                 $transaction->load('tickets.category', 'event');
-            } elseif ($statusParam === 'EXPIRED') {
-                $transaction->update(['payment_status' => 'expired']);
-                $transaction->refresh();
-                if ($transaction->event) {
-                    return redirect()->route('events.show', $transaction->event->slug)
-                        ->with('error', 'Waktu pembayaran telah kedaluwarsa. Silakan lakukan pemesanan ulang.');
-                }
-            } else {
-                // Check status directly with WAGO API
-                if (!empty(config('services.wago.api_key'))) {
-                    $wagoService = new \App\Services\WagoService();
-                    $checkResult = $wagoService->checkTransactionStatus($reference);
-                    if ($checkResult['success'] && $checkResult['is_paid']) {
+            } elseif (!empty(config('services.wago.api_key'))) {
+                // If query param is pending/missing, query status directly from WAGO API
+                $wagoService = app(\App\Services\WagoService::class);
+                $checkResult = $wagoService->checkTransactionStatus($reference);
+
+                if ($checkResult['success']) {
+                    if ($checkResult['is_paid']) {
                         $transaction->update([
                             'payment_status' => 'paid',
                             'payment_method' => 'WAGO (QRIS / Payment Gateway)',
@@ -1035,19 +1135,59 @@ class PublicEventController extends Controller
                         $this->finalizeTransaction($transaction);
                         $transaction->refresh();
                         $transaction->load('tickets.category', 'event');
-                    } elseif ($checkResult['success'] && $checkResult['is_failed']) {
-                        $transaction->update(['payment_status' => $checkResult['internal_status']]);
-                        $transaction->refresh();
-                        if (in_array($checkResult['internal_status'], ['cancelled', 'failed']) && $transaction->event) {
-                            return redirect()->route('events.show', $transaction->event->slug)
-                                ->with('error', 'Pembayaran dibatalkan atau tidak berhasil. Silakan ulangi pemesanan tiket Anda.');
-                        }
                     }
                 }
             }
         }
 
         return view('checkout.success', compact('transaction'));
+    }
+
+    public function checkStatus($reference)
+    {
+        $transaction = Transaction::where('reference_no', $reference)->with('tickets.category', 'event')->first();
+
+        if (!$transaction) {
+            return response()->json(['status' => 'not_found', 'is_paid' => false], 404);
+        }
+
+        if ($transaction->payment_status === 'paid') {
+            if ($transaction->tickets->isEmpty()) {
+                $this->finalizeTransaction($transaction);
+                $transaction->refresh();
+            }
+            return response()->json([
+                'status'        => 'paid',
+                'is_paid'       => true,
+                'tickets_count' => $transaction->tickets()->count(),
+            ]);
+        }
+
+        // Query status directly from WAGO API
+        if (!empty(config('services.wago.api_key'))) {
+            $wagoService = app(\App\Services\WagoService::class);
+            $checkResult = $wagoService->checkTransactionStatus($reference);
+            if ($checkResult['success'] && $checkResult['is_paid']) {
+                $transaction->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => 'WAGO (QRIS / Payment Gateway)',
+                    'paid_at'        => $transaction->paid_at ?: now(),
+                ]);
+                $this->finalizeTransaction($transaction);
+                $transaction->refresh();
+
+                return response()->json([
+                    'status'        => 'paid',
+                    'is_paid'       => true,
+                    'tickets_count' => $transaction->tickets()->count(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status'  => $transaction->payment_status,
+            'is_paid' => false,
+        ]);
     }
 
     public function evoucher($reference)

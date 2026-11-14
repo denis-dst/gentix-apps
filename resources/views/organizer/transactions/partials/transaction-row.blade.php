@@ -29,6 +29,14 @@
     </td>
     <td class="px-8 py-5">
         <div class="flex items-center gap-2">
+            @if($tx->payment_status !== 'paid' && $tx->payment_status !== 'refunded')
+                <form method="POST" action="{{ route('organizer.transactions.sync-wago', $tx) }}" class="inline">
+                    @csrf
+                    <button type="submit" title="Cek Status Pembayaran ke Gateway WAGO" class="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition shadow-sm border border-blue-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                </form>
+            @endif
             <span class="text-xs font-black text-slate-600 font-mono">{{ $tx->reference_no }}</span>
             @if($tx->channel === 'pos' || str_starts_with($tx->reference_no, 'POS-'))
                 <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider border border-amber-200/50">POS</span>
@@ -59,6 +67,9 @@
     </td>
     <td class="px-8 py-5 text-right">
         <div class="text-sm font-black text-green-600">Rp {{ number_format($tx->total_amount, 0, ',', '.') }}</div>
+        @if(($tx->service_fee ?? 0) > 0)
+            <div class="text-[9px] font-bold text-slate-400">Termasuk Fee Rp {{ number_format($tx->service_fee, 0, ',', '.') }}</div>
+        @endif
         <div class="text-[9px] font-bold text-slate-400 uppercase">{{ $tx->payment_method ?? 'Unknown' }}</div>
     </td>
     <td class="px-8 py-5">

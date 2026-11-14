@@ -98,14 +98,17 @@ class OperationalReportExport implements FromCollection, WithHeadings, WithTitle
 
     private function formatGender(?string $gender): string
     {
-        if ($gender === 'ikhwan') {
-            return 'Ikhwan';
+        if (!$gender) {
+            return '-';
         }
 
-        if ($gender === 'akhwat') {
-            return 'Akhwat';
-        }
-
-        return $gender ? ucfirst($gender) : '-';
+        $g = strtolower(trim($gender));
+        return match ($g) {
+            'ikhwan' => 'Ikhwan',
+            'akhwat' => 'Akhwat',
+            'laki-laki', 'male' => 'Laki-laki',
+            'perempuan', 'female' => 'Perempuan',
+            default => ucfirst($gender),
+        };
     }
 }
