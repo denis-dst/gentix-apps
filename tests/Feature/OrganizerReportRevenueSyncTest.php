@@ -245,5 +245,15 @@ class OrganizerReportRevenueSyncTest extends TestCase
         $this->assertCount(1, $eventOptions);
         $this->assertEquals($this->event->id, $eventOptions->first()->id);
     }
+
+    public function test_organizer_reports_search_and_truncation_flag(): void
+    {
+        $response = $this->actingAs($this->user)->get(route('organizer.reports.index', ['q' => 'nonexistent_invoice_123']));
+        $response->assertStatus(200);
+
+        $txRows = $response->viewData('transactionReportRows');
+        $this->assertCount(0, $txRows);
+        $this->assertFalse($response->viewData('isReportTruncated'));
+    }
 }
 

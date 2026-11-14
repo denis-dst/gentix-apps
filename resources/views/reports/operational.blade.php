@@ -300,12 +300,21 @@
             
             <div class="flex flex-wrap items-center gap-3">
                 <!-- Search Input -->
-                <div class="relative w-full sm:w-64">
+                <div class="relative w-full sm:w-72">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </span>
-                    <input type="text" id="report-search-input" onkeyup="filterReportTables()" placeholder="Cari data pendaftar..." 
-                           class="w-full pl-9 pr-4 py-2 rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 bg-white">
+                    <input type="text" id="report-search-input" 
+                           value="{{ request('q') }}"
+                           onkeyup="filterReportTables()" 
+                           onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitServerSearch(this.value); }"
+                           placeholder="Cari data (Enter utk cari semua)..." 
+                           class="w-full pl-9 pr-8 py-2 rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 bg-white">
+                    @if(request('q'))
+                        <button type="button" onclick="submitServerSearch('')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600" title="Reset pencarian">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    @endif
                 </div>
 
                 <!-- Export Buttons -->
@@ -319,6 +328,18 @@
                 </button>
             </div>
         </div>
+
+        @if($isReportTruncated ?? false)
+            <div class="px-6 py-3 bg-amber-50/80 border-b border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-900 font-medium">
+                <div class="flex items-center gap-2">
+                    <span class="text-base leading-none">ℹ️</span>
+                    <span>Menampilkan <strong>500 data pendaftaran terbaru</strong> untuk performa optimal. Untuk mengunduh seluruh data tanpa batas, silakan gunakan tombol <strong>Export Excel</strong>.</span>
+                </div>
+                @if(!request('event_id'))
+                    <span class="text-amber-700 text-[11px] font-semibold">Tip: Gunakan filter event di atas untuk melihat detail per event.</span>
+                @endif
+            </div>
+        @endif
 
         <!-- Tab Buttons (Glassmorphic design) -->
         <div class="px-6 py-3 border-b border-slate-100 flex items-center gap-2 bg-white">
@@ -724,6 +745,16 @@
 </div>
 
 <script>
+    window.submitServerSearch = function(val) {
+        const url = new URL(window.location.href);
+        if (val && val.trim() !== '') {
+            url.searchParams.set('q', val.trim());
+        } else {
+            url.searchParams.delete('q');
+        }
+        window.location.href = url.toString();
+    };
+
     // Tab switching state attached to window to ensure global availability
     window.activeTab = 'transactions';
     window.itemsPerPage = 15;

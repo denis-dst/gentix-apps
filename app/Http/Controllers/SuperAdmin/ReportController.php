@@ -17,6 +17,8 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
+        @ini_set('memory_limit', '512M');
+
         $baseEventsQuery = Event::query()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('id', $request->event_id))
@@ -87,10 +89,20 @@ class ReportController extends Controller
             ];
         }
 
-        $transactions = Transaction::query()
+        $transactionsQuery = Transaction::query()
             ->salesOnly()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $q = trim($request->q);
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('reference_no', 'like', "%{$q}%")
+                        ->orWhere('customer_name', 'like', "%{$q}%")
+                        ->orWhere('customer_email', 'like', "%{$q}%")
+                        ->orWhere('customer_phone', 'like', "%{$q}%")
+                        ->orWhere('customer_nik', 'like', "%{$q}%");
+                });
+            })
             ->with([
                 'event:id,name,umroh_question_enabled,meta',
                 'tenant:id,name',
@@ -99,17 +111,24 @@ class ReportController extends Controller
                 'tickets.category:id,name',
                 'tickets.gateLogs' => fn ($q) => $q->select(['id', 'ticket_id', 'type', 'scanned_at'])->orderBy('scanned_at')
             ])
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
+
+        $transactions = $transactionsQuery->limit(500)->get();
 
         $transactionReportRows = $this->buildTransactionReportRows($transactions);
         $ticketReportRows = $this->buildTicketReportRows($transactions);
+        $isReportTruncated = $transactions->count() >= 500;
 
-        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
+        unset($transactions);
+        $transactions = collect();
+
+        return view('superadmin.reports.index', compact('events', 'tenantOptions', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows', 'isReportTruncated'));
     }
 
     public function exportExcel(Request $request): BinaryFileResponse
     {
+        @ini_set('memory_limit', '512M');
+
         $transactions = Transaction::query()
             ->salesOnly()
             ->when($request->filled('tenant_id'), fn ($query) => $query->where('tenant_id', $request->tenant_id))
@@ -389,6 +408,7 @@ class ReportController extends Controller
             ->whereIn('event_id', $eventIds)
             ->salesOnly()
             ->where('payment_status', 'paid')
+            ->where('quantity', '>', 1)
             ->select(['id', 'event_id', 'ticket_category_id'])
             ->with([
                 'tickets' => fn ($q) => $q->where('status', '!=', 'void')->select(['id', 'transaction_id', 'ticket_category_id']),

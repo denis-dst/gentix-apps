@@ -18,6 +18,8 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
+        @ini_set('memory_limit', '512M');
+
         $tenantId = auth()->user()->tenant_id;
 
         $baseEventsQuery = Event::query()
@@ -87,10 +89,20 @@ class ReportController extends Controller
             ];
         }
 
-        $transactions = Transaction::where('tenant_id', $tenantId)
+        $transactionsQuery = Transaction::where('tenant_id', $tenantId)
             ->salesOnly()
             ->whereHas('event', fn ($q) => $q->where('status', 'published'))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->event_id))
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $q = trim($request->q);
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('reference_no', 'like', "%{$q}%")
+                        ->orWhere('customer_name', 'like', "%{$q}%")
+                        ->orWhere('customer_email', 'like', "%{$q}%")
+                        ->orWhere('customer_phone', 'like', "%{$q}%")
+                        ->orWhere('customer_nik', 'like', "%{$q}%");
+                });
+            })
             ->with([
                 'event:id,name,umroh_question_enabled,meta',
                 'category:id,name',
@@ -98,17 +110,24 @@ class ReportController extends Controller
                 'tickets.category:id,name',
                 'tickets.gateLogs' => fn ($q) => $q->select(['id', 'ticket_id', 'type', 'scanned_at'])->orderBy('scanned_at')
             ])
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
+
+        $transactions = $transactionsQuery->limit(500)->get();
 
         $transactionReportRows = $this->buildTransactionReportRows($transactions);
         $ticketReportRows = $this->buildTicketReportRows($transactions);
+        $isReportTruncated = $transactions->count() >= 500;
 
-        return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows'));
+        unset($transactions);
+        $transactions = collect();
+
+        return view('organizer.reports.index', compact('events', 'eventOptions', 'reportRows', 'totals', 'transactions', 'transactionReportRows', 'ticketReportRows', 'isReportTruncated'));
     }
 
     public function duplicates(Request $request)
     {
+        @ini_set('memory_limit', '512M');
+
         $tenantId = auth()->user()->tenant_id;
 
         $eventOptions = Event::where('tenant_id', $tenantId)
@@ -134,6 +153,8 @@ class ReportController extends Controller
 
     public function exportExcel(Request $request): BinaryFileResponse
     {
+        @ini_set('memory_limit', '512M');
+
         $tenantId = auth()->user()->tenant_id;
 
         $transactions = Transaction::where('tenant_id', $tenantId)
@@ -512,6 +533,7 @@ class ReportController extends Controller
             ->whereIn('event_id', $eventIds)
             ->salesOnly()
             ->where('payment_status', 'paid')
+            ->where('quantity', '>', 1)
             ->select(['id', 'event_id', 'ticket_category_id'])
             ->with([
                 'tickets' => fn ($q) => $q->where('status', '!=', 'void')->select(['id', 'transaction_id', 'ticket_category_id']),
