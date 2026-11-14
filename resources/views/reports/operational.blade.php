@@ -170,7 +170,7 @@
     </div>
 
     @if(isset($totals))
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                 <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Terjual</div>
                 <div class="text-xl sm:text-2xl font-black text-slate-800 mt-1">{{ number_format($totals['sold']) }}</div>
@@ -183,6 +183,19 @@
                 <div class="text-[10px] font-black uppercase tracking-wider text-blue-500">Total Check-in</div>
                 <div class="text-xl sm:text-2xl font-black text-blue-600 mt-1">{{ number_format($totals['checkin']) }}</div>
             </div>
+            <button type="button" 
+                    onclick="showUnscannedTickets()"
+                    class="bg-white rounded-2xl p-4 border border-slate-100 hover:border-rose-300 hover:shadow-md transition text-left group cursor-pointer bg-gradient-to-br from-rose-50/40 to-white"
+                    title="Klik untuk melihat seluruh peserta yang belum scan di datatable">
+                <div class="flex items-center justify-between">
+                    <div class="text-[10px] font-black uppercase tracking-wider text-rose-500 group-hover:text-rose-600">Total Belum Scan</div>
+                    <svg class="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-600 group-hover:translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+                <div class="text-xl sm:text-2xl font-black text-rose-600 mt-1 flex items-baseline gap-1">
+                    {{ number_format($totals['unscanned'] ?? 0) }}
+                    <span class="text-[10px] font-bold text-rose-400 font-sans">tiket</span>
+                </div>
+            </button>
             <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                 <div class="text-[10px] font-black uppercase tracking-wider text-purple-500">Di Dalam Venue</div>
                 <div class="text-xl sm:text-2xl font-black text-purple-600 mt-1">{{ number_format($totals['inside']) }}</div>
@@ -191,7 +204,7 @@
                 <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Transaksi Paid</div>
                 <div class="text-xl sm:text-2xl font-black text-slate-800 mt-1">{{ number_format($totals['paid_transactions']) }}</div>
             </div>
-            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white col-span-2 sm:col-span-1">
                 <div class="text-[10px] font-black uppercase tracking-wider text-emerald-600">Total Pendapatan</div>
                 <div class="text-xl sm:text-2xl font-black text-emerald-600 mt-1">Rp {{ number_format($totals['revenue'], 0, ',', '.') }}</div>
             </div>
@@ -213,10 +226,22 @@
                         <h3 class="text-lg font-black text-slate-800 font-outfit truncate">{{ $event->name }}</h3>
                         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{{ $event->event_start_date?->format('d M Y H:i') }} | {{ $event->venue }}</p>
                     </div>
-                    <div class="grid grid-cols-3 md:grid-cols-7 gap-3 text-center">
+                    <div class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2.5 sm:gap-3 text-center">
                         <div><div class="text-lg font-black text-slate-800">{{ number_format($row['sold_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Terjual</div></div>
                         <div><div class="text-lg font-black text-emerald-600">{{ number_format($row['redeemed_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Redeem</div></div>
                         <div><div class="text-lg font-black text-blue-600">{{ number_format($row['checkin_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Check-in</div></div>
+                        <div>
+                            <button type="button" 
+                                    onclick="showUnscannedTickets('{{ addslashes($event->name) }}')"
+                                    class="group text-center w-full p-1 -m-1 rounded-xl hover:bg-rose-50 transition cursor-pointer"
+                                    title="Klik untuk melihat {{ number_format($row['unscanned_count']) }} tiket belum scan pada {{ $event->name }}">
+                                <div class="text-lg font-black text-rose-600 group-hover:scale-105 transition-transform flex items-center justify-center gap-0.5">
+                                    <span>{{ number_format($row['unscanned_count']) }}</span>
+                                    <svg class="w-3 h-3 text-rose-400 group-hover:text-rose-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                <div class="text-[9px] font-black text-rose-500 uppercase tracking-tight group-hover:underline">Belum Scan</div>
+                            </button>
+                        </div>
                         <div><div class="text-lg font-black text-amber-600">{{ number_format($row['checkout_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Checkout</div></div>
                         <div><div class="text-lg font-black text-purple-600">{{ number_format($row['inside_count']) }}</div><div class="text-[9px] font-black text-slate-400 uppercase">Inside</div></div>
                         @if(($row['partial_scan_count'] ?? 0) > 0)
@@ -239,6 +264,7 @@
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Terjual</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Redeem</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Check-in</th>
+                                <th class="px-6 py-3 text-[10px] font-black text-rose-500 uppercase tracking-widest text-right">Belum Scan</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Checkout</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Di Dalam</th>
                                 <th class="px-6 py-3 text-[10px] font-black text-amber-500 uppercase tracking-widest text-right">⚠️ Partial Scan</th>
@@ -258,6 +284,19 @@
                                     <td class="px-6 py-4 text-right text-sm font-black text-slate-700">{{ number_format($category['sold_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-emerald-600">{{ number_format($category['redeemed_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-blue-600">{{ number_format($category['checkin_count']) }}</td>
+                                    <td class="px-6 py-4 text-right">
+                                        @if(($category['unscanned_count'] ?? 0) > 0)
+                                            <button type="button" 
+                                                    onclick="showUnscannedTickets('{{ addslashes($event->name) }}', '{{ addslashes($category['name']) }}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 text-xs font-black transition cursor-pointer"
+                                                    title="Lihat {{ number_format($category['unscanned_count']) }} tiket belum scan pada kategori {{ $category['name'] }}">
+                                                <span>{{ number_format($category['unscanned_count']) }}</span>
+                                                <svg class="w-3 h-3 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </button>
+                                        @else
+                                            <span class="text-sm font-black text-slate-300">0</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-amber-600">{{ number_format($category['checkout_count']) }}</td>
                                     <td class="px-6 py-4 text-right text-sm font-black text-purple-600">{{ number_format($category['inside_count']) }}</td>
                                     <td class="px-6 py-4 text-right">
@@ -272,7 +311,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada kategori tiket.</td>
+                                    <td colspan="10" class="px-6 py-10 text-center text-sm font-bold text-slate-400">Belum ada kategori tiket.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -306,15 +345,18 @@
                     </span>
                     <input type="text" id="report-search-input" 
                            value="{{ request('q') }}"
+                           oninput="filterReportTables()"
                            onkeyup="filterReportTables()" 
                            onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitServerSearch(this.value); }"
                            placeholder="Cari data (Enter utk cari semua)..." 
                            class="w-full pl-9 pr-8 py-2 rounded-xl border-slate-200 text-xs font-bold text-slate-600 focus:border-orange-500 focus:ring-orange-500 bg-white">
-                    @if(request('q'))
-                        <button type="button" onclick="submitServerSearch('')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600" title="Reset pencarian">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    @endif
+                    <button type="button" 
+                            id="btn-clear-report-search"
+                            onclick="clearReportSearch()" 
+                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 transition {{ request('q') ? '' : 'hidden' }}" 
+                            title="Reset pencarian">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                 </div>
 
                 <!-- Export Buttons -->
@@ -623,6 +665,9 @@
                             @endphp
                                 <tr class="ticket-row hover:bg-slate-50/40 transition {{ $isPartialTxn ? 'bg-amber-50/20' : '' }}"
                                     data-scan-status="{{ $scanStatus }}"
+                                    data-has-checkin="{{ $hasCheckin ? '1' : '0' }}"
+                                    data-event-id="{{ $ticketRow['event_id'] ?? '' }}"
+                                    data-category-id="{{ $ticketRow['category_id'] ?? '' }}"
                                     data-partial="{{ $isPartialTxn ? '1' : '0' }}">
                                     <td class="px-6 py-4 text-xs font-black text-slate-700 font-mono" data-sort="{{ strtolower($ticketRow['ticket_code']) }}">{{ $ticketRow['ticket_code'] }}</td>
                                     <td class="px-6 py-4 text-xs font-bold text-slate-500 font-mono" data-sort="{{ strtolower($ticketRow['reference_no']) }}">{{ $ticketRow['reference_no'] }}</td>
@@ -824,13 +869,24 @@
         targets.forEach(container => {
             const queryInput = container.querySelector('#report-search-input');
             const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
-            
+            const clearBtn = container.querySelector('#btn-clear-report-search') || document.getElementById('btn-clear-report-search');
+            if (clearBtn) {
+                if (query !== '') {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            }
+
+            const queryTokens = query.split(/\s+/).filter(Boolean);
+
             // 1. Process Transactions
             const txRows = container.querySelectorAll('.tx-row');
             let visibleTx = [];
             txRows.forEach(row => {
                 const text = row.textContent.toLowerCase();
-                if (query === '' || text.includes(query)) {
+                const matchSearch = queryTokens.length === 0 || queryTokens.every(token => text.includes(token));
+                if (matchSearch) {
                     row.setAttribute('data-matched', 'true');
                     visibleTx.push(row);
                 } else {
@@ -845,14 +901,14 @@
             const scanFilter = window.ticketScanFilter || 'all';
             ticketRows.forEach(row => {
                 const text       = row.textContent.toLowerCase();
-                const rowStatus  = row.dataset.scanStatus || '';
                 const isPartial  = row.dataset.partial === '1';
+                const hasCheckin = row.dataset.hasCheckin === '1';
 
-                const matchSearch = query === '' || text.includes(query);
+                const matchSearch = queryTokens.length === 0 || queryTokens.every(token => text.includes(token));
                 let matchFilter   = false;
                 if (scanFilter === 'all')        matchFilter = true;
-                else if (scanFilter === 'scanned')    matchFilter = rowStatus === 'scanned';
-                else if (scanFilter === 'notscanned') matchFilter = rowStatus === 'notscanned';
+                else if (scanFilter === 'scanned')    matchFilter = hasCheckin;
+                else if (scanFilter === 'notscanned') matchFilter = !hasCheckin;
                 else if (scanFilter === 'partial')    matchFilter = isPartial;
 
                 if (matchSearch && matchFilter) {
@@ -1139,6 +1195,68 @@
         });
 
         window.filterReportTables();
+    };
+
+    // ── Clear Report Search ─────────────────────────────────────────────────
+    window.clearReportSearch = function() {
+        const input = document.getElementById('report-search-input');
+        const clearBtn = document.getElementById('btn-clear-report-search');
+        if (input) {
+            input.value = '';
+        }
+        if (clearBtn) {
+            clearBtn.classList.add('hidden');
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('q') && urlParams.get('q') !== '') {
+            if (typeof window.submitServerSearch === 'function') {
+                window.submitServerSearch('');
+                return;
+            }
+        }
+        window.filterReportTables();
+    };
+
+    // ── Quick Filter: Show Unscanned Tickets ────────────────────────────────
+    window.showUnscannedTickets = function(eventName, categoryName) {
+        if (typeof window.switchReportTab === 'function') {
+            window.switchReportTab('tickets');
+        }
+
+        if (typeof window.setTicketScanFilter === 'function') {
+            window.setTicketScanFilter('notscanned');
+        }
+
+        let searchQuery = '';
+        if (eventName && categoryName) {
+            searchQuery = `${eventName} ${categoryName}`;
+        } else if (categoryName) {
+            searchQuery = categoryName;
+        } else if (eventName) {
+            searchQuery = eventName;
+        }
+
+        const searchInput = document.getElementById('report-search-input');
+        if (searchInput) {
+            searchInput.value = searchQuery;
+        }
+
+        const clearBtn = document.getElementById('btn-clear-report-search');
+        if (clearBtn) {
+            if (searchQuery) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        window.filterReportTables();
+
+        const detailContainer = document.getElementById('detail-report-container');
+        if (detailContainer) {
+            detailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     // ── Ticket Table Sorting ────────────────────────────────────────────────

@@ -255,5 +255,92 @@ class OrganizerReportRevenueSyncTest extends TestCase
         $this->assertCount(0, $txRows);
         $this->assertFalse($response->viewData('isReportTruncated'));
     }
+
+    public function test_organizer_reports_unscanned_summary_and_ticket_rows(): void
+    {
+        $txn = Transaction::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->event->id,
+            'ticket_category_id' => $this->categoryA->id,
+            'reference_no' => 'INV-SCAN-TEST-01',
+            'customer_name' => 'Peserta Unscanned',
+            'customer_email' => 'unscanned@example.com',
+            'customer_phone' => '081234567890',
+            'quantity' => 3,
+            'ticket_price' => 100000,
+            'total_amount' => 300000,
+            'payment_status' => 'paid',
+            'payment_method' => 'manual_transfer',
+            'payment_channel' => 'bca',
+            'status' => 'success',
+            'paid_at' => now(),
+        ]);
+
+        $ticket1 = Ticket::create([
+            'tenant_id' => $this->tenant->id,
+            'transaction_id' => $txn->id,
+            'event_id' => $this->event->id,
+            'ticket_category_id' => $this->categoryA->id,
+            'ticket_code' => 'TCK-SCAN-01',
+            'status' => 'redeemed',
+            'redeemed_at' => now(),
+        ]);
+
+        $ticket2 = Ticket::create([
+            'tenant_id' => $this->tenant->id,
+            'transaction_id' => $txn->id,
+            'event_id' => $this->event->id,
+            'ticket_category_id' => $this->categoryA->id,
+            'ticket_code' => 'TCK-SCAN-02',
+            'status' => 'sold',
+        ]);
+
+        $ticket3 = Ticket::create([
+            'tenant_id' => $this->tenant->id,
+            'transaction_id' => $txn->id,
+            'event_id' => $this->event->id,
+            'ticket_category_id' => $this->categoryA->id,
+            'ticket_code' => 'TCK-SCAN-03',
+            'status' => 'sold',
+        ]);
+
+        \App\Models\GateLog::create([
+            'tenant_id' => $this->tenant->id,
+            'event_id' => $this->event->id,
+            'ticket_id' => $ticket1->id,
+            'gate_name' => 'Main Gate',
+            'type' => 'IN',
+            'scanned_at' => now(),
+            'notes' => 'Test scan',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('organizer.reports.index'));
+        $response->assertStatus(200);
+
+        $totals = $response->viewData('totals');
+        $this->assertEquals(3, $totals['sold']);
+        $this->assertEquals(1, $totals['scanned']);
+        $this->assertEquals(2, $totals['unscanned']);
+
+        $reportRows = $response->viewData('reportRows');
+        $this->assertCount(1, $reportRows);
+        $this->assertEquals(2, $reportRows[0]['unscanned_count']);
+        $this->assertEquals(1, $reportRows[0]['checkin_count']);
+
+        $catReports = collect($reportRows[0]['categories'])->keyBy('id');
+        $this->assertEquals(2, $catReports[$this->categoryA->id]['unscanned_count']);
+
+        $ticketRows = collect($response->viewData('ticketReportRows'))->keyBy('ticket_code');
+        $this->assertTrue($ticketRows['TCK-SCAN-01']['has_checkin']);
+        $this->assertFalse($ticketRows['TCK-SCAN-02']['has_checkin']);
+        $this->assertFalse($ticketRows['TCK-SCAN-03']['has_checkin']);
+        $this->assertEquals($this->event->id, $ticketRows['TCK-SCAN-02']['event_id']);
+        $this->assertEquals($this->categoryA->id, $ticketRows['TCK-SCAN-02']['category_id']);
+
+        // Verify HTML markup contains the interactive trigger and elements
+        $response->assertSee('showUnscannedTickets');
+        $response->assertSee('Total Belum Scan');
+        $response->assertSee('btn-clear-report-search');
+    }
 }
 

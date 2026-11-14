@@ -44,6 +44,8 @@ class ReportController extends Controller
             $totals = [
                 'sold' => 0,
                 'redeemed' => 0,
+                'scanned' => 0,
+                'unscanned' => 0,
                 'checkin' => 0,
                 'checkout' => 0,
                 'inside' => 0,
@@ -51,11 +53,17 @@ class ReportController extends Controller
                 'paid_transactions' => 0,
             ];
         } else {
-            $ticketTotals = Ticket::whereIn('event_id', $matchingEventIds)
+            $ticketTotals = Ticket::whereIn('tickets.event_id', $matchingEventIds)
                 ->whereHas('transaction', fn ($q) => $q->salesOnly())
+                ->whereIn('tickets.status', ['sold', 'redeemed'])
+                ->leftJoin('gate_logs', function ($join) {
+                    $join->on('gate_logs.ticket_id', '=', 'tickets.id')
+                        ->where('gate_logs.type', '=', 'IN');
+                })
                 ->selectRaw("
-                    SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold,
-                    SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed
+                    COUNT(DISTINCT tickets.id) as sold,
+                    COUNT(DISTINCT CASE WHEN tickets.status = 'redeemed' THEN tickets.id END) as redeemed,
+                    COUNT(DISTINCT CASE WHEN gate_logs.id IS NOT NULL THEN tickets.id END) as scanned
                 ")
                 ->first();
 
@@ -77,10 +85,14 @@ class ReportController extends Controller
 
             $checkin = (int) ($gateTotals->checkin ?? 0);
             $checkout = (int) ($gateTotals->checkout ?? 0);
+            $sold = (int) ($ticketTotals->sold ?? 0);
+            $scanned = (int) ($ticketTotals->scanned ?? 0);
 
             $totals = [
-                'sold' => (int) ($ticketTotals->sold ?? 0),
+                'sold' => $sold,
                 'redeemed' => (int) ($ticketTotals->redeemed ?? 0),
+                'scanned' => $scanned,
+                'unscanned' => max(0, $sold - $scanned),
                 'checkin' => $checkin,
                 'checkout' => $checkout,
                 'inside' => max(0, $checkin - $checkout),
@@ -246,7 +258,9 @@ class ReportController extends Controller
                         'umroh_answer' => $customAnswerSummary,
                         'custom_question_label' => $customQuestionLabel,
                         'custom_fields' => $customFields,
+                        'event_id' => $transaction->event_id,
                         'event_name' => $transaction->event->name ?? '-',
+                        'category_id' => $ticket->ticket_category_id,
                         'category_name' => $ticket->category->name ?? '-',
                         'status' => $ticket->status,
                         'redeemed_at' => $ticket->redeemed_at,
@@ -343,12 +357,18 @@ class ReportController extends Controller
         $eventIds = $events->pluck('id')->all();
 
         $ticketStats = Ticket::query()
-            ->whereIn('event_id', $eventIds)
+            ->whereIn('tickets.event_id', $eventIds)
             ->whereHas('transaction', fn ($q) => $q->salesOnly())
-            ->select('event_id', 'ticket_category_id')
-            ->selectRaw("SUM(CASE WHEN status IN ('sold', 'redeemed') THEN 1 ELSE 0 END) as sold_count")
-            ->selectRaw("SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) as redeemed_count")
-            ->groupBy('event_id', 'ticket_category_id')
+            ->whereIn('tickets.status', ['sold', 'redeemed'])
+            ->leftJoin('gate_logs', function ($join) {
+                $join->on('gate_logs.ticket_id', '=', 'tickets.id')
+                    ->where('gate_logs.type', '=', 'IN');
+            })
+            ->select('tickets.event_id', 'tickets.ticket_category_id')
+            ->selectRaw("COUNT(DISTINCT tickets.id) as sold_count")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN tickets.status = 'redeemed' THEN tickets.id END) as redeemed_count")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN gate_logs.id IS NOT NULL THEN tickets.id END) as scanned_count")
+            ->groupBy('tickets.event_id', 'tickets.ticket_category_id')
             ->get()
             ->groupBy('event_id');
 
@@ -440,13 +460,18 @@ class ReportController extends Controller
                 $transaction = $eventTxStats->get($category->id);
                 $checkin = (int) ($gate->checkin_count ?? 0);
                 $checkout = (int) ($gate->checkout_count ?? 0);
+                $soldCount = (int) ($ticket->sold_count ?? 0);
+                $scannedCount = (int) ($ticket->scanned_count ?? 0);
+                $unscannedCount = max(0, $soldCount - $scannedCount);
 
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'hex_color' => $category->hex_color ?? '#6366F1',
-                    'sold_count' => (int) ($ticket->sold_count ?? 0),
+                    'sold_count' => $soldCount,
                     'redeemed_count' => (int) ($ticket->redeemed_count ?? 0),
+                    'scanned_count' => $scannedCount,
+                    'unscanned_count' => $unscannedCount,
                     'checkin_count' => $checkin,
                     'checkout_count' => $checkout,
                     'inside_count' => max(0, $checkin - $checkout),
@@ -461,6 +486,8 @@ class ReportController extends Controller
                 'categories' => $categories,
                 'sold_count' => $categories->sum('sold_count'),
                 'redeemed_count' => $categories->sum('redeemed_count'),
+                'scanned_count' => $categories->sum('scanned_count'),
+                'unscanned_count' => $categories->sum('unscanned_count'),
                 'checkin_count' => $categories->sum('checkin_count'),
                 'checkout_count' => $categories->sum('checkout_count'),
                 'inside_count' => $categories->sum('inside_count'),
