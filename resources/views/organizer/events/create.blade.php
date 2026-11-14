@@ -426,6 +426,36 @@
                     </div>
 
                     {{-- ============================================================
+                         RECURRING / RUTIN EVENT OPTIONS
+                         ============================================================ --}}
+                    <div class="pt-6 border-t-2 border-dashed border-indigo-100 space-y-4" 
+                         x-data="{ isRecurring: {{ old('is_recurring', 0) ? 'true' : 'false' }} }">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-black text-slate-700 uppercase tracking-[0.18em]">🔄 Event Rutin (Multi-Session)</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Satu kali registrasi untuk kegiatan berkala (contoh: mingguan/bulanan)</p>
+                            </div>
+                        </div>
+
+                        <!-- Recurring Event Toggle -->
+                        <label class="flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition hover:border-indigo-400"
+                               :class="isRecurring ? 'border-indigo-500 bg-indigo-50/70' : 'border-slate-200 bg-slate-50'">
+                            <div class="relative shrink-0">
+                                <input type="checkbox" name="is_recurring" id="is_recurring" value="1" 
+                                       x-model="isRecurring"
+                                       class="sr-only">
+                                <div :class="isRecurring ? 'bg-indigo-600' : 'bg-slate-300'" class="w-12 h-6 rounded-full transition-colors duration-200">
+                                    <div :class="isRecurring ? 'translate-x-6' : 'translate-x-1'" class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 mt-1"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">Aktifkan Siklus Scan Berulang (Multi-Session Check-in)</p>
+                                <p class="text-xs text-slate-500">Tiket/kartu fisik dapat di-scan masuk kembali setiap tanggal/hari pelaksanaan baru selama durasi event belum berakhir.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- ============================================================
                          FREE EVENT OPTIONS
                          ============================================================ --}}
                     <div class="pt-6 border-t-2 border-dashed border-emerald-100 space-y-4" 

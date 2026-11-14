@@ -151,7 +151,7 @@ class GateController extends Controller
             ->with([
                 'category:id,name,hex_color',
                 'transaction:id,customer_name,customer_email,customer_phone,customer_nik,reference_no,quantity,customer_gender,customer_umroh_answer',
-                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
+                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled,status,event_start_date,event_end_date'
             ])
             ->first();
 
@@ -179,7 +179,7 @@ class GateController extends Controller
                             $ticket = $unlinkedTicket->fresh([
                                 'category:id,name,hex_color',
                                 'transaction:id,customer_name,customer_email,customer_phone,customer_nik,reference_no,quantity,customer_gender,customer_umroh_answer',
-                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
+                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled,status,event_start_date,event_end_date'
                             ]);
                         } else {
                             $stockTx = \App\Models\Transaction::firstOrCreate(
@@ -215,7 +215,7 @@ class GateController extends Controller
                             $ticket = $newTicket->fresh([
                                 'category:id,name,hex_color',
                                 'transaction:id,customer_name,customer_email,customer_phone,customer_nik,reference_no,quantity,customer_gender,customer_umroh_answer',
-                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled'
+                                'event:id,tenant_id,purchase_flow,name,meta,umroh_question_enabled,status,event_start_date,event_end_date'
                             ]);
                         }
                     }
@@ -233,6 +233,27 @@ class GateController extends Controller
         $event = $ticket->event;
         $isRedeemFlow = ($event && $event->purchase_flow === 'redeem' && empty($event->getCustomFields()));
         $displayCode = $isRedeemFlow ? ($ticket->wristband_qr ?: $ticket->ticket_code) : $ticket->ticket_code;
+
+        if ($event) {
+            if (in_array($event->status, ['finished', 'cancelled'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Event telah ' . ($event->status === 'cancelled' ? 'dibatalkan' : 'selesai') . '.',
+                    'customer' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
+                    'category' => $ticket->category->name ?? '-',
+                ], 400);
+            }
+
+            if ($event->isExpired()) {
+                $endDateStr = $event->event_end_date ? $event->event_end_date->timezone('Asia/Jakarta')->format('d-m-Y') : 'berakhir';
+                return response()->json([
+                    'success' => false,
+                    'message' => "Event telah berakhir pada {$endDateStr}.",
+                    'customer' => $isRedeemFlow ? '-' : ($ticket->transaction->customer_name ?? '-'),
+                    'category' => $ticket->category->name ?? '-',
+                ], 400);
+            }
+        }
 
         if ($ticket->status === 'void') {
             return response()->json([
@@ -260,14 +281,29 @@ class GateController extends Controller
             ->orderBy('scanned_at', 'desc')
             ->first();
 
+        $isRecurring = $event && $event->isRecurring();
+        $isLastLogToday = $lastLog && $lastLog->scanned_at && $lastLog->scanned_at->timezone('Asia/Jakarta')->isToday();
+
         $alreadyInState = false;
         if ($request->mode === 'IN') {
-            if ($lastLog && $lastLog->type === 'IN') {
-                $alreadyInState = true;
+            if ($isRecurring) {
+                if ($lastLog && $lastLog->type === 'IN' && $isLastLogToday) {
+                    $alreadyInState = true;
+                }
+            } else {
+                if ($lastLog && $lastLog->type === 'IN') {
+                    $alreadyInState = true;
+                }
             }
         } else {
-            if ($lastLog && $lastLog->type === 'OUT') {
-                $alreadyInState = true;
+            if ($isRecurring) {
+                if ($lastLog && $lastLog->type === 'OUT' && $isLastLogToday) {
+                    $alreadyInState = true;
+                }
+            } else {
+                if ($lastLog && $lastLog->type === 'OUT') {
+                    $alreadyInState = true;
+                }
             }
         }
 
@@ -278,9 +314,10 @@ class GateController extends Controller
             $visitorName = $ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-');
 
             $actionText = $request->mode === 'IN' ? 'Checkin' : 'Checkout';
+            $todaySuffix = $isRecurring ? ' hari ini' : '';
             $rejectMessage = $isRedeemFlow
-                ? "Gelang sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} (QR: {$displayCode})"
-                : "Sudah {$actionText} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}";
+                ? "Gelang sudah {$actionText}{$todaySuffix} pada waktu {$timeString} oleh Operator {$operatorName} (QR: {$displayCode})"
+                : "Sudah {$actionText}{$todaySuffix} pada waktu {$timeString} oleh Operator {$operatorName} dengan QR {$ticket->ticket_code} atas nama {$visitorName}";
 
             return response()->json([
                 'success' => false,
@@ -291,13 +328,23 @@ class GateController extends Controller
             ], 400);
         }
 
-        if ($request->mode === 'OUT' && (!$lastLog || $lastLog->type !== 'IN')) {
-            return response()->json([
-                'success' => false,
-                'message' => $lastLog && $lastLog->type === 'OUT' ? 'Tiket/Gelang sudah berada di luar area!' : 'Tiket/Gelang belum pernah Check-in!',
-                'customer' => $isRedeemFlow ? '-' : ($ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-')),
-                'category' => $ticket->category->name ?? '-'
-            ], 400);
+        if ($request->mode === 'OUT') {
+            $canCheckout = $isRecurring
+                ? ($lastLog && $lastLog->type === 'IN' && $isLastLogToday)
+                : ($lastLog && $lastLog->type === 'IN');
+
+            if (!$canCheckout) {
+                $outMessage = ($isRecurring && $lastLog && $lastLog->type === 'OUT' && $isLastLogToday)
+                    ? 'Tiket/Gelang sudah berada di luar area!'
+                    : ($isRecurring ? 'Tiket/Gelang belum pernah Check-in hari ini!' : ($lastLog && $lastLog->type === 'OUT' ? 'Tiket/Gelang sudah berada di luar area!' : 'Tiket/Gelang belum pernah Check-in!'));
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $outMessage,
+                    'customer' => $isRedeemFlow ? '-' : ($ticket->visitor_data['name'] ?? ($ticket->transaction->customer_name ?? '-')),
+                    'category' => $ticket->category->name ?? '-'
+                ], 400);
+            }
         }
 
         // Group checking: Only execute group queries when transaction has multiple tickets AND not redeem flow
@@ -315,10 +362,13 @@ class GateController extends Controller
                     ->get();
 
                 if ($ticketsInGroup->count() > 1) {
-                    $attendeesList = $ticketsInGroup->map(function ($t) use ($event, $transaction) {
+                    $attendeesList = $ticketsInGroup->map(function ($t) use ($event, $transaction, $isRecurring) {
                         $t->setRelation('transaction', $transaction);
                         $tLastLog = $t->gateLogs->first();
-                        $isCheckedIn = $tLastLog && $tLastLog->type === 'IN';
+                        $isLogToday = $tLastLog && $tLastLog->scanned_at && $tLastLog->scanned_at->timezone('Asia/Jakarta')->isToday();
+                        $isCheckedIn = $isRecurring
+                            ? ($tLastLog && $tLastLog->type === 'IN' && $isLogToday)
+                            : ($tLastLog && $tLastLog->type === 'IN');
                         return [
                             'ticket_id' => $t->id,
                             'ticket_code' => $t->ticket_code,
@@ -439,10 +489,15 @@ class GateController extends Controller
             $insertRows = [];
             $redeemedTicketIds = [];
 
+            $isRecurring = $event->isRecurring();
             foreach ($validTicketIds as $ticketId) {
                 $ticketLogs = $existingLogs->get($ticketId);
                 $lastLog = $ticketLogs ? $ticketLogs->first() : null;
-                $alreadyInState = $lastLog && $lastLog->type === $request->mode;
+                $isLogToday = $lastLog && $lastLog->scanned_at && $lastLog->scanned_at->timezone('Asia/Jakarta')->isToday();
+
+                $alreadyInState = $isRecurring
+                    ? ($lastLog && $lastLog->type === $request->mode && $isLogToday)
+                    : ($lastLog && $lastLog->type === $request->mode);
 
                 if ($request->mode === 'IN') {
                     if ($alreadyInState) {
@@ -450,7 +505,9 @@ class GateController extends Controller
                     }
                     $redeemedTicketIds[] = $ticketId;
                 } else {
-                    $hasIn = $ticketLogs && $ticketLogs->contains('type', 'IN');
+                    $hasIn = $isRecurring
+                        ? ($ticketLogs && $ticketLogs->first(fn ($l) => $l->type === 'IN' && $l->scanned_at && $l->scanned_at->timezone('Asia/Jakarta')->isToday()))
+                        : ($ticketLogs && $ticketLogs->contains('type', 'IN'));
                     if (!$hasIn || $alreadyInState) {
                         continue;
                     }

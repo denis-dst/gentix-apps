@@ -244,4 +244,22 @@ class Event extends Model
     {
         return $this->status === 'finished';
     }
+
+    public function isRecurring(): bool
+    {
+        return (bool) ($this->meta['is_recurring'] ?? false);
+    }
+
+    public function isExpired(): bool
+    {
+        if (in_array($this->status, ['finished', 'cancelled'])) {
+            return true;
+        }
+
+        if ($this->event_end_date) {
+            return now()->gt($this->event_end_date->copy()->endOfDay());
+        }
+
+        return false;
+    }
 }

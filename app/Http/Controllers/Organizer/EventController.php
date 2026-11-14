@@ -80,6 +80,7 @@ class EventController extends Controller
             'event_end_date' => 'required|date|after_or_equal:event_start_date',
             'background_image' => 'nullable|image|max:10240',
             'security_code' => 'nullable|string|size:6',
+            'is_recurring' => 'nullable|boolean',
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
@@ -122,6 +123,7 @@ class EventController extends Controller
         $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']) . '-' . rand(1000, 9999);
         
         $meta = $this->buildWristbandMeta($request);
+        $meta['is_recurring'] = $request->boolean('is_recurring');
         $proofs = $this->parseRegistrationProofs($request);
         $meta['registration_proofs'] = $proofs;
         $meta['proof_ig_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_ig')['is_required'] ?? false;
@@ -145,6 +147,7 @@ class EventController extends Controller
 
         $validated['meta'] = $meta;
         unset(
+            $validated['is_recurring'],
             $validated['wristband_league_name'],
             $validated['wristband_league_logo'],
             $validated['wristband_home_club_logo'],
@@ -203,6 +206,7 @@ class EventController extends Controller
             'status' => 'required|in:draft,published,private,cancelled,finished',
             'background_image' => 'nullable|image|max:10240',
             'security_code' => 'required|string|size:6',
+            'is_recurring' => 'nullable|boolean',
             'is_free' => 'nullable|boolean',
             'max_tickets_per_transaction' => 'nullable|integer|min:1',
             'umroh_question_enabled' => 'nullable|boolean',
@@ -238,6 +242,7 @@ class EventController extends Controller
         $validated['thermal_paper_height_mm'] = $request->integer('thermal_paper_height_mm', 160);
 
         $meta = $this->buildWristbandMeta($request, $event->meta ?? []);
+        $meta['is_recurring'] = $request->boolean('is_recurring');
         $proofs = $this->parseRegistrationProofs($request);
         $meta['registration_proofs'] = $proofs;
         $meta['proof_ig_required'] = collect($proofs)->first(fn($p) => $p['id'] === 'proof_ig')['is_required'] ?? false;
@@ -261,6 +266,7 @@ class EventController extends Controller
 
         $validated['meta'] = $meta;
         unset(
+            $validated['is_recurring'],
             $validated['wristband_league_name'],
             $validated['wristband_league_logo'],
             $validated['wristband_home_club_logo'],
